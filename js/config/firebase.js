@@ -49,3 +49,6 @@ export const getSettingsCollection = () => {
 
 // Ekspor instance inti
 export { app, auth, db };
+
+// Tambahkan baris ini di file js/config/firebase.js
+export const getLogsCollection = () => collection(db, "logs");
