@@ -8,7 +8,7 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Phosphor Icons (Pengganti Lucide React untuk Vanilla JS) -->
+  <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
   <!-- SheetJS untuk Export/Import Excel (.xlsx) -->
@@ -17,6 +17,7 @@
   <style>
     /* Kustomisasi gaya untuk keperluan pencetakan (Print) */
     @media print {
+      body.print-preview-mode > :not(#preview-modal) { display: none !important; }
       body { background-color: white !important; }
       .print-hidden { display: none !important; }
       .print-visible { display: block !important; }
@@ -63,7 +64,7 @@
   </div>
 
   <!-- ==================== TOAST NOTIFICATION ==================== -->
-  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 print-hidden"></div>
 
   <!-- ==================== MODALS ==================== -->
   <!-- Delete Modal -->
@@ -196,8 +197,8 @@
     </div>
   </div>
 
-  <!-- Preview Cetak Modal (FIXED) -->
-  <div id="preview-modal" class="fixed inset-0 bg-gray-900/80 z-50 hidden flex-col p-4 md:p-8 backdrop-blur-sm print:relative print:bg-transparent print:p-0">
+  <!-- Preview Cetak Modal (FIXED: Paginasi dan Layout) -->
+  <div id="preview-modal" class="fixed inset-0 bg-gray-900/80 z-50 hidden flex-col p-4 md:p-8 backdrop-blur-sm print:relative print:overflow-visible print:bg-transparent print:p-0">
     <div class="bg-white rounded-t-xl p-4 flex justify-between items-center max-w-5xl w-full mx-auto shadow-lg print-hidden">
       <h2 class="text-xl font-bold flex items-center gap-2 text-gray-800"><i class="ph ph-eye text-blue-600 text-2xl"></i> Preview Rekap Nilai</h2>
       <div class="flex gap-2">
@@ -206,7 +207,7 @@
         <button id="btn-close-preview" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors"><i class="ph ph-x"></i></button>
       </div>
     </div>
-    <div class="bg-white p-8 max-w-5xl w-full mx-auto overflow-y-auto flex-1 rounded-b-xl print:p-0 print:w-full text-black font-serif shadow-2xl print-shadow-none">
+    <div class="bg-white p-8 max-w-5xl w-full mx-auto overflow-y-auto print:overflow-visible flex-1 rounded-b-xl print:p-0 print:w-full text-black font-serif shadow-2xl print-shadow-none">
       <div class="text-center mb-6">
         <h2 class="text-xl font-bold uppercase leading-tight">Pemerintah Provinsi Jawa Timur<br>Dinas Pendidikan<br><span class="text-2xl">SMAN 1 Ambunten</span></h2>
         <p class="text-sm">Jl. Raya Ambunten, Sumenep - Jawa Timur</p>
@@ -214,7 +215,6 @@
         <h3 class="text-lg font-bold uppercase underline">Laporan Rekapitulasi Nilai</h3>
       </div>
       
-      <!-- FIX: Added ID prev-tanggal -->
       <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
         <table class="w-full text-left">
           <tbody>
@@ -419,7 +419,7 @@
         </div>
       </div>
 
-      <!-- Admin Master Data Section (NEW) -->
+      <!-- Admin Master Data Section -->
       <div id="sec-admin-master" class="section-container hidden space-y-6 max-w-5xl mx-auto animate-in">
         <div class="bg-white rounded-xl p-8 border-t-8 border-t-purple-500 shadow-sm">
           <div class="flex items-center gap-4 mb-6">
@@ -459,7 +459,7 @@
         </div>
       </div>
 
-      <!-- 2. Admin Siswa Section (CRUD & Import) -->
+      <!-- Admin Siswa Section (CRUD & Import) -->
       <div id="sec-admin-import" class="section-container hidden space-y-6 max-w-5xl mx-auto animate-in">
         <div class="bg-white rounded-xl p-8 border-t-8 border-t-yellow-400 shadow-sm">
           <div class="flex items-center gap-4 mb-6">
@@ -518,7 +518,7 @@
         </div>
       </div>
 
-      <!-- 3. Admin Delete Class Section -->
+      <!-- Admin Delete Class Section -->
       <div id="sec-admin-delete" class="section-container hidden space-y-6 max-w-2xl mx-auto animate-in">
         <div class="bg-white rounded-xl p-8 border-t-8 border-t-red-500 shadow-sm">
           <div class="mb-8 text-center">
@@ -679,7 +679,7 @@
             <div class="flex flex-wrap items-center gap-2">
               <button id="btn-cancel-edit" class="text-xs text-red-600 hover:underline flex items-center gap-1 mr-2 hidden"><i class="ph ph-x"></i> Batal Edit</button>
               
-              <!-- NEW: Actions for Guru (Import/Export Nilai) -->
+              <!-- Actions for Guru (Import/Export Nilai) -->
               <div id="guru-excel-actions" class="hidden flex items-center gap-2 mr-2 border-r border-gray-200 pr-3">
                 <button id="btn-template-nilai" class="text-xs bg-white hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-md font-medium transition-colors border border-gray-300 flex items-center gap-1 shadow-sm"><i class="ph ph-download-simple text-blue-600"></i> Format Nilai</button>
                 <div class="relative">
@@ -695,7 +695,7 @@
           </div>
 
           <!-- Weights (Guru Only) -->
-          <div id="weights-container" class="bg-blue-50 p-3 mx-4 mt-4 rounded-lg border border-blue-100 flex flex-wrap gap-4 items-center hidden">
+          <div id="weights-container" class="bg-blue-50 p-3 mx-4 mt-4 rounded-lg border border-blue-100 flex flex-wrap gap-4 items-center hidden print-hidden">
             <div class="text-xs font-bold text-blue-800 flex items-center gap-1"><i class="ph ph-percent"></i> Atur Bobot (%):</div>
             <div class="flex items-center gap-2"><label class="text-xs text-gray-600">Formatif</label><input type="number" id="w-f" class="w-12 text-center text-xs border rounded p-1" value="25"></div>
             <div class="flex items-center gap-2"><label class="text-xs text-gray-600">Tugas</label><input type="number" id="w-t" class="w-12 text-center text-xs border rounded p-1" value="25"></div>
@@ -1437,6 +1437,31 @@
       return d;
     };
 
+    /**
+     * Sinkronisasi data real-time khusus untuk mode Guru
+     * Saat di-klik preview/export, kita perlu menangkap input yang belum disave ke DB
+     */
+    function getCurrentDisplayData() {
+      let d = getDisplayData();
+      if (appUser && appUser.role === 'guru') {
+        d = d.map(it => {
+          const tr = document.querySelector(`tr[data-id="${it.id}"]`);
+          if (tr) {
+            const inps = tr.querySelectorAll('input[data-f]');
+            if (inps.length > 0) {
+              const newScores = { ...it.scores };
+              inps.forEach(inp => {
+                newScores[inp.dataset.f] = inp.value;
+              });
+              return { ...it, scores: newScores };
+            }
+          }
+          return it;
+        });
+      }
+      return d;
+    }
+
     // --- FIRESTORE DATABASE MANAGEMENT ---
     function setupFirestoreListener() {
       if(unsubGrades) unsubGrades();
@@ -1906,44 +1931,6 @@
       }
     }
 
-    function doImport(e, cls) {
-      const file = e.target.files[0];
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        logDebug(`Memulai proses impor CSV untuk kelas ${cls}...`);
-        const rows = ev.target.result.split('\n'); let c=0;
-        for(let i=0; i<rows.length; i++) {
-          const r=rows[i].trim(); if(!r) continue;
-          const cols=r.split(','); let n=cols[0]?.trim().replace(/^"|"$/g,''); let nis=cols[1]?.trim().replace(/^"|"$/g,'')||"";
-          if(n.toLowerCase()==='nama siswa' || n.toLowerCase()==='nama' || !n) continue;
-          for(const s of MASTER_SUBJECTS) {
-             const p = { 
-               studentName: n, 
-               nisn: nis, 
-               teacherName: 'admin', 
-               subject: s, 
-               className: cls, 
-               tahun: activeTahun, 
-               semester: activeSemester, 
-               scores: { f1:null, f2:null, f3:null, t1:null, t2:null, t3:null, asaj:null }, 
-               results: { avgFormative:0, avgTask:0, final:0 }, 
-               createdAt: serverTimestamp() 
-             };
-             try{ 
-               await addDoc(getGradesCollection(), p); 
-             } catch(err){
-               logDebug("GAGAL IMPOR DATA", err);
-             }
-          }
-          c++;
-        }
-        logDebug(`Selesai impor ${c} siswa.`);
-        showToast(`Impor ${c} siswa selesai!`); e.target.value=null;
-      };
-      reader.readAsText(file);
-    }
-
     function downloadTemplateSiswa() {
       const ws = XLSX.utils.json_to_sheet([
         { "Nama Siswa": "Budi Santoso", "NISN": "0011223344" },
@@ -2064,7 +2051,7 @@
     }
 
     function downloadTemplateNilai() {
-      const d = getDisplayData();
+      const d = getCurrentDisplayData();
       if(!d.length) return showToast("Tidak ada data siswa di kelas ini", "error");
 
       const excelData = d.map((it, i) => ({
@@ -2159,32 +2146,35 @@
     function showPreview(show) {
       if(show) {
         logDebug("Membuka Preview Cetak...");
-        const d = getDisplayData();
+        const d = getCurrentDisplayData();
         if(!d.length) return showToast("Tidak ada data", "error");
         
         if (el.pMapel) el.pMapel.textContent = selSubject || 'Semua Mata Pelajaran';
         if (el.pKelas) el.pKelas.textContent = selClass || 'Semua Kelas';
-        if (el.pGuru) el.pGuru.textContent = appUser.role==='guru' ? appUser.username : (wFilter!=='all'?wFilter:'Semua Guru');
+        if (el.pGuru) el.pGuru.textContent = appUser.role==='guru' ? appUser.username.split(',')[0] : (wFilter!=='all'?wFilter:'Semua Guru');
         if (el.pTanggal) el.pTanggal.textContent = new Date().toLocaleDateString('id-ID');
         if (el.pPeriode) el.pPeriode.textContent = `${activeTahun} - Semester ${activeSemester}`;
         if (el.pBobot) el.pBobot.textContent = `F: ${weights.f}% | T: ${weights.t}% | ASAJ: ${weights.a}%`;
         
-        if (el.prevTbody) el.prevTbody.innerHTML = d.map((it, i) => `<tr><td class="border border-black p-2">${i+1}</td><td class="border border-black p-2 text-left"><b>${it.studentName}</b><br><span class="text-xs text-gray-600">${it.nisn||'-'}</span></td><td class="border border-black p-2">${ds(it.scores.f1)}</td><td class="border border-black p-2">${ds(it.scores.f2)}</td><td class="border border-black p-2">${ds(it.scores.f3)}</td><td class="border border-black p-2">${ds(it.scores.t1)}</td><td class="border border-black p-2">${ds(it.scores.t2)}</td><td class="border border-black p-2">${ds(it.scores.t3)}</td><td class="border border-black p-2">${ds(it.scores.asaj)}</td><td class="border border-black p-2 font-bold bg-gray-50">${getCalc(it.scores).final}</td></tr>`).join('');
+        if (el.prevTbody) el.prevTbody.innerHTML = d.map((it, i) => `<tr><td class="border border-black p-2 text-center">${i+1}</td><td class="border border-black p-2 text-left"><b>${it.studentName}</b><br><span class="text-xs text-gray-600">${it.nisn||'-'}</span></td><td class="border border-black p-2 text-center">${ds(it.scores.f1)}</td><td class="border border-black p-2 text-center">${ds(it.scores.f2)}</td><td class="border border-black p-2 text-center">${ds(it.scores.f3)}</td><td class="border border-black p-2 text-center">${ds(it.scores.t1)}</td><td class="border border-black p-2 text-center">${ds(it.scores.t2)}</td><td class="border border-black p-2 text-center">${ds(it.scores.t3)}</td><td class="border border-black p-2 text-center">${ds(it.scores.asaj)}</td><td class="border border-black p-2 font-bold bg-gray-50 text-center">${getCalc(it.scores).final}</td></tr>`).join('');
         
         if (el.previewModal) {
             el.previewModal.classList.remove('hidden'); 
             el.previewModal.classList.add('flex');
         }
+        // Menambahkan status print-preview agar layout CSS print mendeteksi state ini
+        document.body.classList.add('print-preview-mode');
       } else { 
         if (el.previewModal) {
             el.previewModal.classList.add('hidden'); 
             el.previewModal.classList.remove('flex'); 
         }
+        document.body.classList.remove('print-preview-mode');
       }
     }
 
     function handleExportExcel() {
-      const d = getDisplayData();
+      const d = getCurrentDisplayData();
       if(!d.length) return showToast("Tidak ada data untuk diexport", "error");
 
       try {
@@ -2237,9 +2227,11 @@
     }
 
     function handleDownloadDoc() {
-      const rt = appUser.role==='guru' ? appUser.username : (wFilter!=='all'?wFilter:'Semua Guru');
+      const rt = appUser.role==='guru' ? appUser.username.split(',')[0] : (wFilter!=='all'?wFilter:'Semua Guru');
       const rs = selSubject || 'Semua Mata Pelajaran'; const rc = selClass || 'Semua Kelas';
-      const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset="utf-8"><title>Rekap</title><style>body{font-family:'Times New Roman',serif;font-size:12pt}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid black;padding:5px;vertical-align:middle;font-size:10pt}th{background-color:#f0f0f0;font-weight:bold;text-align:center}.header{text-align:center;margin-bottom:20px}.meta-table{width:100%; margin-bottom:10px; border:none;} .meta-table td{border:none; padding:2px; text-align:left; font-size:11pt;}</style></head><body><div class="header"><h2>PEMERINTAH PROVINSI JAWA TIMUR</h2><h3>DINAS PENDIDIKAN</h3><h1>SMAN 1 AMBUNTEN</h1><p>Jl. Raya Ambunten, Sumenep - Jawa Timur</p><hr/><h2>LAPORAN REKAPITULASI NILAI</h2></div><table class="meta-table"><tr><td width="15%"><b>Mata Pelajaran</b></td><td width="2%">:</td><td>${rs}</td><td width="15%"><b>Tanggal</b></td><td width="2%">:</td><td>${new Date().toLocaleDateString('id-ID')}</td></tr><tr><td><b>Kelas</b></td><td>:</td><td>${rc}</td><td><b>Periode</b></td><td>:</td><td>${activeTahun} - Smt ${activeSemester}</td></tr><tr><td><b>Guru Pengajar</b></td><td>:</td><td colspan="4">${rt}</td></tr></table><table><thead><tr><th>No</th><th>Nama Siswa & NISN</th><th>F1</th><th>F2</th><th>F3</th><th>T1</th><th>T2</th><th>T3</th><th>ASAJ</th><th>NA</th></tr></thead><tbody>${getDisplayData().map((it, i)=>`<tr><td style="text-align:center">${i+1}</td><td><b>${it.studentName}</b><br/>NISN: ${it.nisn||'-'}</td><td style="text-align:center">${ds(it.scores.f1)}</td><td style="text-align:center">${ds(it.scores.f2)}</td><td style="text-align:center">${ds(it.scores.f3)}</td><td style="text-align:center">${ds(it.scores.t1)}</td><td style="text-align:center">${ds(it.scores.t2)}</td><td style="text-align:center">${ds(it.scores.t3)}</td><td style="text-align:center">${ds(it.scores.asaj)}</td><td style="text-align:center"><b>${getCalc(it.scores).final}</b></td></tr>`).join('')}</tbody></table></body></html>`;
+      const d = getCurrentDisplayData();
+      
+      const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset="utf-8"><title>Rekap</title><style>body{font-family:'Times New Roman',serif;font-size:12pt}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid black;padding:5px;vertical-align:middle;font-size:10pt}th{background-color:#f0f0f0;font-weight:bold;text-align:center}.header{text-align:center;margin-bottom:20px}.meta-table{width:100%; margin-bottom:10px; border:none;} .meta-table td{border:none; padding:2px; text-align:left; font-size:11pt;}</style></head><body><div class="header"><h2>PEMERINTAH PROVINSI JAWA TIMUR</h2><h3>DINAS PENDIDIKAN</h3><h1>SMAN 1 AMBUNTEN</h1><p>Jl. Raya Ambunten, Sumenep - Jawa Timur</p><hr/><h2>LAPORAN REKAPITULASI NILAI</h2></div><table class="meta-table"><tr><td width="15%"><b>Mata Pelajaran</b></td><td width="2%">:</td><td>${rs}</td><td width="15%"><b>Tanggal</b></td><td width="2%">:</td><td>${new Date().toLocaleDateString('id-ID')}</td></tr><tr><td><b>Kelas</b></td><td>:</td><td>${rc}</td><td><b>Periode</b></td><td>:</td><td>${activeTahun} - Smt ${activeSemester}</td></tr><tr><td><b>Guru Pengajar</b></td><td>:</td><td colspan="4">${rt}</td></tr></table><table><thead><tr><th>No</th><th>Nama Siswa & NISN</th><th>F1</th><th>F2</th><th>F3</th><th>T1</th><th>T2</th><th>T3</th><th>ASAJ</th><th>NA</th></tr></thead><tbody>${d.map((it, i)=>`<tr><td style="text-align:center">${i+1}</td><td><b>${it.studentName}</b><br/>NISN: ${it.nisn||'-'}</td><td style="text-align:center">${ds(it.scores.f1)}</td><td style="text-align:center">${ds(it.scores.f2)}</td><td style="text-align:center">${ds(it.scores.f3)}</td><td style="text-align:center">${ds(it.scores.t1)}</td><td style="text-align:center">${ds(it.scores.t2)}</td><td style="text-align:center">${ds(it.scores.t3)}</td><td style="text-align:center">${ds(it.scores.asaj)}</td><td style="text-align:center"><b>${getCalc(it.scores).final}</b></td></tr>`).join('')}</tbody></table></body></html>`;
       const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Rekap_Nilai_${new Date().toISOString().slice(0,10)}.doc`;
       a.click();
