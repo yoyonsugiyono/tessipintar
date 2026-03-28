@@ -96,3 +96,19 @@ export async function saveNewGrade(payload, editId = null) {
         throw err;
     }
 }
+
+// Import writeLog di bagian atas file
+import { writeLog } from './audit.js';
+
+export async function saveNewGrade(payload, id = null) {
+    const col = getGradesCollection();
+    if (id) {
+        await updateDoc(doc(col, id), { ...payload, updatedAt: serverTimestamp() });
+        // CATAT LOG UPDATE
+        await writeLog("UPDATE_NILAI", `Mengubah nilai siswa: ${payload.studentName} (${payload.subject})`);
+    } else {
+        await addDoc(col, { ...payload, createdAt: serverTimestamp() });
+        // CATAT LOG TAMBAH
+        await writeLog("TAMBAH_SISWA", `Menambah siswa baru: ${payload.studentName} ke kelas ${payload.className}`);
+    }
+}
