@@ -476,10 +476,10 @@
     // --- FIREBASE IMPORTS ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- DEBUGGER FUNCTION ---
-    const debugPanel = document.getElementById('debug-content');
+    // --- KONFIGURASI FIREBASE ---
+    // WAJIB DIGANTI: Masukkan konfigurasi Firebase Anda di bawah ini
     const debugDot = document.getElementById('debug-status-dot');
     
     function logDebug(msg, err = null) {
@@ -508,7 +508,7 @@
 
     // --- KONFIGURASI FIREBASE ---
     const isCanvasEnv = typeof __firebase_config !== 'undefined';
-   const firebaseConfig = {
+    const firebaseConfig = {
   apiKey: "AIzaSyBy4XjK7_GgwvyZszuooaHWuF_zCKpniXk",
   authDomain: "sipintar-f7b13.firebaseapp.com",
   projectId: "sipintar-f7b13",
@@ -535,18 +535,19 @@
 
     // Dapatkan Referensi Koleksi Berdasarkan Lingkungan
     const getGradesCollection = () => {
-      const path = isCanvasEnv 
+      return isCanvasEnv 
         ? collection(db, 'artifacts', appId, 'public', 'data', 'grades')
         : collection(db, 'grades');
-      return path;
     };
 
     const getUsersCollection = () => {
-      const path = isCanvasEnv 
+      return isCanvasEnv 
         ? collection(db, 'artifacts', appId, 'public', 'data', 'users')
         : collection(db, 'users');
-      return path;
     };
+
+    // Google Apps Script Webhook URL
+    const GAS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxwBsTcs6e50B7jUMmMIoMBSF5B37YOJo6hnMNua1SUHsQi6jplRWVkpV_Phew6-mM/exec";
 
     const DEFAULT_SUBJECTS = ["Pendidikan Agama Islam","PPKn","Bahasa Indonesia","Matematika","Bahasa Inggris","Seni Tari","PJOK","Fisika","Biologi","Kimia","Sejarah","Geografi","Ekonomi","Sosiologi","Informatika","Bahasa Madura","Matematika Tingkat Lanjut","Bahasa Inggris Tingkat Lanjut"];
     const DEFAULT_CLASSES = ["X-1", "X-2", "X-3", "X-4", "X-5", "X-6", "X-7", "XI-A1", "XI-A2", "XI-B1", "XI-B2", "XI-B3", "XII-A1", "XII-A2", "XII-B1", "XII-B2", "XII-C"];
@@ -555,7 +556,7 @@
     let appUser = null;
     let firebaseUser = null;
     let gradesData = [];
-    let USERS_DB = []; // Data user sekarang diambil secara dinamis dari database Firebase
+    let USERS_DB = []; // Data user diambil secara dinamis dari database Firebase
     let unsubGrades = null;
     let activeMenu = 'dashboard';
     let editGradeId = null;
@@ -690,41 +691,35 @@
       el.btnLoginSubmit.classList.add('opacity-50', 'cursor-not-allowed');
       el.btnLoginSubmit.textContent = "MEMUAT DATABASE...";
 
+      // Cek apakah API Key Firebase sudah dimasukkan (Peringatan UI)
+      if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "API_KEY_ANDA" || firebaseConfig.apiKey === "ISI_API_KEY_FIREBASE_ANDA") {
+        el.loginErr.classList.remove('hidden');
+        el.loginErr.classList.add('flex');
+        el.loginErrTxt.innerHTML = `<b>Database Cloud Belum Dikonfigurasi!</b><br>Agar data tersimpan & sinkron antar perangkat saat di-host di GitHub, buka file <code>index.html</code> ini dan masukkan konfigurasi Firebase Anda di baris konfigurasi.<br><a href="https://console.firebase.google.com/" target="_blank" class="underline text-blue-600">Buka Firebase</a>`;
+        el.btnLoginSubmit.textContent = "KONFIGURASI DIBUTUHKAN";
+        return; 
+      }
+
       // Firebase Auth
       const doAuth = async () => {
         try {
-          if (initialToken) {
-            logDebug("Mencoba login dengan custom token...");
-            await signInWithCustomToken(auth, initialToken);
-          } else {
-            logDebug("Mencoba otentikasi anonim Firebase...");
-            await signInAnonymously(auth);
-          }
+          if (initialToken) await signInWithCustomToken(auth, initialToken);
+          else await signInAnonymously(auth);
         } catch (e) { 
-          logDebug("GAGAL OTENTIKASI FIREBASE", e);
+          console.error("Auth Err", e);
           el.loginErr.classList.remove('hidden');
           el.loginErr.classList.add('flex');
-          el.loginErrTxt.innerHTML = `<b>Akses Database Ditolak!</b><br>Firebase Auth Error: ${e.code || e.message}<br><br><b>PENTING (Solusi GitHub):</b><br>1. Buka Firebase Console > Authentication.<br>2. Buka tab <b>Settings</b> > <b>Authorized domains</b>.<br>3. Pastikan domain github anda (misal: <code>username.github.io</code>) sudah ditambahkan di sana!`;
-          el.btnLoginSubmit.disabled = true;
-          el.btnLoginSubmit.classList.add('opacity-50', 'cursor-not-allowed');
+          el.loginErrTxt.innerHTML = `<b>Akses Database Ditolak!</b><br>Pesan Error: ${e.message}<br><br><b>PENTING (Jika Hosting di GitHub):</b><br>1. Buka <a href="https://console.firebase.google.com/" target="_blank" class="underline text-blue-600">Firebase Console</a><br>2. Masuk ke menu <b>Authentication</b> > <b>Sign-in method</b> > Aktifkan <b>Anonymous</b>.<br>3. Masuk ke <b>Settings</b> > <b>Authorized domains</b> > Tambahkan domain github anda (misal: <code>namaanda.github.io</code>).`;
+          el.btnLoginSubmit.textContent = "AKSES DITOLAK";
         }
       };
       doAuth();
 
       onAuthStateChanged(auth, async user => {
+        firebaseUser = user;
         if (user) {
-           logDebug(`Berhasil terotentikasi di Firebase! UID: ${user.uid}`);
-           debugDot.classList.replace('bg-red-500', 'bg-green-500');
-           firebaseUser = user;
-
-           // Mulai memuat data akun dari Firebase
            await loadUsersFromDB();
-
            if(appUser) setupFirestoreListener();
-        } else {
-           logDebug("User Firebase terputus (Logout).");
-           firebaseUser = null;
-           debugDot.classList.replace('bg-green-500', 'bg-red-500');
         }
       });
 
@@ -733,19 +728,16 @@
 
     async function loadUsersFromDB() {
       try {
-        logDebug("Mengambil data akun (USERS_DB) dari Firestore...");
         const usersRef = getUsersCollection();
         const snap = await getDocs(usersRef);
 
         if (snap.empty) {
-          logDebug("TIDAK ADA DATA PENGGUNA DI FIREBASE.");
           el.loginErr.classList.remove('hidden');
           el.loginErr.classList.add('flex');
-          el.loginErrTxt.innerHTML = `<b>Data Pengguna Kosong!</b><br>Jalankan script <code>migrateUsers()</code> di Console untuk memuat daftar guru awal.`;
+          el.loginErrTxt.innerHTML = `<b>Data Pengguna Kosong!</b><br>Pastikan Anda telah melakukan migrasi data akun ke database.`;
           el.btnLoginSubmit.textContent = "DATABASE KOSONG";
         } else {
           USERS_DB = snap.docs.map(doc => doc.data());
-          logDebug(`Berhasil memuat ${USERS_DB.length} data pengguna.`);
 
           // Setup Auto-complete (Datalist)
           el.usersList.innerHTML = USERS_DB.map(u => `<option value="${u.username}">`).join('');
@@ -760,7 +752,7 @@
           el.btnLoginSubmit.textContent = "MASUK SISTEM";
         }
       } catch (err) {
-        logDebug("GAGAL MENGAMBIL DATA PENGGUNA", err);
+        console.error("Gagal mengambil data pengguna", err);
       }
     }
 
