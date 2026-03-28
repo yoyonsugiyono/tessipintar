@@ -61,7 +61,66 @@ export function setupAdminEvents() {
         };
     }
 
-    // 3. Event CRUD Guru
+    // ==========================================
+    // 3. FITUR HAPUS DATA KELAS (YANG SEBELUMNYA HILANG)
+    // ==========================================
+    const deleteClassSel = document.getElementById('delete-class-select');
+    const btnDeleteClass = document.getElementById('btn-delete-class');
+
+    if (deleteClassSel && btnDeleteClass) {
+        // Aktifkan tombol Hapus hanya jika kelas sudah dipilih
+        deleteClassSel.onchange = (e) => {
+            const val = e.target.value;
+            btnDeleteClass.disabled = !val;
+            btnDeleteClass.classList.toggle('bg-red-600', !!val);
+            btnDeleteClass.classList.toggle('bg-gray-300', !val);
+            btnDeleteClass.classList.toggle('cursor-not-allowed', !val);
+        };
+
+        // Logika saat tombol Hapus diklik
+        btnDeleteClass.onclick = async () => {
+            const cls = deleteClassSel.value;
+            if(!cls) { alert("Pilih Kelas!"); return; }
+            
+            const thn = getActiveTahun();
+            const smt = getActiveSemester();
+
+            // Konfirmasi keamanan ganda
+            if(!window.confirm(`Yakin hapus SEMUA data ${cls} pada periode ${thn} - Semester ${smt}?`)) return;
+            if(!window.confirm(`Konfirmasi terakhir: Hapus permanen ${cls}? Tindakan ini tidak dapat dibatalkan.`)) return;
+            
+            // Cari semua dokumen nilai yang milik kelas, tahun, dan semester tersebut
+            const docsToDelete = gradesData.filter(g => g.className === cls && g.tahun === thn && g.semester === smt);
+            
+            if(!docsToDelete.length) { 
+                alert("Tidak ada data siswa/nilai di kelas ini pada periode aktif."); 
+                return; 
+            }
+            
+            btnDeleteClass.disabled = true; 
+            btnDeleteClass.textContent = "Sedang Menghapus...";
+            
+            try {
+                // Hapus masal secara paralel untuk kecepatan
+                await Promise.all(docsToDelete.map(d => deleteDoc(doc(getGradesCollection(), d.id))));
+                alert(`Berhasil! ${docsToDelete.length} data siswa & nilai kelas ${cls} telah dihapus.`);
+                
+                // Reset tampilan
+                deleteClassSel.value = "";
+                btnDeleteClass.disabled = true;
+                btnDeleteClass.textContent = "Hapus Permanen Data Kelas";
+                btnDeleteClass.classList.add('bg-gray-300', 'cursor-not-allowed');
+                btnDeleteClass.classList.remove('bg-red-600');
+            } catch(e) {
+                console.error("[DEBUG] GAGAL HAPUS KELAS", e);
+                alert("Gagal menghapus data kelas. Cek koneksi Anda.");
+                btnDeleteClass.disabled = false; 
+                btnDeleteClass.textContent = "Hapus Permanen Data Kelas";
+            }
+        };
+    }
+
+    // 4. Event CRUD Guru
     let isEditGuruMode = false;
     const crudGuruForm = document.getElementById('crud-guru-form');
     
@@ -97,9 +156,8 @@ export function setupAdminEvents() {
         };
     }
 
-    // --- DEKLARASI FUNGSI GLOBAL AGAR BISA DIPANGGIL HTML ---
+    // --- DEKLARASI FUNGSI GLOBAL AGAR BISA DIPANGGIL DARI HTML ---
     
-    // Hapus Master Data
     window.deleteMasterClass = async (idx) => {
         if(!confirm(`Hapus kelas "${MASTER_CLASSES[idx]}"?`)) return;
         MASTER_CLASSES.splice(idx, 1);
@@ -116,7 +174,6 @@ export function setupAdminEvents() {
         renderMasterDataUI();
     };
 
-    // Edit & Hapus Guru
     window.editGuru = (id) => {
         const u = USERS_DB.find(x => x.id === id);
         if(!u) return;
