@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Si PINTAR SMAN 1 Ambunten</title>
   
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-  <!-- SheetJS untuk Export/Import Excel (.xlsx) -->
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -51,7 +48,6 @@
 </head>
 <body class="font-sans bg-gray-50 text-gray-800 antialiased min-h-screen flex flex-col md:flex-row print:bg-white relative">
 
-  <!-- ==================== DEBUG PANEL ==================== -->
   <div id="debug-wrapper" class="fixed bottom-4 left-4 z-[9999] print-hidden flex flex-col items-start gap-2">
     <button id="btn-toggle-debug" class="bg-black/80 text-green-400 text-[10px] font-mono px-3 py-1.5 rounded border border-green-500/50 hover:bg-black transition-colors flex items-center gap-2">
       <div id="debug-status-dot" class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
@@ -63,11 +59,8 @@
     </div>
   </div>
 
-  <!-- ==================== TOAST NOTIFICATION ==================== -->
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 print-hidden"></div>
 
-  <!-- ==================== MODALS ==================== -->
-  <!-- Delete Modal -->
   <div id="delete-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
     <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl transform transition-transform scale-95 opacity-0 duration-200" id="delete-modal-content">
       <div class="flex flex-col items-center text-center mb-6">
@@ -84,7 +77,6 @@
     </div>
   </div>
 
-  <!-- CRUD Guru Modal -->
   <div id="crud-guru-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-transform scale-95 opacity-0 duration-200" id="crud-guru-content">
       <div class="flex justify-between items-center mb-6">
@@ -117,7 +109,6 @@
     </div>
   </div>
 
-  <!-- CRUD Siswa Modal -->
   <div id="crud-siswa-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-transform scale-95 opacity-0 duration-200" id="crud-siswa-content">
       <div class="flex justify-between items-center mb-6">
@@ -147,7 +138,6 @@
     </div>
   </div>
 
-  <!-- Ubah Sandi Modal (User/Guru) -->
   <div id="ubah-sandi-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-transform scale-95 opacity-0 duration-200">
       <div class="flex justify-between items-center mb-6">
@@ -175,7 +165,6 @@
     </div>
   </div>
 
-  <!-- Reset Sandi Modal (Admin) -->
   <div id="reset-sandi-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-transform scale-95 opacity-0 duration-200">
       <div class="flex justify-between items-center mb-6">
@@ -197,7 +186,6 @@
     </div>
   </div>
 
-  <!-- Preview Cetak Modal (FIXED: Paginasi dan Layout) -->
   <div id="preview-modal" class="fixed inset-0 bg-gray-900/80 z-50 hidden flex-col p-4 md:p-8 backdrop-blur-sm print:relative print:overflow-visible print:bg-transparent print:p-0">
     <div class="bg-white rounded-t-xl p-4 flex justify-between items-center max-w-5xl w-full mx-auto shadow-lg print-hidden">
       <h2 class="text-xl font-bold flex items-center gap-2 text-gray-800"><i class="ph ph-eye text-blue-600 text-2xl"></i> Preview Rekap Nilai</h2>
@@ -243,13 +231,11 @@
           </tr>
         </thead>
         <tbody id="preview-tbody">
-          <!-- Rows injected via JS -->
-        </tbody>
+          </tbody>
       </table>
     </div>
   </div>
 
-  <!-- ==================== LOGIN VIEW ==================== -->
   <div id="login-view" class="min-h-screen w-full bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4 absolute inset-0 z-40">
     <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/50 backdrop-blur-sm">
       <div class="bg-gradient-to-b from-blue-700 to-blue-800 p-10 text-center relative overflow-hidden">
@@ -278,7 +264,6 @@
           </div>
         </div>
 
-        <!-- Tahun Pelajaran & Semester -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="space-y-2">
             <label class="text-sm font-bold text-gray-700 ml-1">Tahun Pelajaran</label>
@@ -317,10 +302,8 @@
     </div>
   </div>
 
-  <!-- ==================== MAIN APP VIEW ==================== -->
   <div id="main-view" class="hidden w-full min-h-screen flex flex-col md:flex-row print:bg-white relative">
     
-    <!-- Mobile Header -->
     <div class="md:hidden bg-blue-800 text-white p-4 flex justify-between items-center sticky top-0 z-30 shadow-lg print-hidden">
       <div class="flex items-center gap-3">
         <i class="ph ph-buildings text-yellow-400 text-2xl"></i>
@@ -329,10 +312,8 @@
       <button id="btn-mobile-menu" class="p-2 hover:bg-blue-700 rounded-lg text-2xl"><i class="ph ph-list"></i></button>
     </div>
 
-    <!-- Sidebar Overlay -->
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
 
-    <!-- Sidebar -->
     <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-blue-900 text-white transform -translate-x-full transition-transform duration-300 ease-out md:relative md:translate-x-0 print-hidden shadow-2xl flex flex-col">
       <div class="p-8 flex flex-col items-center bg-blue-950">
         <div class="bg-white p-1.5 rounded-full mb-4 ring-4 ring-blue-800 shadow-lg">
@@ -342,8 +323,7 @@
       </div>
 
       <nav class="flex-1 p-4 space-y-2 overflow-y-auto" id="sidebar-nav">
-        <!-- Injected via JS based on role -->
-      </nav>
+        </nav>
 
       <div class="p-4 bg-blue-950 border-t border-blue-900">
         <div class="flex items-center gap-3 mb-4 px-2">
@@ -362,10 +342,8 @@
       </div>
     </aside>
 
-    <!-- Main Content Area -->
     <main class="flex-1 p-4 md:p-8 overflow-y-auto print:p-0 print:overflow-visible bg-gray-50 relative" id="main-content">
       
-      <!-- Top Header -->
       <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 print-hidden">
         <div>
           <h1 id="page-title" class="text-3xl font-extrabold text-gray-800 flex items-center gap-3">Dashboard Utama</h1>
@@ -377,9 +355,6 @@
         </div>
       </header>
 
-      <!-- SECTIONS -->
-
-      <!-- 1. Dashboard Section -->
       <div id="sec-dashboard" class="section-container space-y-8 animate-in">
         <div class="bg-gradient-to-r from-blue-800 to-blue-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden group">
           <div class="relative z-10 max-w-2xl">
@@ -419,7 +394,6 @@
         </div>
       </div>
 
-      <!-- Admin Master Data Section -->
       <div id="sec-admin-master" class="section-container hidden space-y-6 max-w-5xl mx-auto animate-in">
         <div class="bg-white rounded-xl p-8 border-t-8 border-t-purple-500 shadow-sm">
           <div class="flex items-center gap-4 mb-6">
@@ -431,7 +405,6 @@
           </div>
           
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Master Kelas -->
             <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
               <h3 class="font-bold text-gray-700 mb-4 border-b border-gray-200 pb-2">Daftar Kelas</h3>
               <div class="flex gap-2 mb-4">
@@ -439,11 +412,9 @@
                 <button id="btn-add-master-class" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded font-medium text-sm transition-colors"><i class="ph ph-plus"></i></button>
               </div>
               <div id="master-class-list" class="max-h-64 overflow-y-auto pr-2">
-                <!-- Injected via JS -->
-              </div>
+                </div>
             </div>
 
-            <!-- Master Mapel -->
             <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
               <h3 class="font-bold text-gray-700 mb-4 border-b border-gray-200 pb-2">Daftar Mata Pelajaran</h3>
               <div class="flex gap-2 mb-4">
@@ -451,15 +422,13 @@
                 <button id="btn-add-master-subject" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded font-medium text-sm transition-colors"><i class="ph ph-plus"></i></button>
               </div>
               <div id="master-subject-list" class="max-h-64 overflow-y-auto pr-2">
-                <!-- Injected via JS -->
-              </div>
+                </div>
             </div>
           </div>
 
         </div>
       </div>
 
-      <!-- Admin Siswa Section (CRUD & Import) -->
       <div id="sec-admin-import" class="section-container hidden space-y-6 max-w-5xl mx-auto animate-in">
         <div class="bg-white rounded-xl p-8 border-t-8 border-t-yellow-400 shadow-sm">
           <div class="flex items-center gap-4 mb-6">
@@ -470,7 +439,6 @@
             </div>
           </div>
           
-          <!-- Area Import -->
           <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8 flex flex-col md:flex-row gap-4 items-center">
             <div class="flex-1 w-full">
               <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih Kelas Tujuan</label>
@@ -489,7 +457,6 @@
             </div>
           </div>
 
-          <!-- Area Tabel CRUD Siswa -->
           <div class="flex justify-between items-end mb-4">
             <div class="w-64">
               <label class="block text-xs font-semibold text-gray-500 mb-1">Tampilkan Daftar Siswa Kelas:</label>
@@ -518,7 +485,6 @@
         </div>
       </div>
 
-      <!-- Admin Delete Class Section -->
       <div id="sec-admin-delete" class="section-container hidden space-y-6 max-w-2xl mx-auto animate-in">
         <div class="bg-white rounded-xl p-8 border-t-8 border-t-red-500 shadow-sm">
           <div class="mb-8 text-center">
@@ -542,7 +508,6 @@
         </div>
       </div>
 
-      <!-- Admin Guru Section (CRUD & Import) -->
       <div id="sec-admin-guru" class="section-container hidden space-y-6 max-w-5xl mx-auto animate-in">
         <div class="bg-white rounded-xl p-8 border-t-8 border-t-blue-500 shadow-sm">
           <div class="flex items-center gap-4 mb-6">
@@ -553,7 +518,6 @@
             </div>
           </div>
           
-          <!-- Area Import Guru -->
           <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
             <div class="flex-1 text-sm text-gray-600">
               <b>Import XLSX Massal</b><br>Kolom Wajib: <code>Username</code>, <code>Role</code>, <code>Password</code><br>Contoh Role: <i>guru, admin, wakasek</i>
@@ -569,7 +533,6 @@
             </div>
           </div>
 
-          <!-- Area Tabel CRUD Guru -->
           <div class="flex justify-between items-end mb-4">
             <h3 class="text-lg font-bold text-gray-700">Daftar Akun Terdaftar</h3>
             <button id="btn-add-guru" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 shadow-sm transition-colors">
@@ -588,17 +551,14 @@
                 </tr>
               </thead>
               <tbody id="crud-guru-tbody" class="divide-y divide-gray-100">
-                <!-- Data injected via JS -->
-              </tbody>
+                </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- Admin Backup & Restore Section -->
       <div id="sec-admin-backup" class="section-container hidden space-y-6 max-w-4xl mx-auto animate-in">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Backup -->
           <div class="bg-white rounded-xl p-8 border-t-8 border-t-emerald-500 shadow-sm text-center">
             <div class="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600 text-3xl"><i class="ph ph-download-simple"></i></div>
             <h2 class="text-xl font-bold text-gray-800">Backup Database</h2>
@@ -607,7 +567,6 @@
               <i class="ph ph-database"></i> Download File Backup
             </button>
           </div>
-          <!-- Restore -->
           <div class="bg-white rounded-xl p-8 border-t-8 border-t-orange-500 shadow-sm text-center relative overflow-hidden">
             <div class="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-orange-600 text-3xl"><i class="ph ph-upload-simple"></i></div>
             <h2 class="text-xl font-bold text-gray-800">Restore Database</h2>
@@ -619,7 +578,6 @@
           </div>
         </div>
 
-        <!-- NEW: Reset Database -->
         <div class="bg-white rounded-xl p-8 border-t-8 border-t-red-600 shadow-sm text-center mt-6">
           <div class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600 text-3xl"><i class="ph ph-warning-octagon"></i></div>
           <h2 class="text-xl font-bold text-gray-800">Reset Total Database</h2>
@@ -630,10 +588,8 @@
         </div>
       </div>
 
-      <!-- 4. Nilai / Rekap Section -->
       <div id="sec-nilai" class="section-container hidden space-y-6 animate-in">
         
-        <!-- Filter Controls (Wakasek & Guru) -->
         <div class="bg-white rounded-xl p-5 border shadow-sm print-hidden" id="filter-container">
           <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2"><i class="ph ph-funnel text-blue-600"></i> <span id="filter-title">Pengaturan</span></h3>
           <div class="grid md:grid-cols-3 gap-4" id="filter-grid">
@@ -658,14 +614,12 @@
           </div>
         </div>
 
-        <!-- Placeholder when no class selected -->
         <div id="empty-state-nilai" class="flex flex-col items-center justify-center py-20 bg-white border-2 border-dashed border-gray-200 rounded-xl text-gray-400 print-hidden">
           <div class="bg-yellow-50 p-6 rounded-full mb-4 animate-bounce"><i class="ph ph-funnel text-5xl text-yellow-400"></i></div>
           <p class="text-xl font-bold text-gray-600">Mulai Dengan Memilih Kelas</p>
           <p class="text-sm text-gray-400 mt-2">Silakan pilih Mata Pelajaran dan Kelas di atas.</p>
         </div>
 
-        <!-- Table Container -->
         <div id="table-container" class="bg-white rounded-xl shadow-sm overflow-hidden hidden print-shadow-none print-border-none">
           <div class="p-4 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between gap-4 print-hidden items-start md:items-center">
             
@@ -679,7 +633,6 @@
             <div class="flex flex-wrap items-center gap-2">
               <button id="btn-cancel-edit" class="text-xs text-red-600 hover:underline flex items-center gap-1 mr-2 hidden"><i class="ph ph-x"></i> Batal Edit</button>
               
-              <!-- Actions for Guru (Import/Export Nilai) -->
               <div id="guru-excel-actions" class="hidden flex items-center gap-2 mr-2 border-r border-gray-200 pr-3">
                 <button id="btn-template-nilai" class="text-xs bg-white hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-md font-medium transition-colors border border-gray-300 flex items-center gap-1 shadow-sm"><i class="ph ph-download-simple text-blue-600"></i> Format Nilai</button>
                 <div class="relative">
@@ -688,13 +641,11 @@
                 </div>
               </div>
 
-              <!-- Shared Action -->
               <button id="btn-export-excel" class="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm"><i class="ph ph-file-xls"></i> Export Excel</button>
               <button id="btn-show-preview" class="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm"><i class="ph ph-eye"></i> Preview Cetak</button>
             </div>
           </div>
 
-          <!-- Weights (Guru Only) -->
           <div id="weights-container" class="bg-blue-50 p-3 mx-4 mt-4 rounded-lg border border-blue-100 flex flex-wrap gap-4 items-center hidden print-hidden">
             <div class="text-xs font-bold text-blue-800 flex items-center gap-1"><i class="ph ph-percent"></i> Atur Bobot (%):</div>
             <div class="flex items-center gap-2"><label class="text-xs text-gray-600">Formatif</label><input type="number" id="w-f" class="w-12 text-center text-xs border rounded p-1" value="25"></div>
@@ -718,7 +669,6 @@
                   </tr>
                 </thead>
                 <tbody id="grades-tbody" class="divide-y divide-gray-100">
-                  <!-- Row Input Baru (Guru Only) -->
                   <tr id="row-new-grade" class="bg-yellow-50 border-b border-yellow-200 print-hidden hidden">
                     <td class="px-4 py-3 text-center font-bold text-yellow-600" id="icon-new-edit">+</td>
                     <td class="px-4 py-3">
@@ -737,8 +687,7 @@
                     <td class="px-4 py-3 text-center font-bold text-blue-700 bg-blue-100/50 align-middle" id="in-na">0.0</td>
                     <td class="px-4 py-3 text-right align-middle"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded shadow-sm transition-colors"><i class="ph ph-floppy-disk"></i></button></td>
                   </tr>
-                  <!-- Data rows injected here -->
-                </tbody>
+                  </tbody>
               </table>
             </form>
           </div>
@@ -748,7 +697,6 @@
     </main>
   </div>
 
-  <!-- ==================== APPLICATION LOGIC ==================== -->
   <script type="module">
     // --- FIREBASE IMPORTS ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -1438,8 +1386,9 @@
     };
 
     /**
-     * Sinkronisasi data real-time khusus untuk mode Guru
-     * Saat di-klik preview/export, kita perlu menangkap input yang belum disave ke DB
+     * FUNGSI BARU: Mengambil nilai "Real-Time" dari layar (DOM), bukan hanya dari database.
+     * Mengatasi masalah dimana guru sudah mengetik angka tapi belum "save" (blur), 
+     * sehingga preview cetak tetap dapat menampilkan angka yang baru saja diketik.
      */
     function getCurrentDisplayData() {
       let d = getDisplayData();
@@ -2051,7 +2000,7 @@
     }
 
     function downloadTemplateNilai() {
-      const d = getCurrentDisplayData();
+      const d = getCurrentDisplayData(); // Telah ter-update
       if(!d.length) return showToast("Tidak ada data siswa di kelas ini", "error");
 
       const excelData = d.map((it, i) => ({
@@ -2146,7 +2095,7 @@
     function showPreview(show) {
       if(show) {
         logDebug("Membuka Preview Cetak...");
-        const d = getCurrentDisplayData();
+        const d = getCurrentDisplayData(); // Telah ter-update
         if(!d.length) return showToast("Tidak ada data", "error");
         
         if (el.pMapel) el.pMapel.textContent = selSubject || 'Semua Mata Pelajaran';
@@ -2162,7 +2111,8 @@
             el.previewModal.classList.remove('hidden'); 
             el.previewModal.classList.add('flex');
         }
-        // Menambahkan status print-preview agar layout CSS print mendeteksi state ini
+        
+        // TELAH TER-UPDATE: Memaksa elemen background di-hide saat diprint browser
         document.body.classList.add('print-preview-mode');
       } else { 
         if (el.previewModal) {
@@ -2174,7 +2124,7 @@
     }
 
     function handleExportExcel() {
-      const d = getCurrentDisplayData();
+      const d = getCurrentDisplayData(); // Telah ter-update
       if(!d.length) return showToast("Tidak ada data untuk diexport", "error");
 
       try {
@@ -2229,7 +2179,7 @@
     function handleDownloadDoc() {
       const rt = appUser.role==='guru' ? appUser.username.split(',')[0] : (wFilter!=='all'?wFilter:'Semua Guru');
       const rs = selSubject || 'Semua Mata Pelajaran'; const rc = selClass || 'Semua Kelas';
-      const d = getCurrentDisplayData();
+      const d = getCurrentDisplayData(); // Telah ter-update
       
       const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset="utf-8"><title>Rekap</title><style>body{font-family:'Times New Roman',serif;font-size:12pt}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid black;padding:5px;vertical-align:middle;font-size:10pt}th{background-color:#f0f0f0;font-weight:bold;text-align:center}.header{text-align:center;margin-bottom:20px}.meta-table{width:100%; margin-bottom:10px; border:none;} .meta-table td{border:none; padding:2px; text-align:left; font-size:11pt;}</style></head><body><div class="header"><h2>PEMERINTAH PROVINSI JAWA TIMUR</h2><h3>DINAS PENDIDIKAN</h3><h1>SMAN 1 AMBUNTEN</h1><p>Jl. Raya Ambunten, Sumenep - Jawa Timur</p><hr/><h2>LAPORAN REKAPITULASI NILAI</h2></div><table class="meta-table"><tr><td width="15%"><b>Mata Pelajaran</b></td><td width="2%">:</td><td>${rs}</td><td width="15%"><b>Tanggal</b></td><td width="2%">:</td><td>${new Date().toLocaleDateString('id-ID')}</td></tr><tr><td><b>Kelas</b></td><td>:</td><td>${rc}</td><td><b>Periode</b></td><td>:</td><td>${activeTahun} - Smt ${activeSemester}</td></tr><tr><td><b>Guru Pengajar</b></td><td>:</td><td colspan="4">${rt}</td></tr></table><table><thead><tr><th>No</th><th>Nama Siswa & NISN</th><th>F1</th><th>F2</th><th>F3</th><th>T1</th><th>T2</th><th>T3</th><th>ASAJ</th><th>NA</th></tr></thead><tbody>${d.map((it, i)=>`<tr><td style="text-align:center">${i+1}</td><td><b>${it.studentName}</b><br/>NISN: ${it.nisn||'-'}</td><td style="text-align:center">${ds(it.scores.f1)}</td><td style="text-align:center">${ds(it.scores.f2)}</td><td style="text-align:center">${ds(it.scores.f3)}</td><td style="text-align:center">${ds(it.scores.t1)}</td><td style="text-align:center">${ds(it.scores.t2)}</td><td style="text-align:center">${ds(it.scores.t3)}</td><td style="text-align:center">${ds(it.scores.asaj)}</td><td style="text-align:center"><b>${getCalc(it.scores).final}</b></td></tr>`).join('')}</tbody></table></body></html>`;
       const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
