@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Si PINTAR SMAN 1 Ambunten</title>
+  <title>Si PINTAR | SMAN 1 Ambunten</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
@@ -16,203 +18,194 @@
       body { background-color: white !important; }
       .print-hidden { display: none !important; }
       .print-visible { display: block !important; }
-      @page { margin: 1cm; }
+      @page { margin: 1.5cm; }
     }
     
-    @keyframes slideIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
-    .toast-enter { animation: slideIn 0.3s ease-out forwards; }
-    .toast-exit { animation: fadeOut 0.3s ease-out forwards; }
-    
     .bg-pattern {
-      background-image: radial-gradient(rgba(255, 255, 255, 0.2) 2px, transparent 2px);
+      background-image: radial-gradient(rgba(255, 255, 255, 0.15) 2px, transparent 2px);
       background-size: 30px 30px;
     }
 
     #debug-panel::-webkit-scrollbar { width: 6px; }
     #debug-panel::-webkit-scrollbar-thumb { background: #4ade80; border-radius: 3px; }
     
-    /* Chrome, Safari, Edge, Opera - Remove arrows from number input */
     input::-webkit-outer-spin-button,
     input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .nav-btn.active {
+      background: linear-gradient(to right, #facc15, #eab308);
+      color: #1e3a8a;
+      font-weight: 800;
+      box-shadow: 0 10px 15px -3px rgba(234, 179, 8, 0.3);
+    }
   </style>
 </head>
 <body class="font-sans bg-gray-50 text-gray-800 antialiased min-h-screen flex flex-col md:flex-row print:bg-white relative">
 
   <div id="debug-wrapper" class="fixed bottom-4 left-4 z-[9999] print-hidden flex flex-col items-start gap-2">
-    <button id="btn-toggle-debug" class="bg-black/80 text-green-400 text-[10px] font-mono px-3 py-1.5 rounded border border-green-500/50 hover:bg-black transition-colors flex items-center gap-2 shadow-xl">
+    <button id="btn-toggle-debug" class="bg-black/80 text-green-400 text-[10px] font-mono px-3 py-2 rounded-xl border border-green-500/50 hover:bg-black transition-all flex items-center gap-2 shadow-2xl">
       <div id="debug-status-dot" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
-      DEBUG LOG
+      SYSTEM DIAGNOSTICS
     </button>
-    <div id="debug-panel" class="hidden bg-black/90 text-green-400 font-mono text-[10px] sm:text-xs p-3 rounded-lg border border-green-500/30 w-[90vw] sm:w-96 max-h-48 overflow-y-auto shadow-2xl backdrop-blur-sm">
-      <div class="border-b border-green-500/30 pb-1 mb-2 font-bold text-green-300 uppercase flex justify-between">
-        <span>Diagnostik Sistem</span>
-        <span class="text-[8px] opacity-50">V3.0-MODULAR</span>
+    <div id="debug-panel" class="hidden bg-black/95 text-green-400 font-mono text-[10px] p-4 rounded-2xl border border-green-500/30 w-[90vw] sm:w-96 max-h-56 overflow-y-auto shadow-2xl backdrop-blur-md">
+      <div class="border-b border-green-500/30 pb-2 mb-3 font-black text-green-300 uppercase flex justify-between">
+        <span>Console Log</span>
+        <span class="text-[8px] opacity-50 italic">V3.1 PRO</span>
       </div>
       <div id="debug-content" class="space-y-1.5"></div>
     </div>
   </div>
 
-  <div id="toast-container" class="fixed top-4 right-4 z-[60] flex flex-col gap-2"></div>
-
-  <div id="delete-modal" class="fixed inset-0 bg-black/60 z-[70] hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
-    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl transform transition-all scale-95 opacity-0 duration-200" id="delete-modal-content">
+  <div id="delete-modal" class="fixed inset-0 bg-black/70 z-[70] hidden items-center justify-center p-4 backdrop-blur-md print-hidden">
+    <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform transition-all scale-95 opacity-0 duration-200">
       <div class="flex flex-col items-center text-center mb-6">
-        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600 text-3xl"><i class="ph ph-trash"></i></div>
-        <h3 class="text-xl font-bold text-gray-800">Hapus Data?</h3>
-        <p class="text-gray-500 text-sm mt-2">Tindakan ini akan menghapus data secara permanen dari server.</p>
+        <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600 text-4xl shadow-inner"><i class="ph ph-trash-simple"></i></div>
+        <h3 class="text-2xl font-black text-gray-800">Hapus Data?</h3>
+        <p class="text-gray-500 text-sm mt-2 font-medium leading-relaxed">Data akan dihapus secara permanen dari server awan.</p>
       </div>
-      <div class="flex gap-3">
-        <button id="btn-cancel-delete" class="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium">Batal</button>
-        <button id="btn-confirm-delete" class="flex-1 px-4 py-2.5 text-white bg-red-600 hover:bg-red-700 rounded-xl font-medium shadow-lg">Ya, Hapus</button>
+      <div class="flex gap-4">
+        <button id="btn-cancel-delete" class="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-2xl font-bold transition-all">BATAL</button>
+        <button id="btn-confirm-delete" class="flex-1 px-4 py-3 text-white bg-red-600 hover:bg-red-700 rounded-2xl font-bold shadow-lg shadow-red-200 transition-all">YA, HAPUS</button>
       </div>
     </div>
   </div>
 
-  <div id="crud-guru-modal" class="fixed inset-0 bg-black/60 z-[70] hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-all scale-95 opacity-0 duration-200">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-gray-800" id="crud-guru-title">Tambah Pengguna</h3>
-        <button type="button" class="btn-close-modal text-gray-400 hover:text-gray-600 p-1"><i class="ph ph-x text-2xl"></i></button>
+  <div id="crud-guru-modal" class="fixed inset-0 bg-black/70 z-[70] hidden items-center justify-center p-4 backdrop-blur-md print-hidden">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl transform transition-all scale-95 opacity-0 duration-200">
+      <div class="flex justify-between items-center mb-8">
+        <h3 class="text-2xl font-black text-gray-800 tracking-tight" id="crud-guru-title">Tambah Pengguna</h3>
+        <button type="button" class="btn-close-modal text-gray-400 hover:text-gray-600 p-2 bg-gray-50 rounded-full transition-all"><i class="ph ph-x text-2xl"></i></button>
       </div>
-      <form id="crud-guru-form" class="space-y-4">
+      <form id="crud-guru-form" class="space-y-5">
         <input type="hidden" id="crud-guru-id">
         <div>
-          <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Nama Lengkap / Username</label>
-          <input type="text" id="crud-guru-name" required class="w-full border border-gray-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Username / Nama Lengkap</label>
+          <input type="text" id="crud-guru-name" required class="w-full border border-gray-200 rounded-2xl p-3.5 outline-none focus:ring-4 focus:ring-blue-50 transition-all font-bold">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Role (Hak Akses)</label>
-          <select id="crud-guru-role" required class="w-full border border-gray-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Role (Hak Akses)</label>
+          <select id="crud-guru-role" required class="w-full border border-gray-200 rounded-2xl p-3.5 outline-none focus:ring-4 focus:ring-blue-50 transition-all font-bold">
             <option value="guru">Guru Mata Pelajaran</option>
             <option value="wakasek">Wakasek (Kurikulum)</option>
             <option value="admin">Administrator Sistem</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Kata Sandi</label>
-          <input type="text" id="crud-guru-pass" required class="w-full border border-gray-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 font-mono transition-all">
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Kata Sandi</label>
+          <input type="text" id="crud-guru-pass" required class="w-full border border-gray-200 rounded-2xl p-3.5 outline-none focus:ring-4 focus:ring-blue-50 font-mono transition-all font-bold">
         </div>
-        <div class="flex gap-3 pt-4">
-          <button type="button" class="btn-close-modal flex-1 px-4 py-3 text-gray-700 bg-gray-100 rounded-xl font-bold">Batal</button>
-          <button type="submit" class="flex-1 px-4 py-3 text-white bg-blue-600 rounded-xl font-bold shadow-lg shadow-blue-200">Simpan Data</button>
+        <div class="flex gap-4 pt-4">
+          <button type="button" class="btn-close-modal flex-1 px-4 py-4 text-gray-700 bg-gray-100 rounded-2xl font-black text-sm uppercase">Batal</button>
+          <button type="submit" class="flex-1 px-4 py-4 text-white bg-blue-600 rounded-2xl font-black text-sm shadow-xl shadow-blue-200 uppercase tracking-widest">Simpan Data</button>
         </div>
       </form>
     </div>
   </div>
 
-  <div id="reset-sandi-modal" class="fixed inset-0 bg-black/60 z-[70] hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-all scale-95 opacity-0 duration-200">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-gray-800">Reset Kata Sandi</h3>
-        <button type="button" class="btn-close-modal text-gray-400 hover:text-gray-600"><i class="ph ph-x text-xl"></i></button>
-      </div>
+  <div id="reset-sandi-modal" class="fixed inset-0 bg-black/70 z-[70] hidden items-center justify-center p-4 backdrop-blur-md">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+      <h3 class="text-2xl font-black text-gray-800 mb-2">Reset Kata Sandi</h3>
+      <p class="text-gray-500 text-sm mb-6">Mereset sandi untuk: <strong id="in-reset-sandi-nama" class="text-blue-700"></strong></p>
       <form id="reset-sandi-form" class="space-y-4">
         <input type="hidden" id="in-reset-sandi-id">
-        <p class="text-sm text-gray-600">Mereset sandi untuk: <strong id="in-reset-sandi-nama" class="text-blue-700"></strong></p>
-        <div>
-          <input type="text" id="in-reset-sandi-baru" required class="w-full border border-gray-300 rounded-xl p-3 font-mono text-lg text-center focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Sandi Baru">
-        </div>
-        <div class="flex gap-3 pt-4">
-          <button type="button" class="btn-close-modal flex-1 px-4 py-3 bg-gray-100 rounded-xl font-bold">Batal</button>
-          <button type="submit" class="flex-1 px-4 py-3 bg-orange-600 text-white rounded-xl font-bold shadow-lg shadow-orange-200">Reset Sekarang</button>
-        </div>
+        <input type="text" id="in-reset-sandi-baru" required class="w-full border border-gray-200 rounded-2xl p-4 font-mono text-xl text-center focus:ring-4 focus:ring-orange-50 transition-all outline-none" placeholder="Sandi Baru">
+        <button type="submit" class="w-full py-4 bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-orange-100">Reset Sekarang</button>
       </form>
     </div>
   </div>
 
-  <div id="preview-modal" class="fixed inset-0 bg-gray-900/80 z-[80] hidden flex-col p-4 md:p-8 backdrop-blur-sm print:relative print:bg-transparent print:p-0">
-    <div class="bg-white rounded-t-xl p-4 flex justify-between items-center max-w-5xl w-full mx-auto shadow-lg print:hidden">
-      <h2 class="text-xl font-bold flex items-center gap-2"><i class="ph ph-eye text-blue-600"></i> Preview Laporan</h2>
-      <div class="flex gap-2">
-        <button onclick="window.print()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-emerald-700 transition-colors"><i class="ph ph-printer"></i> Cetak Sekarang</button>
-        <button id="btn-close-preview" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors"><i class="ph ph-x"></i> Tutup</button>
+  <div id="preview-modal" class="fixed inset-0 bg-gray-900/90 z-[80] hidden flex-col p-4 md:p-10 backdrop-blur-md print:relative print:bg-transparent print:p-0">
+    <div class="bg-white rounded-t-3xl p-5 flex justify-between items-center max-w-6xl w-full mx-auto shadow-2xl print:hidden">
+      <h2 class="text-2xl font-black flex items-center gap-3"><i class="ph ph-eye text-blue-600"></i> Preview Laporan Nilai</h2>
+      <div class="flex gap-3">
+        <button onclick="window.print()" class="bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center gap-2"><i class="ph ph-printer-bold text-lg"></i> Cetak</button>
+        <button id="btn-close-preview" class="bg-gray-100 hover:bg-gray-200 px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all">Tutup</button>
       </div>
     </div>
-    <div class="bg-white p-10 max-w-5xl w-full mx-auto overflow-y-auto flex-1 rounded-b-xl print:p-0 print:w-full text-black font-serif shadow-2xl">
+    <div class="bg-white p-12 max-w-6xl w-full mx-auto overflow-y-auto flex-1 rounded-b-3xl print:p-0 print:w-full text-black font-serif shadow-2xl">
         <div id="preview-content-area">
-            <div class="text-center mb-6">
-                <h2 class="text-xl font-bold uppercase leading-tight">Pemerintah Provinsi Jawa Timur<br>Dinas Pendidikan<br><span class="text-2xl">SMAN 1 Ambunten</span></h2>
-                <p class="text-sm italic">Jl. Raya Ambunten No. 01, Sumenep - Jawa Timur</p>
-                <hr class="border-t-4 border-double border-black my-4" />
-                <h3 class="text-lg font-bold uppercase underline">Laporan Hasil Penilaian Siswa</h3>
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold uppercase leading-tight">Pemerintah Provinsi Jawa Timur<br>Dinas Pendidikan<br><span class="text-3xl">SMAN 1 Ambunten</span></h2>
+                <p class="text-sm italic mt-1 font-sans">Jl. Raya Ambunten No. 01, Sumenep - Jawa Timur</p>
+                <hr class="border-t-4 border-double border-black my-5" />
+                <h3 class="text-xl font-bold uppercase underline tracking-wider">Laporan Hasil Penilaian Siswa</h3>
             </div>
-            <div class="grid grid-cols-2 gap-8 mb-6 text-sm">
+            <div class="grid grid-cols-2 gap-12 mb-8 text-sm font-sans">
                 <table class="w-full">
-                    <tr><td class="w-32 font-bold py-1">Mata Pelajaran</td><td class="w-4">:</td><td id="prev-mapel" class="border-b border-dotted border-black"></td></tr>
-                    <tr><td class="font-bold py-1">Kelas</td><td>:</td><td id="prev-kelas" class="border-b border-dotted border-black"></td></tr>
-                    <tr><td class="font-bold py-1">Guru Pengajar</td><td>:</td><td id="prev-guru" class="border-b border-dotted border-black"></td></tr>
+                    <tr><td class="w-32 font-bold py-1">Mata Pelajaran</td><td class="w-4">:</td><td id="prev-mapel" class="border-b border-gray-300"></td></tr>
+                    <tr><td class="font-bold py-1">Kelas</td><td>:</td><td id="prev-kelas" class="border-b border-gray-300"></td></tr>
+                    <tr><td class="font-bold py-1">Guru Pengajar</td><td>:</td><td id="prev-guru" class="border-b border-gray-300"></td></tr>
                 </table>
                 <table class="w-full">
-                    <tr><td class="w-32 font-bold py-1">Tahun Ajaran</td><td class="w-4">:</td><td id="prev-periode" class="border-b border-dotted border-black"></td></tr>
-                    <tr><td class="font-bold py-1">Semester</td><td>:</td><td id="prev-smt" class="border-b border-dotted border-black"></td></tr>
-                    <tr><td class="font-bold py-1">Tanggal Cetak</td><td>:</td><td id="prev-tanggal" class="border-b border-dotted border-black"></td></tr>
+                    <tr><td class="w-32 font-bold py-1">Tahun Ajaran</td><td class="w-4">:</td><td id="prev-periode" class="border-b border-gray-300"></td></tr>
+                    <tr><td class="font-bold py-1">Semester</td><td>:</td><td id="prev-smt" class="border-b border-gray-300"></td></tr>
+                    <tr><td class="font-bold py-1">Tanggal Cetak</td><td>:</td><td id="prev-tanggal" class="border-b border-gray-300"></td></tr>
                 </table>
             </div>
-            <table class="w-full border-collapse border border-black text-xs text-center">
-                <thead class="bg-gray-50">
+            <table class="w-full border-collapse border-2 border-black text-xs text-center font-sans">
+                <thead class="bg-gray-100">
                     <tr>
-                        <th class="border border-black p-2 w-8">No</th>
-                        <th class="border border-black p-2 text-left min-w-[150px]">Nama Lengkap Siswa</th>
-                        <th class="border border-black p-2 w-16">NISN</th>
-                        <th class="border border-black p-2">F1</th><th class="border border-black p-2">F2</th><th class="border border-black p-2">F3</th>
-                        <th class="border border-black p-2">T1</th><th class="border border-black p-2">T2</th><th class="border border-black p-2">T3</th>
-                        <th class="border border-black p-2">ASAJ</th>
-                        <th class="border border-black p-2 bg-gray-100 font-bold">NA</th>
+                        <th class="border-2 border-black p-2 w-10 uppercase">No</th>
+                        <th class="border-2 border-black p-2 text-left min-w-[200px] uppercase">Nama Lengkap Siswa</th>
+                        <th class="border-2 border-black p-2 w-20 uppercase">NISN</th>
+                        <th class="border-2 border-black p-2">F1</th><th class="border-2 border-black p-2">F2</th><th class="border-2 border-black p-2">F3</th>
+                        <th class="border-2 border-black p-2">T1</th><th class="border-2 border-black p-2">T2</th><th class="border-2 border-black p-2">T3</th>
+                        <th class="border-2 border-black p-2">ASAJ</th>
+                        <th class="border-2 border-black p-2 bg-gray-200 font-bold">NA</th>
                     </tr>
                 </thead>
-                <tbody id="preview-tbody"></tbody>
+                <tbody id="preview-tbody" class="font-medium"></tbody>
             </table>
-            <div class="mt-12 flex justify-end">
-                <div class="text-center w-64">
-                    <p class="mb-16">Ambunten, <span id="sign-date"></span><br>Guru Mata Pelajaran,</p>
-                    <p class="font-bold underline" id="sign-name"></p>
+            <div class="mt-16 flex justify-end font-sans">
+                <div class="text-center w-72">
+                    <p class="mb-20">Ambunten, <span id="sign-date"></span><br>Guru Mata Pelajaran,</p>
+                    <p class="font-bold underline text-base" id="sign-name"></p>
                 </div>
             </div>
         </div>
     </div>
   </div>
 
-  <div id="login-view" class="min-h-screen w-full bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 flex items-center justify-center p-4 absolute inset-0 z-40">
-    <div class="max-w-md w-full bg-white/95 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-md border border-white/20">
-      <div class="bg-gradient-to-b from-blue-700 to-blue-800 p-10 text-center relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-full bg-pattern opacity-10"></div>
-        <img src="https://i.ibb.co.com/PvMwpFTg/LOGO-SMANIA.jpg" alt="LOGO" class="w-24 h-24 mx-auto mb-5 rounded-full bg-white object-contain p-1.5 border-4 border-yellow-400 shadow-2xl relative z-10">
-        <h1 class="text-3xl font-black text-white relative z-10 tracking-tight">Si PINTAR</h1>
-        <p class="text-blue-100 mt-1 text-[10px] font-bold relative z-10 uppercase tracking-[0.2em]">Sistem Penilaian Terpadu & Akurat</p>
+  <div id="login-view" class="min-h-screen w-full bg-gradient-to-br from-blue-900 via-indigo-900 to-blue-950 flex items-center justify-center p-4 absolute inset-0 z-40">
+    <div class="max-w-md w-full bg-white/95 rounded-[2.5rem] shadow-2xl overflow-hidden backdrop-blur-lg border border-white/20">
+      <div class="bg-gradient-to-b from-blue-700 to-indigo-800 p-12 text-center relative">
+        <div class="absolute inset-0 bg-pattern opacity-10"></div>
+        <img src="https://i.ibb.co.com/PvMwpFTg/LOGO-SMANIA.jpg" alt="LOGO" class="w-24 h-24 mx-auto mb-6 rounded-full bg-white object-contain p-2 border-4 border-yellow-400 shadow-2xl relative z-10">
+        <h1 class="text-4xl font-black text-white relative z-10 tracking-tighter">Si PINTAR</h1>
+        <p class="text-blue-100 mt-2 text-[10px] font-black relative z-10 uppercase tracking-[0.3em] opacity-80">Sistem Penilaian Terpadu</p>
       </div>
       
-      <form id="login-form" class="p-8 space-y-5">
-        <div class="space-y-1.5">
-          <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nama Pengguna</label>
+      <form id="login-form" class="p-10 space-y-6">
+        <div class="space-y-2">
+          <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Kredensial Pengguna</label>
           <div class="relative">
-            <i class="ph ph-user absolute left-4 top-3.5 text-gray-400 text-xl"></i>
-            <input type="text" id="login-username" list="users-list" placeholder="Username / Nama Lengkap" required class="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-2xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all font-semibold">
+            <i class="ph ph-user absolute left-5 top-4 text-gray-400 text-xl"></i>
+            <input type="text" id="login-username" list="users-list" placeholder="Username / Nama" required class="w-full pl-14 pr-4 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-50 outline-none transition-all font-bold">
             <datalist id="users-list"></datalist>
           </div>
         </div>
 
-        <div class="space-y-1.5">
+        <div class="space-y-2">
           <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Kata Sandi</label>
           <div class="relative">
-            <i class="ph ph-lock absolute left-4 top-3.5 text-gray-400 text-xl"></i>
-            <input type="password" id="login-password" placeholder="••••••••" required class="w-full pl-12 pr-12 py-3.5 border border-gray-200 rounded-2xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all font-semibold">
-            <button type="button" id="toggle-password" class="absolute right-4 top-3.5 text-gray-400 hover:text-blue-600 transition-colors text-xl"><i class="ph ph-eye"></i></button>
+            <i class="ph ph-lock absolute left-5 top-4 text-gray-400 text-xl"></i>
+            <input type="password" id="login-password" placeholder="••••••••" required class="w-full pl-14 pr-14 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:bg-white focus:ring-4 focus:ring-blue-50 outline-none transition-all font-bold">
+            <button type="button" id="toggle-password" class="absolute right-5 top-4 text-gray-400 hover:text-blue-600 transition-colors text-xl"><i class="ph ph-eye"></i></button>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <div class="space-y-1.5">
+          <div class="space-y-2">
             <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Tahun Ajaran</label>
-            <select id="login-tahun" required class="w-full p-3.5 border border-gray-200 rounded-2xl bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm">
+            <select id="login-tahun" required class="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 outline-none focus:ring-4 focus:ring-blue-50 font-black text-xs uppercase">
                 <option value="2024/2025">2024/2025</option>
                 <option value="2025/2026" selected>2025/2026</option>
                 <option value="2026/2027">2026/2027</option>
             </select>
           </div>
-          <div class="space-y-1.5">
+          <div class="space-y-2">
             <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Semester</label>
-            <select id="login-semester" required class="w-full p-3.5 border border-gray-200 rounded-2xl bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm">
+            <select id="login-semester" required class="w-full p-4 border border-gray-200 rounded-2xl bg-gray-50 outline-none focus:ring-4 focus:ring-blue-50 font-black text-xs uppercase">
                 <option value="Ganjil">Ganjil</option>
                 <option value="Genap">Genap</option>
             </select>
@@ -220,144 +213,161 @@
         </div>
 
         <div id="login-error" class="hidden p-4 bg-red-50 text-red-600 text-xs rounded-2xl border border-red-100 items-start shadow-inner">
-          <i class="ph ph-warning-circle text-xl mr-3 flex-shrink-0 mt-0.5"></i> <span id="login-error-text" class="font-medium"></span>
+          <i class="ph ph-warning-circle text-xl mr-3 mt-0.5"></i> <span id="login-error-text" class="font-bold leading-tight"></span>
         </div>
 
-        <button type="submit" id="btn-login-submit" disabled class="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-blue-900 font-black py-4 rounded-2xl transition-all shadow-xl hover:shadow-yellow-200/50 transform hover:-translate-y-1 duration-200 text-lg opacity-50 cursor-not-allowed">MEMUAT DATA...</button>
-        <div class="text-center text-[10px] text-gray-400 mt-4 font-bold uppercase tracking-widest">&copy; 2026 SMAN 1 AMBUNTEN</div>
+        <button type="submit" id="btn-login-submit" disabled class="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-blue-900 font-black py-4.5 rounded-2xl transition-all shadow-2xl hover:shadow-yellow-200/50 transform hover:-translate-y-1 duration-200 text-lg opacity-50 cursor-not-allowed">MEMUAT DATABASE...</button>
+        <div class="text-center text-[10px] text-gray-400 mt-6 font-black uppercase tracking-widest">&copy; 2026 SMAN 1 AMBUNTEN</div>
       </form>
     </div>
   </div>
 
   <div id="main-view" class="hidden w-full min-h-screen flex flex-col md:flex-row print:bg-white relative">
     
-    <div class="md:hidden bg-blue-900 text-white p-4 flex justify-between items-center sticky top-0 z-30 shadow-lg print-hidden">
-      <div class="flex items-center gap-3"><i class="ph ph-buildings text-yellow-400 text-2xl"></i><span class="font-black text-lg">Si PINTAR</span></div>
-      <button id="btn-mobile-menu" class="p-2 hover:bg-blue-800 rounded-xl text-2xl transition-colors"><i class="ph ph-list"></i></button>
+    <div class="md:hidden bg-blue-900 text-white p-5 flex justify-between items-center sticky top-0 z-30 shadow-xl print-hidden">
+      <div class="flex items-center gap-3"><i class="ph ph-buildings text-yellow-400 text-3xl"></i><span class="font-black text-xl tracking-tighter">Si PINTAR</span></div>
+      <button id="btn-mobile-menu" class="p-2.5 bg-blue-800 rounded-2xl text-2xl transition-all active:scale-90"><i class="ph ph-list"></i></button>
     </div>
 
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden backdrop-blur-sm"></div>
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/70 z-30 hidden md:hidden backdrop-blur-sm"></div>
 
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 bg-blue-950 text-white transform -translate-x-full transition-transform duration-300 ease-out md:relative md:translate-x-0 print-hidden shadow-2xl flex flex-col border-r border-blue-900">
-      <div class="p-8 flex flex-col items-center bg-blue-950/50">
-        <div class="bg-white p-1.5 rounded-full mb-4 ring-4 ring-blue-900/50 shadow-2xl">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-80 bg-blue-950 text-white transform -translate-x-full transition-transform duration-300 ease-out md:relative md:translate-x-0 print-hidden shadow-2xl flex flex-col border-r border-blue-900/50">
+      <div class="p-10 flex flex-col items-center bg-blue-950/40">
+        <div class="bg-white p-2 rounded-full mb-5 ring-4 ring-blue-900/40 shadow-2xl transform hover:rotate-6 transition-transform">
            <img src="https://i.ibb.co.com/PvMwpFTg/LOGO-SMANIA.jpg" alt="LOGO" class="w-16 h-16 rounded-full object-cover">
         </div>
-        <h2 class="text-xl font-black text-white tracking-tighter">Si PINTAR</h2>
-        <p class="text-[9px] text-blue-400 font-black uppercase tracking-[0.3em] mt-1">Administrator</p>
+        <h2 class="text-2xl font-black text-white tracking-tighter">Si PINTAR</h2>
+        <div class="mt-2 bg-blue-800/50 px-3 py-1 rounded-full border border-blue-700">
+            <p class="text-[9px] text-blue-300 font-black uppercase tracking-[0.3em]">Administrator</p>
+        </div>
       </div>
 
-      <nav class="flex-1 p-4 space-y-2 overflow-y-auto" id="sidebar-nav"></nav>
+      <nav class="flex-1 p-6 space-y-3 overflow-y-auto" id="sidebar-nav"></nav>
 
-      <div class="p-5 bg-blue-950 border-t border-blue-900">
-        <div class="flex items-center gap-3 mb-5 px-2">
-          <div class="bg-blue-800 w-10 h-10 rounded-xl flex items-center justify-center text-yellow-400 text-xl shadow-lg shadow-black/20"><i class="ph ph-user"></i></div>
+      <div class="p-6 bg-blue-950/80 border-t border-blue-900/50">
+        <div class="flex items-center gap-4 mb-6 px-2">
+          <div class="bg-blue-800 w-12 h-12 rounded-2xl flex items-center justify-center text-yellow-400 text-2xl shadow-xl"><i class="ph ph-user"></i></div>
           <div class="overflow-hidden">
-            <p id="auth-user-name" class="text-sm font-bold truncate text-white leading-tight"></p>
+            <p id="auth-user-name" class="text-sm font-black truncate text-white leading-none mb-1"></p>
             <p id="auth-user-role" class="text-[9px] text-blue-400 uppercase font-black tracking-widest"></p>
           </div>
         </div>
-        <button id="btn-logout" class="w-full flex items-center justify-center gap-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white py-3 rounded-2xl text-xs font-black transition-all border border-red-600/30 group">
-          <i class="ph ph-sign-out text-lg group-hover:rotate-180 transition-transform duration-500"></i> KELUAR SISTEM
+        <button id="btn-logout" class="w-full flex items-center justify-center gap-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white py-4 rounded-2xl text-xs font-black transition-all border border-red-600/20 group">
+          <i class="ph ph-sign-out text-xl group-hover:rotate-180 transition-transform duration-500"></i> KELUAR SISTEM
         </button>
       </div>
     </aside>
 
-    <main class="flex-1 p-4 md:p-8 overflow-y-auto print:p-0 bg-gray-50 relative" id="main-content">
+    <main class="flex-1 p-6 md:p-10 overflow-y-auto print:p-0 bg-gray-50 relative" id="main-content">
       
-      <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 print-hidden">
+      <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 print-hidden">
         <div>
           <h1 id="page-title" class="text-4xl font-black text-gray-800 tracking-tighter">Dashboard Utama</h1>
-          <p class="text-gray-400 font-bold mt-1 text-sm uppercase tracking-wider">Selamat datang, <span id="page-subtitle-name" class="text-blue-700"></span></p>
+          <p class="text-gray-400 font-black mt-2 text-xs uppercase tracking-widest opacity-80">Selamat datang, <span id="page-subtitle-name" class="text-blue-700"></span></p>
         </div>
-        <div class="text-left md:text-right bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100">
-          <div id="current-date" class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1"></div>
-          <div id="display-periode" class="text-sm font-black text-gray-700 flex items-center md:justify-end gap-2"></div>
+        <div class="text-left md:text-right bg-white px-6 py-4 rounded-3xl shadow-sm border border-gray-100">
+          <div id="current-date" class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1.5 opacity-60"></div>
+          <div id="display-periode" class="text-sm font-black text-gray-800 flex items-center md:justify-end gap-3"></div>
         </div>
       </header>
 
-      <div id="sec-dashboard" class="section-container space-y-8">
-        <div class="bg-gradient-to-br from-blue-900 to-indigo-800 rounded-[2rem] p-10 text-white shadow-2xl relative overflow-hidden group border border-white/10">
-          <div class="relative z-10 max-w-2xl">
-            <h2 class="text-5xl font-black mb-4 tracking-tighter">Halo, <span id="dash-name"></span>! 👋</h2>
-            <p id="dash-desc" class="text-blue-100/80 text-lg mb-10 font-medium leading-relaxed"></p>
-            <button onclick="window.switchMenu('nilai')" class="bg-yellow-400 text-blue-950 px-8 py-4 rounded-2xl font-black hover:bg-yellow-300 transition-all shadow-xl shadow-yellow-400/20 flex items-center gap-3 transform hover:-translate-y-1">Mulai Input Nilai <i class="ph ph-arrow-right font-bold"></i></button>
+      <div id="sec-dashboard" class="section-container space-y-10">
+        <div class="bg-gradient-to-br from-blue-900 via-indigo-800 to-blue-950 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden group border border-white/10">
+          <div class="relative z-10 max-w-3xl">
+            <h2 class="text-6xl font-black mb-6 tracking-tighter">Halo, <span id="dash-name"></span>! 👋</h2>
+            <p id="dash-desc" class="text-blue-100/70 text-xl mb-12 font-bold leading-relaxed max-w-xl"></p>
+            <button onclick="window.switchMenu('nilai')" class="bg-yellow-400 text-blue-950 px-10 py-5 rounded-[1.5rem] font-black hover:bg-yellow-300 transition-all shadow-2xl shadow-yellow-400/30 flex items-center gap-4 transform hover:-translate-y-2 text-lg">Mulai Olah Nilai <i class="ph ph-arrow-right-bold text-2xl"></i></button>
           </div>
-          <div class="absolute right-0 bottom-0 opacity-5 transform translate-x-20 translate-y-20 text-[400px] leading-none pointer-events-none"><i class="ph ph-graduation-cap"></i></div>
+          <div class="absolute right-0 bottom-0 opacity-5 transform translate-x-32 translate-y-32 text-[500px] leading-none pointer-events-none transition-transform group-hover:scale-110 duration-1000"><i class="ph ph-graduation-cap"></i></div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div class="bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden">
             <div class="flex justify-between items-start relative z-10">
-              <div><p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Data Siswa</p><h3 id="stat-students" class="text-5xl font-black text-gray-800 group-hover:text-blue-600 transition-colors tracking-tighter">0</h3></div>
-              <div class="p-5 bg-blue-50 text-blue-600 rounded-[1.5rem] text-4xl shadow-inner"><i class="ph ph-users-four"></i></div>
+              <div><p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 opacity-60">Database Siswa</p><h3 id="stat-students" class="text-6xl font-black text-gray-800 group-hover:text-blue-600 transition-colors tracking-tighter leading-none">0</h3><p class="text-xs font-bold text-gray-400 mt-4 uppercase">Siswa Terdaftar</p></div>
+              <div class="p-6 bg-blue-50 text-blue-600 rounded-[2rem] text-5xl shadow-inner"><i class="ph ph-users-four"></i></div>
             </div>
           </div>
-          <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden">
+          <div class="bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden">
             <div class="flex justify-between items-start relative z-10">
-              <div><p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Rata-rata Nilai</p><h3 id="stat-avg" class="text-5xl font-black text-gray-800 group-hover:text-emerald-600 transition-colors tracking-tighter">0.0</h3></div>
-              <div class="p-5 bg-emerald-50 text-emerald-600 rounded-[1.5rem] text-4xl shadow-inner"><i class="ph ph-chart-line-up"></i></div>
+              <div><p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 opacity-60">Performa Akademik</p><h3 id="stat-avg" class="text-6xl font-black text-gray-800 group-hover:text-emerald-600 transition-colors tracking-tighter leading-none">0.0</h3><p class="text-xs font-bold text-gray-400 mt-4 uppercase">Rata-rata Sekolah</p></div>
+              <div class="p-6 bg-emerald-50 text-emerald-600 rounded-[2rem] text-5xl shadow-inner"><i class="ph ph-chart-line-up"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-[3rem] p-12 border border-gray-100 shadow-sm mt-12 group hover:shadow-2xl transition-all duration-700">
+            <div class="flex items-center justify-between mb-10">
+                <div>
+                    <h3 class="text-2xl font-black text-gray-800 tracking-tight flex items-center gap-4">
+                        <i class="ph ph-chart-bar-bold text-blue-600 text-4xl"></i> Sebaran Capaian Kompetensi
+                    </h3>
+                    <p class="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mt-2">Distribusi Nilai Seluruh Mata Pelajaran</p>
+                </div>
+                <div class="bg-blue-50 px-5 py-2.5 rounded-2xl text-[10px] font-black text-blue-600 uppercase tracking-widest shadow-sm">Real-time Update</div>
+            </div>
+            <div class="h-80 w-full relative">
+                <canvas id="gradeDistributionChart"></canvas>
+            </div>
+        </div>
+      </div>
+
+      <div id="sec-admin-master" class="section-container hidden space-y-10 max-w-5xl mx-auto">
+        <div class="bg-white rounded-[3rem] p-12 border border-gray-100 shadow-2xl relative overflow-hidden">
+          <div class="flex items-center gap-6 mb-12">
+            <div class="bg-purple-100 w-16 h-16 rounded-3xl flex items-center justify-center text-purple-600 text-4xl shadow-xl shadow-purple-50"><i class="ph ph-database-bold"></i></div>
+            <div><h2 class="text-3xl font-black text-gray-800 tracking-tight">Konfigurasi Master Data</h2><p class="text-gray-400 font-bold text-xs uppercase tracking-widest">Master Kelas & Mata Pelajaran Sekolah</p></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div class="bg-gray-50/50 border border-gray-100 rounded-[2.5rem] p-8 shadow-inner">
+              <h3 class="font-black text-gray-700 mb-6 flex items-center gap-3 uppercase text-xs tracking-widest"><i class="ph ph-chalkboard text-2xl text-purple-500"></i> Daftar Kelas</h3>
+              <div class="flex gap-4 mb-8">
+                <input type="text" id="in-master-class" placeholder="Cth: X-MIPA 1" class="flex-1 border border-gray-200 rounded-2xl p-4 text-sm font-black outline-none focus:ring-4 focus:ring-purple-50 transition-all">
+                <button id="btn-add-master-class" class="bg-purple-600 hover:bg-purple-700 text-white w-14 rounded-2xl transition-all shadow-xl shadow-purple-200 flex items-center justify-center"><i class="ph ph-plus-bold text-xl"></i></button>
+              </div>
+              <div id="master-class-list" class="space-y-3 max-h-96 overflow-y-auto pr-3"></div>
+            </div>
+            <div class="bg-gray-50/50 border border-gray-100 rounded-[2.5rem] p-8 shadow-inner">
+              <h3 class="font-black text-gray-700 mb-6 flex items-center gap-3 uppercase text-xs tracking-widest"><i class="ph ph-book-open text-2xl text-indigo-500"></i> Mata Pelajaran</h3>
+              <div class="flex gap-4 mb-8">
+                <input type="text" id="in-master-subject" placeholder="Cth: Matematika" class="flex-1 border border-gray-200 rounded-2xl p-4 text-sm font-black outline-none focus:ring-4 focus:ring-indigo-50 transition-all">
+                <button id="btn-add-master-subject" class="bg-indigo-600 hover:bg-indigo-700 text-white w-14 rounded-2xl transition-all shadow-xl shadow-indigo-200 flex items-center justify-center"><i class="ph ph-plus-bold text-xl"></i></button>
+              </div>
+              <div id="master-subject-list" class="space-y-3 max-h-96 overflow-y-auto pr-3"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <div id="sec-admin-master" class="section-container hidden space-y-8 max-w-5xl mx-auto">
-        <div class="bg-white rounded-[2rem] p-10 border border-gray-100 shadow-xl relative overflow-hidden">
-          <div class="flex items-center gap-5 mb-10">
-            <div class="bg-purple-100 w-14 h-14 rounded-2xl flex items-center justify-center text-purple-600 text-3xl shadow-lg shadow-purple-100"><i class="ph ph-database"></i></div>
-            <div><h2 class="text-3xl font-black text-gray-800 tracking-tight">Master Data Pendidikan</h2><p class="text-gray-400 font-bold text-sm uppercase">Konfigurasi Kelas & Mata Pelajaran Sekolah</p></div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div class="bg-gray-50/50 border border-gray-100 rounded-[1.5rem] p-6 shadow-inner">
-              <h3 class="font-black text-gray-700 mb-5 flex items-center gap-2"><i class="ph ph-chalkboard text-xl text-purple-500"></i> Daftar Kelas</h3>
-              <div class="flex gap-3 mb-6">
-                <input type="text" id="in-master-class" placeholder="Cth: X-MIPA 1" class="flex-1 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:ring-2 focus:ring-purple-500 transition-all">
-                <button id="btn-add-master-class" class="bg-purple-600 hover:bg-purple-700 text-white w-12 rounded-xl transition-all shadow-lg shadow-purple-200"><i class="ph ph-plus-bold"></i></button>
-              </div>
-              <div id="master-class-list" class="space-y-2 max-h-80 overflow-y-auto pr-2"></div>
+      <div id="sec-admin-import" class="section-container hidden space-y-10 max-w-6xl mx-auto">
+        <div class="bg-white rounded-[3rem] p-12 border border-gray-100 shadow-2xl">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+            <div class="flex items-center gap-6">
+                <div class="bg-yellow-100 w-16 h-16 rounded-3xl flex items-center justify-center text-yellow-600 text-4xl shadow-xl shadow-yellow-50"><i class="ph ph-users-four-bold"></i></div>
+                <div><h2 class="text-3xl font-black text-gray-800 tracking-tight">Basis Data Siswa</h2><p class="text-gray-400 font-bold text-xs uppercase tracking-widest">Import Masal & Pemetaan Otomatis</p></div>
             </div>
-            <div class="bg-gray-50/50 border border-gray-100 rounded-[1.5rem] p-6 shadow-inner">
-              <h3 class="font-black text-gray-700 mb-5 flex items-center gap-2"><i class="ph ph-book-open text-xl text-indigo-500"></i> Mata Pelajaran</h3>
-              <div class="flex gap-3 mb-6">
-                <input type="text" id="in-master-subject" placeholder="Cth: Fisika" class="flex-1 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
-                <button id="btn-add-master-subject" class="bg-indigo-600 hover:bg-indigo-700 text-white w-12 rounded-xl transition-all shadow-lg shadow-indigo-200"><i class="ph ph-plus-bold"></i></button>
-              </div>
-              <div id="master-subject-list" class="space-y-2 max-h-80 overflow-y-auto pr-2"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="sec-admin-import" class="section-container hidden space-y-8 max-w-5xl mx-auto">
-        <div class="bg-white rounded-[2rem] p-10 border border-gray-100 shadow-xl">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-            <div class="flex items-center gap-5">
-                <div class="bg-yellow-100 w-14 h-14 rounded-2xl flex items-center justify-center text-yellow-600 text-3xl shadow-lg shadow-yellow-100"><i class="ph ph-users-four"></i></div>
-                <div><h2 class="text-3xl font-black text-gray-800 tracking-tight">Manajemen Siswa</h2><p class="text-gray-400 font-bold text-xs uppercase">Import Masal & Pemetaan Kelas Otomatis</p></div>
-            </div>
-            <button id="btn-template-siswa" class="bg-gray-50 hover:bg-gray-100 text-gray-700 px-6 py-3 rounded-2xl font-black text-xs border border-gray-200 transition-all flex items-center gap-2"><i class="ph ph-download-simple"></i> UNDUH FORMAT XLSX</button>
+            <button id="btn-template-siswa" class="bg-gray-50 hover:bg-gray-100 text-gray-700 px-8 py-4 rounded-[1.5rem] font-black text-xs border border-gray-200 transition-all flex items-center gap-3 uppercase tracking-widest"><i class="ph ph-download-simple-bold text-lg"></i> UNDUH FORMAT</button>
           </div>
           
-          <div class="relative group h-40 mb-10">
+          <div class="relative group h-48 mb-12">
               <input type="file" id="import-xlsx-siswa" accept=".xlsx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-              <div class="h-full bg-blue-50/50 border-4 border-dashed border-blue-100 group-hover:border-blue-400 rounded-[2rem] flex flex-col items-center justify-center transition-all p-6">
-                  <div class="bg-white w-12 h-12 rounded-full flex items-center justify-center text-blue-600 text-2xl mb-3 shadow-lg group-hover:scale-110 transition-transform"><i class="ph ph-cloud-arrow-up"></i></div>
-                  <p class="text-sm font-black text-blue-900 uppercase tracking-widest">Klik atau Seret File Excel ke Sini</p>
-                  <p class="text-[10px] text-blue-400 mt-2 font-bold uppercase">Sistem akan memetakan kelas secara otomatis berdasarkan kolom "Kelas"</p>
+              <div class="h-full bg-blue-50/40 border-4 border-dashed border-blue-200 group-hover:border-blue-500 group-hover:bg-blue-50/80 rounded-[3rem] flex flex-col items-center justify-center transition-all p-10">
+                  <div class="bg-white w-16 h-16 rounded-full flex items-center justify-center text-blue-600 text-3xl mb-4 shadow-xl group-hover:scale-110 transition-transform"><i class="ph ph-cloud-arrow-up-bold"></i></div>
+                  <p class="text-base font-black text-blue-900 uppercase tracking-widest">Lepas File Excel Siswa di Sini</p>
+                  <p class="text-[10px] text-blue-400 mt-2 font-black uppercase tracking-widest opacity-60">Kolom "Kelas" akan menentukan pemetaan data secara otomatis</p>
               </div>
           </div>
 
-          <div class="flex flex-col md:flex-row justify-between items-end gap-4 mb-6">
-            <div class="w-full md:w-72">
-              <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Filter Tampilan Kelas</label>
-              <select id="crud-siswa-kelas-filter" class="w-full border border-gray-200 rounded-2xl p-3.5 bg-gray-50 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"></select>
+          <div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-8">
+            <div class="w-full md:w-80">
+              <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Monitor Data Siswa Per Kelas</label>
+              <select id="crud-siswa-kelas-filter" class="w-full border border-gray-200 rounded-2xl p-4 bg-gray-50 font-black text-sm outline-none focus:ring-4 focus:ring-blue-50 transition-all shadow-sm"></select>
             </div>
           </div>
-          <div class="overflow-x-auto border border-gray-100 rounded-[1.5rem] shadow-inner bg-gray-50/30">
+          <div class="overflow-x-auto border border-gray-100 rounded-[2rem] shadow-inner bg-gray-50/20">
             <table class="w-full text-sm text-left">
               <thead class="bg-white text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] border-b border-gray-100">
-                <tr><th class="px-6 py-4 w-16 text-center">No</th><th class="px-6 py-4">Nama Lengkap</th><th class="px-6 py-4">NISN</th><th class="px-6 py-4 text-center">Kelas</th><th class="px-6 py-4 text-right">Aksi</th></tr>
+                <tr><th class="px-8 py-5 w-20 text-center">No</th><th class="px-8 py-5">Nama Lengkap</th><th class="px-8 py-5">NISN</th><th class="px-8 py-5 text-center">Kelas</th><th class="px-8 py-5 text-right">Aksi</th></tr>
               </thead>
               <tbody id="crud-siswa-tbody" class="divide-y divide-gray-100"></tbody>
             </table>
@@ -365,22 +375,130 @@
         </div>
       </div>
 
-      <div id="sec-admin-guru" class="section-container hidden space-y-8 max-w-5xl mx-auto">
-        <div class="bg-white rounded-[2rem] p-10 border border-gray-100 shadow-xl">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-            <div class="flex items-center gap-5">
-                <div class="bg-blue-100 w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 text-3xl shadow-lg shadow-blue-100"><i class="ph ph-identification-card"></i></div>
-                <div><h2 class="text-3xl font-black text-gray-800 tracking-tight">Akun Pengguna</h2><p class="text-gray-400 font-bold text-xs uppercase">Kelola Akun Guru, Wakasek, & Admin</p></div>
+      <div id="sec-nilai" class="section-container hidden space-y-10">
+        <div class="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm print-hidden">
+          <div class="grid md:grid-cols-3 gap-8">
+            <div id="filter-guru-wrapper">
+              <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Pilih Guru Pengajar</label>
+              <select id="filter-guru" class="w-full border border-gray-200 rounded-2xl p-4 text-sm font-black focus:ring-4 focus:ring-blue-50 outline-none bg-gray-50/50 transition-all"></select>
             </div>
-            <div class="flex gap-3">
-                <button id="btn-template-guru" class="bg-gray-50 hover:bg-gray-100 text-gray-700 px-5 py-3 rounded-2xl font-black text-[10px] border border-gray-200 transition-all uppercase tracking-widest">Ekspor Akun</button>
-                <button id="btn-add-guru" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-black text-xs shadow-lg shadow-blue-200 transition-all flex items-center gap-2"><i class="ph ph-user-plus-bold"></i> TAMBAH BARU</button>
+            <div>
+              <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Mata Pelajaran</label>
+              <select id="filter-mapel" class="w-full border border-gray-200 rounded-2xl p-4 text-sm font-black focus:ring-4 focus:ring-blue-50 outline-none bg-gray-50/50 transition-all"></select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Filter Kelas</label>
+              <select id="filter-kelas" class="w-full border border-gray-200 rounded-2xl p-4 text-sm font-black focus:ring-4 focus:ring-blue-50 outline-none bg-gray-50/50 transition-all"></select>
             </div>
           </div>
-          <div class="overflow-x-auto border border-gray-100 rounded-[1.5rem]">
+        </div>
+
+        <div id="empty-state-nilai" class="flex flex-col items-center justify-center py-32 bg-white border-4 border-dashed border-gray-100 rounded-[3rem] text-gray-400 print-hidden">
+          <div class="bg-blue-50 w-28 h-28 rounded-[2.5rem] flex items-center justify-center mb-8 animate-pulse shadow-inner"><i class="ph ph-projector-screen-chart text-6xl text-blue-300"></i></div>
+          <p class="text-3xl font-black text-gray-800 tracking-tighter">Panel Penilaian Belum Aktif</p>
+          <p class="text-gray-400 font-bold mt-2 uppercase text-xs tracking-widest">Tentukan Mata Pelajaran dan Kelas pada filter di atas</p>
+        </div>
+
+        <div id="table-container" class="bg-white rounded-[3rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden hidden print-shadow-none print-border-none border border-gray-100">
+          <div class="p-8 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row justify-between gap-8 print-hidden items-start md:items-center">
+            <div class="flex flex-wrap items-center gap-4">
+              <span id="badge-guru" class="px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-700 hidden border border-blue-200"></span>
+              <span id="badge-kelas" class="px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-yellow-400 text-blue-900 shadow-lg"></span>
+              <span id="badge-mapel" class="font-black text-gray-800 text-3xl tracking-tighter ml-2"></span>
+              <span id="badge-edit-mode" class="ml-4 text-[10px] font-black text-amber-700 bg-amber-100 px-4 py-2 rounded-full border border-amber-200 hidden animate-pulse">SESI EDITING</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-4">
+              <button id="btn-cancel-edit" class="text-xs font-black text-red-600 hover:text-red-700 flex items-center gap-2 mr-4 hidden transition-colors uppercase"><i class="ph ph-x-circle-bold text-xl"></i> Batal</button>
+              <div id="guru-excel-actions" class="hidden flex items-center gap-4 mr-4 border-r border-gray-200 pr-6">
+                <button id="btn-template-nilai" class="text-[10px] font-black bg-white border border-gray-200 px-5 py-3 rounded-2xl transition-all hover:bg-gray-50 flex items-center gap-2 shadow-sm uppercase tracking-widest"><i class="ph ph-download-simple-bold text-blue-600 text-base"></i> Format</button>
+                <div class="relative group"><input type="file" id="import-xlsx-nilai" accept=".xlsx" class="absolute inset-0 opacity-0 cursor-pointer z-10"><button class="text-[10px] font-black bg-white border border-gray-200 px-5 py-3 rounded-2xl flex items-center gap-2 group-hover:bg-emerald-50 transition-all shadow-sm uppercase tracking-widest"><i class="ph ph-upload-simple-bold text-emerald-600 text-base"></i> Impor</button></div>
+              </div>
+              <button id="btn-export-excel" class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl text-xs font-black transition-all hover:bg-emerald-700 shadow-xl shadow-emerald-100 uppercase tracking-widest"><i class="ph ph-file-xls-bold text-base"></i> Rekap</button>
+              <button id="btn-show-preview" class="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-xs font-black transition-all hover:bg-blue-700 shadow-xl shadow-blue-100 uppercase tracking-widest"><i class="ph ph-printer-bold text-base"></i> Cetak</button>
+            </div>
+          </div>
+
+          <div id="stats-container" class="px-10 py-6 bg-blue-50/50 border-b border-blue-100 flex flex-wrap gap-10 items-center hidden print:hidden">
+              <div class="flex items-center gap-5 border-r border-blue-100 pr-10">
+                  <div class="flex flex-col"><span class="text-[9px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">Index</span><span class="text-[9px] font-black text-blue-400 uppercase tracking-widest leading-none">Ketuntasan</span></div>
+                  <div class="flex items-end gap-1">
+                      <span id="stat-pass-percent" class="text-5xl font-black text-emerald-600 leading-none tracking-tighter">0%</span>
+                      <i class="ph ph-trend-up-bold text-emerald-500 text-3xl"></i>
+                  </div>
+              </div>
+              <div class="flex gap-10">
+                  <div class="flex flex-col"><span class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Berhasil (>=75)</span><span id="count-pass" class="text-xl font-black text-emerald-700">0 Siswa</span></div>
+                  <div class="flex flex-col"><span class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Butuh Remed (<75)</span><span id="count-remed" class="text-xl font-black text-red-600">0 Siswa</span></div>
+              </div>
+              <div class="flex-1 min-w-[300px] relative ml-auto group">
+                  <i class="ph ph-magnifying-glass absolute left-5 top-4 text-gray-400 text-2xl group-focus-within:text-blue-500 transition-colors"></i>
+                  <input type="text" id="search-siswa" placeholder="Ketik nama siswa untuk mencari cepat..." class="w-full pl-14 pr-8 py-4 bg-white border border-gray-200 rounded-3xl text-sm font-black focus:ring-8 focus:ring-blue-50 outline-none transition-all shadow-inner placeholder:text-gray-300">
+              </div>
+          </div>
+
+          <div id="weights-container" class="bg-blue-50/20 px-10 py-4 border-b border-blue-100 flex flex-wrap gap-8 items-center hidden">
+            <div class="text-[10px] font-black text-blue-800 uppercase tracking-widest flex items-center gap-3"><i class="ph ph-sliders-horizontal-bold text-2xl"></i> Konfigurasi Bobot Nilai (%) :</div>
+            <div class="flex items-center gap-3"><label class="text-[10px] font-black text-gray-400 uppercase">Formatif</label><input type="number" id="w-f" class="w-16 text-center font-black text-blue-600 bg-white border border-blue-200 rounded-xl p-2 focus:ring-4 focus:ring-blue-100 outline-none shadow-sm" value="25"></div>
+            <div class="flex items-center gap-3"><label class="text-[10px] font-black text-gray-400 uppercase">Tugas</label><input type="number" id="w-t" class="w-16 text-center font-black text-blue-600 bg-white border border-blue-200 rounded-xl p-2 focus:ring-4 focus:ring-blue-100 outline-none shadow-sm" value="25"></div>
+            <div class="flex items-center gap-3"><label class="text-[10px] font-black text-gray-400 uppercase">ASAJ</label><input type="number" id="w-a" class="w-16 text-center font-black text-blue-600 bg-white border border-blue-200 rounded-xl p-2 focus:ring-4 focus:ring-blue-100 outline-none shadow-sm" value="50"></div>
+          </div>
+
+          <div class="overflow-x-auto p-6">
+            <form id="grade-form">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-gray-50 text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] border-b border-gray-100">
+                  <tr>
+                    <th class="px-6 py-5 w-16 text-center">No</th>
+                    <th class="px-6 py-5 min-w-[250px]">Detail Identitas Siswa</th>
+                    <th class="px-2 py-5 text-center w-16">F1</th><th class="px-2 py-5 text-center w-16">F2</th><th class="px-2 py-5 text-center w-16">F3</th>
+                    <th class="px-2 py-5 text-center w-16">T1</th><th class="px-2 py-5 text-center w-16">T2</th><th class="px-2 py-5 text-center w-16">T3</th>
+                    <th class="px-2 py-5 text-center w-24">ASAJ</th>
+                    <th class="px-6 py-5 text-center bg-blue-50 text-blue-950 border-l border-blue-100 min-w-[100px] tracking-tighter">NA</th>
+                    <th class="px-6 py-5 text-right w-32 print-hidden">Opsi</th>
+                  </tr>
+                </thead>
+                <tbody id="grades-tbody" class="divide-y divide-gray-100">
+                  <tr id="row-new-grade" class="bg-yellow-50/40 border-b-2 border-yellow-100 print-hidden hidden">
+                    <td class="px-6 py-8 text-center font-black text-yellow-600" id="icon-new-edit"><i class="ph ph-plus-circle-bold text-3xl"></i></td>
+                    <td class="px-6 py-8">
+                      <div class="space-y-3">
+                        <input type="text" id="in-name" placeholder="Nama Lengkap Siswa" required class="w-full border border-yellow-200 rounded-2xl px-5 py-3 text-sm font-black outline-none focus:ring-4 focus:ring-blue-100 shadow-inner">
+                        <input type="text" id="in-nisn" placeholder="NISN" class="w-full border border-yellow-100 rounded-2xl px-5 py-2 text-[10px] font-black outline-none focus:ring-4 focus:ring-blue-100 shadow-inner tracking-widest">
+                      </div>
+                    </td>
+                    <td class="px-1 py-8"><input type="number" id="in-f1" class="in-score w-full border border-yellow-100 rounded-xl p-2.5 text-center text-sm font-black shadow-sm focus:ring-4 focus:ring-blue-50 outline-none transition-all"></td>
+                    <td class="px-1 py-8"><input type="number" id="in-f2" class="in-score w-full border border-yellow-100 rounded-xl p-2.5 text-center text-sm font-black shadow-sm focus:ring-4 focus:ring-blue-50 outline-none transition-all"></td>
+                    <td class="px-1 py-8"><input type="number" id="in-f3" class="in-score w-full border border-yellow-100 rounded-xl p-2.5 text-center text-sm font-black shadow-sm focus:ring-4 focus:ring-blue-50 outline-none transition-all"></td>
+                    <td class="px-1 py-8"><input type="number" id="in-t1" class="in-score w-full border border-yellow-100 rounded-xl p-2.5 text-center text-sm font-black shadow-sm focus:ring-4 focus:ring-blue-50 outline-none transition-all"></td>
+                    <td class="px-1 py-8"><input type="number" id="in-t2" class="in-score w-full border border-yellow-100 rounded-xl p-2.5 text-center text-sm font-black shadow-sm focus:ring-4 focus:ring-blue-50 outline-none transition-all"></td>
+                    <td class="px-1 py-8"><input type="number" id="in-t3" class="in-score w-full border border-yellow-100 rounded-xl p-2.5 text-center text-sm font-black shadow-sm focus:ring-4 focus:ring-blue-50 outline-none transition-all"></td>
+                    <td class="px-1 py-8"><input type="number" id="in-asaj" class="in-score w-full border-2 border-yellow-300 font-black text-emerald-800 rounded-xl p-2.5 text-center text-sm shadow-xl focus:ring-4 focus:ring-emerald-100 outline-none transition-all"></td>
+                    <td class="px-6 py-8 text-center font-black text-blue-950 bg-blue-100/50 text-2xl tracking-tighter shadow-inner border-l border-blue-50" id="in-na">0.0</td>
+                    <td class="px-6 py-8 text-right"><button type="submit" class="bg-blue-700 hover:bg-blue-800 text-white w-14 h-14 rounded-3xl transition-all shadow-2xl shadow-blue-200 flex items-center justify-center mx-auto active:scale-90"><i class="ph ph-floppy-disk-back-bold text-2xl"></i></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div id="sec-admin-guru" class="section-container hidden space-y-10 max-w-6xl mx-auto">
+        <div class="bg-white rounded-[3rem] p-12 border border-gray-100 shadow-2xl">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+            <div class="flex items-center gap-6">
+                <div class="bg-blue-100 w-16 h-16 rounded-3xl flex items-center justify-center text-blue-600 text-4xl shadow-xl shadow-blue-50"><i class="ph ph-identification-badge-bold"></i></div>
+                <div><h2 class="text-3xl font-black text-gray-800 tracking-tight">Kelola Akun Pengguna</h2><p class="text-gray-400 font-bold text-xs uppercase tracking-widest">Manajemen Guru, Wakasek, & Administrator</p></div>
+            </div>
+            <div class="flex gap-4">
+                <button id="btn-template-guru" class="bg-gray-50 hover:bg-gray-100 text-gray-700 px-6 py-4 rounded-[1.5rem] font-black text-[10px] border border-gray-200 transition-all uppercase tracking-[0.2em]">Ekspor Data</button>
+                <button id="btn-add-guru" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-[1.5rem] font-black text-xs shadow-xl shadow-blue-100 transition-all flex items-center gap-3"><i class="ph ph-user-plus-bold text-lg"></i> TAMBAH AKUN</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto border border-gray-100 rounded-[2rem] shadow-inner">
             <table class="w-full text-sm text-left">
               <thead class="bg-gray-50 text-gray-400 font-black text-[10px] uppercase tracking-widest border-b border-gray-100">
-                <tr><th class="px-6 py-4 w-16 text-center">No</th><th class="px-6 py-4">Username / Nama</th><th class="px-6 py-4">Role</th><th class="px-6 py-4">Sandi</th><th class="px-6 py-4 text-right">Aksi</th></tr>
+                <tr><th class="px-8 py-5 w-20 text-center">No</th><th class="px-8 py-5">Nama / Username</th><th class="px-8 py-5">Peran (Role)</th><th class="px-8 py-5">Sandi</th><th class="px-8 py-5 text-right">Aksi</th></tr>
               </thead>
               <tbody id="crud-guru-tbody" class="divide-y divide-gray-100"></tbody>
             </table>
@@ -388,175 +506,64 @@
         </div>
       </div>
 
-      <div id="sec-admin-backup" class="section-container hidden space-y-8 max-w-5xl mx-auto">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="bg-white rounded-[2rem] p-10 border border-gray-100 shadow-xl text-center group">
-                <div class="bg-emerald-100 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-emerald-600 text-4xl shadow-lg shadow-emerald-50 group-hover:scale-110 transition-transform"><i class="ph ph-hard-drive"></i></div>
-                <h2 class="text-2xl font-black text-gray-800 mb-2">Pencadangan Data</h2>
-                <p class="text-gray-400 text-sm mb-8 font-medium px-4">Unduh seluruh isi database sekolah ke dalam format file JSON tunggal.</p>
-                <button id="btn-backup-db" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl shadow-emerald-100"><i class="ph ph-download-simple-bold"></i> DOWNLOAD BACKUP</button>
+      <div id="sec-admin-backup" class="section-container hidden space-y-10 max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div class="bg-white rounded-[3rem] p-12 border border-gray-100 shadow-2xl text-center group">
+                <div class="bg-emerald-100 w-24 h-24 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-emerald-600 text-5xl shadow-xl shadow-emerald-50 group-hover:scale-110 transition-transform"><i class="ph ph-floppy-disk-bold"></i></div>
+                <h2 class="text-3xl font-black text-gray-800 mb-3 tracking-tight">Pencadangan Data</h2>
+                <p class="text-gray-400 text-sm mb-10 font-bold uppercase tracking-widest px-10">Unduh Seluruh Database Sekolah ke Format JSON</p>
+                <button id="btn-backup-db" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-5 rounded-[1.5rem] transition-all flex items-center justify-center gap-4 shadow-2xl shadow-emerald-100"><i class="ph ph-download-simple-bold text-2xl"></i> DOWNLOAD DATA</button>
             </div>
-            <div class="bg-white rounded-[2rem] p-10 border border-gray-100 shadow-xl text-center group relative overflow-hidden">
-                <div class="bg-orange-100 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-orange-600 text-4xl shadow-lg shadow-orange-50 group-hover:scale-110 transition-transform"><i class="ph ph-upload-simple"></i></div>
-                <h2 class="text-2xl font-black text-gray-800 mb-2">Pemulihan Data</h2>
-                <p class="text-gray-400 text-sm mb-8 font-medium px-4">Unggah file backup (.json) untuk mengembalikan data yang pernah dicadangkan.</p>
+            <div class="bg-white rounded-[3rem] p-12 border border-gray-100 shadow-2xl text-center group relative overflow-hidden">
+                <div class="bg-orange-100 w-24 h-24 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-orange-600 text-5xl shadow-xl shadow-orange-50 group-hover:scale-110 transition-transform"><i class="ph ph-upload-simple-bold"></i></div>
+                <h2 class="text-3xl font-black text-gray-800 mb-3 tracking-tight">Pemulihan Data</h2>
+                <p class="text-gray-400 text-sm mb-10 font-bold uppercase tracking-widest px-10">Unggah File Backup (.json) ke Sistem Awan</p>
                 <div class="relative w-full">
                     <input type="file" id="import-json-restore" accept=".json" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-                    <button class="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-xl shadow-orange-100"><i class="ph ph-arrows-clockwise-bold"></i> UNGGAH BACKUP</button>
+                    <button class="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-5 rounded-[1.5rem] transition-all flex items-center justify-center gap-4 shadow-2xl shadow-orange-100"><i class="ph ph-arrows-clockwise-bold text-2xl"></i> RESTORE DATA</button>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-[2rem] p-10 border border-gray-100 shadow-xl">
-            <h3 class="text-xl font-black text-gray-800 mb-8 flex items-center gap-3">
-                <i class="ph ph-clock-counter-clockwise text-blue-600 text-3xl"></i> JEJAK AKTIVITAS SISTEM (AUDIT LOG)
+        <div class="bg-white rounded-[3rem] p-12 border border-gray-100 shadow-2xl">
+            <h3 class="text-2xl font-black text-gray-800 mb-10 flex items-center gap-4">
+                <i class="ph ph-clock-counter-clockwise-bold text-blue-600 text-4xl"></i> JEJAK AKTIVITAS (AUDIT LOG)
             </h3>
-            <div class="overflow-x-auto border border-gray-100 rounded-[1.5rem] bg-gray-50/50 shadow-inner">
+            <div class="overflow-x-auto border border-gray-100 rounded-[2rem] bg-gray-50/50 shadow-inner">
                 <table class="w-full text-left">
-                    <thead class="bg-white text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 sticky top-0">
+                    <thead class="bg-white text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100 sticky top-0">
                         <tr>
-                            <th class="px-6 py-4">Waktu Kejadian</th>
-                            <th class="px-6 py-4">Pengguna</th>
-                            <th class="px-6 py-4">Aksi</th>
-                            <th class="px-6 py-4">Detail Perubahan</th>
+                            <th class="px-8 py-5">Waktu Kejadian</th>
+                            <th class="px-8 py-5">Pengguna</th>
+                            <th class="px-8 py-5">Aksi / Tindakan</th>
+                            <th class="px-8 py-5">Keterangan Detail</th>
                         </tr>
                     </thead>
-                    <tbody id="audit-log-tbody" class="divide-y divide-gray-100 text-xs">
-                        </tbody>
+                    <tbody id="audit-log-tbody" class="divide-y divide-gray-100 text-xs font-bold"></tbody>
                 </table>
             </div>
-            <p class="mt-4 text-[10px] text-gray-400 font-bold uppercase tracking-widest text-right">Menampilkan 50 aktivitas terbaru</p>
         </div>
 
-        <div class="bg-red-50 rounded-[2rem] p-10 border border-red-100 shadow-inner text-center">
-          <div class="bg-white w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-red-600 text-3xl shadow-lg shadow-red-100"><i class="ph ph-warning-octagon"></i></div>
-          <h2 class="text-xl font-black text-red-800">Zona Bahaya</h2>
-          <p class="text-red-400 text-xs font-bold mb-8 uppercase tracking-wider">Hapus Seluruh Data (Nilai, Siswa, & Akun Guru) Secara Permanen</p>
-          <button id="btn-reset-db" class="bg-red-600 hover:bg-red-700 text-white font-black px-10 py-4 rounded-2xl shadow-xl shadow-red-200 transition-all flex items-center justify-center gap-3 mx-auto"><i class="ph ph-skull-bold"></i> RESET TOTAL DATABASE SEKOLAH</button>
-        </div>
-      </div>
-
-      <div id="sec-admin-delete" class="section-container hidden space-y-6 max-w-2xl mx-auto">
-        <div class="bg-white rounded-[2.5rem] p-10 border-2 border-dashed border-red-100 shadow-2xl text-center">
-            <div class="bg-red-100 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-red-600 text-4xl shadow-inner"><i class="ph ph-trash-simple"></i></div>
-            <h2 class="text-3xl font-black text-gray-800 tracking-tight">Hapus Data Per Kelas</h2>
-            <p class="text-gray-400 mt-2 mb-10 font-medium">Fitur ini akan menghapus seluruh daftar siswa dan nilai pada satu kelas tertentu di semester aktif.</p>
-            <div class="text-left mb-10">
-                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Pilih Kelas Sasaran</label>
-                <select id="delete-class-select" class="w-full border border-gray-200 rounded-2xl p-4 font-bold text-gray-700 focus:ring-4 focus:ring-red-50 outline-none transition-all"></select>
-            </div>
-            <button id="btn-delete-class" disabled class="w-full py-5 rounded-2xl font-black uppercase tracking-widest text-white shadow-xl transition-all bg-gray-200 cursor-not-allowed">Hapus Permanen Data Kelas</button>
+        <div class="bg-red-50 rounded-[3rem] p-12 border border-red-100 shadow-inner text-center">
+          <div class="bg-white w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 text-red-600 text-4xl shadow-xl shadow-red-100"><i class="ph ph-warning-octagon-bold"></i></div>
+          <h2 class="text-2xl font-black text-red-800 tracking-tight">Zona Bahaya (Danger Zone)</h2>
+          <p class="text-red-400 text-[10px] font-black mb-10 uppercase tracking-[0.3em]">Penghapusan Seluruh Basis Data Sekolah Secara Permanen</p>
+          <button id="btn-reset-db" class="bg-red-600 hover:bg-red-700 text-white font-black px-12 py-5 rounded-[1.5rem] shadow-2xl shadow-red-200 transition-all flex items-center justify-center gap-4 mx-auto active:scale-95"><i class="ph ph-skull-bold text-2xl"></i> RESET TOTAL DATABASE</button>
         </div>
       </div>
 
-      <div id="sec-nilai" class="section-container hidden space-y-8">
-        
-        <div class="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm print-hidden">
-          <div class="grid md:grid-cols-3 gap-6">
-            <div id="filter-guru-wrapper">
-              <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Filter Guru Pengajar</label>
-              <select id="filter-guru" class="w-full border border-gray-200 rounded-2xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/50 transition-all"></select>
+      <div id="sec-admin-delete" class="section-container hidden space-y-8 max-w-3xl mx-auto">
+        <div class="bg-white rounded-[3rem] p-12 border-4 border-dashed border-red-100 shadow-2xl text-center">
+            <div class="bg-red-100 w-24 h-24 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-red-600 text-5xl shadow-inner"><i class="ph ph-trash-simple-bold"></i></div>
+            <h2 class="text-4xl font-black text-gray-800 tracking-tighter">Hapus Data Per Kelas</h2>
+            <p class="text-gray-400 mt-4 mb-12 font-bold uppercase text-xs tracking-widest opacity-80">Membersihkan seluruh data siswa dan nilai pada satu kelas tertentu</p>
+            <div class="text-left mb-12">
+                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-2">Pilih Target Kelas</label>
+                <select id="delete-class-select" class="w-full border border-gray-200 rounded-3xl p-5 font-black text-gray-800 focus:ring-8 focus:ring-red-50 outline-none transition-all shadow-sm"></select>
             </div>
-            <div>
-              <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Mata Pelajaran</label>
-              <select id="filter-mapel" class="w-full border border-gray-200 rounded-2xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/50 transition-all"></select>
-            </div>
-            <div>
-              <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Pilih Kelas</label>
-              <select id="filter-kelas" class="w-full border border-gray-200 rounded-2xl p-3.5 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50/50 transition-all"></select>
-            </div>
-          </div>
+            <button id="btn-delete-class" disabled class="w-full py-6 rounded-3xl font-black uppercase tracking-[0.3em] text-white shadow-2xl transition-all bg-gray-200 cursor-not-allowed text-sm">EKSEKUSI PENGHAPUSAN</button>
         </div>
-
-        <div id="empty-state-nilai" class="flex flex-col items-center justify-center py-24 bg-white border-2 border-dashed border-gray-100 rounded-[2rem] text-gray-400 print-hidden">
-          <div class="bg-blue-50 w-24 h-24 rounded-[2rem] flex items-center justify-center mb-6 animate-pulse"><i class="ph ph-selection-all text-5xl text-blue-300"></i></div>
-          <p class="text-2xl font-black text-gray-700 tracking-tight">Siap Memulai Penilaian?</p>
-          <p class="text-gray-400 font-medium mt-1">Silakan pilih Mata Pelajaran dan Kelas pada filter di atas.</p>
-        </div>
-
-        <div id="table-container" class="bg-white rounded-[2rem] shadow-2xl overflow-hidden hidden print-shadow-none print-border-none border border-gray-100">
-          <div class="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row justify-between gap-6 print-hidden items-start md:items-center">
-            <div class="flex flex-wrap items-center gap-3">
-              <span id="badge-guru" class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-700 hidden shadow-sm border border-blue-200"></span>
-              <span id="badge-kelas" class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-yellow-400 text-blue-900 shadow-md"></span>
-              <span id="badge-mapel" class="font-black text-gray-800 text-2xl tracking-tight ml-2"></span>
-              <span id="badge-edit-mode" class="ml-4 text-[10px] font-black text-amber-700 bg-amber-100 px-3 py-1.5 rounded-full border border-amber-200 hidden animate-pulse">MODE EDITING</span>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-              <button id="btn-cancel-edit" class="text-xs font-black text-red-600 hover:text-red-700 flex items-center gap-2 mr-3 hidden"><i class="ph ph-x-circle-bold text-lg"></i> BATAL EDIT</button>
-              <div id="guru-excel-actions" class="hidden flex items-center gap-3 mr-3 border-r border-gray-200 pr-5">
-                <button id="btn-template-nilai" class="text-[10px] font-black bg-white border border-gray-200 px-4 py-2.5 rounded-xl transition-all hover:bg-gray-50 flex items-center gap-2 shadow-sm uppercase tracking-widest"><i class="ph ph-download-simple-bold text-blue-600"></i> Unduh Format</button>
-                <div class="relative group"><input type="file" id="import-xlsx-nilai" accept=".xlsx" class="absolute inset-0 opacity-0 cursor-pointer z-10"><button class="text-[10px] font-black bg-white border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 group-hover:bg-emerald-50 transition-all shadow-sm uppercase tracking-widest"><i class="ph ph-upload-simple-bold text-emerald-600"></i> Impor Nilai</button></div>
-              </div>
-              <button id="btn-export-excel" class="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-black transition-all hover:bg-emerald-700 shadow-lg shadow-emerald-100 uppercase tracking-widest"><i class="ph ph-file-xls-bold"></i> Ekspor Rekap</button>
-              <button id="btn-show-preview" class="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black transition-all hover:bg-blue-700 shadow-lg shadow-blue-100 uppercase tracking-widest"><i class="ph ph-printer-bold"></i> Preview Cetak</button>
-            </div>
-          </div>
-
-          <div id="stats-container" class="px-8 py-5 bg-blue-50/40 border-b border-blue-100 flex flex-wrap gap-8 items-center hidden print:hidden">
-              <div class="flex items-center gap-4 border-r border-blue-100 pr-8">
-                  <span class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] leading-tight">Indeks<br>Ketuntasan</span>
-                  <div class="flex items-end gap-1">
-                      <span id="stat-pass-percent" class="text-4xl font-black text-emerald-600 leading-none tracking-tighter">0%</span>
-                      <i class="ph ph-trend-up-bold text-emerald-500 text-2xl"></i>
-                  </div>
-              </div>
-              <div class="flex gap-8">
-                  <div class="flex flex-col"><span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Tuntas (>=75)</span><span id="count-pass" class="text-lg font-black text-emerald-700">0 Siswa</span></div>
-                  <div class="flex flex-col"><span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Remedial (<75)</span><span id="count-remed" class="text-lg font-black text-red-600">0 Siswa</span></div>
-              </div>
-              <div class="flex-1 min-w-[280px] relative ml-auto group">
-                  <i class="ph ph-magnifying-glass absolute left-4 top-3 text-gray-400 text-xl group-focus-within:text-blue-500 transition-colors"></i>
-                  <input type="text" id="search-siswa" placeholder="Cari nama siswa di kelas ini..." class="w-full pl-12 pr-6 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-50 outline-none transition-all shadow-inner">
-              </div>
-          </div>
-
-          <div id="weights-container" class="bg-blue-50/20 px-8 py-3 border-b border-blue-100 flex flex-wrap gap-6 items-center hidden">
-            <div class="text-[10px] font-black text-blue-800 uppercase tracking-widest flex items-center gap-2"><i class="ph ph-sliders-horizontal text-lg"></i> Atur Bobot Nilai (%) :</div>
-            <div class="flex items-center gap-2"><label class="text-[10px] font-bold text-gray-400 uppercase">Formatif</label><input type="number" id="w-f" class="w-14 text-center font-black text-blue-600 bg-white border border-blue-100 rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" value="25"></div>
-            <div class="flex items-center gap-2"><label class="text-[10px] font-bold text-gray-400 uppercase">Tugas</label><input type="number" id="w-t" class="w-14 text-center font-black text-blue-600 bg-white border border-blue-100 rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" value="25"></div>
-            <div class="flex items-center gap-2"><label class="text-[10px] font-bold text-gray-400 uppercase">ASAJ</label><input type="number" id="w-a" class="w-14 text-center font-black text-blue-600 bg-white border border-blue-100 rounded-lg p-1.5 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" value="50"></div>
-          </div>
-
-          <div class="overflow-x-auto p-4">
-            <form id="grade-form">
-              <table class="w-full text-sm text-left">
-                <thead class="bg-gray-50 text-gray-400 font-black text-[10px] uppercase tracking-widest border-b border-gray-100">
-                  <tr>
-                    <th class="px-4 py-4 w-12 text-center">No</th>
-                    <th class="px-4 py-4 min-w-[220px]">Informasi Siswa</th>
-                    <th class="px-2 py-4 text-center w-14">F1</th><th class="px-2 py-4 text-center w-14">F2</th><th class="px-2 py-4 text-center w-14">F3</th>
-                    <th class="px-2 py-4 text-center w-14">T1</th><th class="px-2 py-4 text-center w-14">T2</th><th class="px-2 py-4 text-center w-14">T3</th>
-                    <th class="px-2 py-4 text-center w-20">ASAJ</th>
-                    <th class="px-4 py-4 text-center bg-blue-50/50 text-blue-900 border-l border-blue-50 min-w-[80px]">NA</th>
-                    <th class="px-4 py-4 text-right w-24 print-hidden">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody id="grades-tbody" class="divide-y divide-gray-100">
-                  <tr id="row-new-grade" class="bg-yellow-50/50 border-b border-yellow-100 print-hidden hidden">
-                    <td class="px-4 py-5 text-center font-black text-yellow-600" id="icon-new-edit"><i class="ph ph-plus-circle text-2xl"></i></td>
-                    <td class="px-4 py-5">
-                      <div class="space-y-2">
-                        <input type="text" id="in-name" placeholder="Nama Lengkap Siswa" required class="w-full border border-yellow-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-inner">
-                        <input type="text" id="in-nisn" placeholder="Nomor Induk / NISN" class="w-full border border-yellow-100 rounded-xl px-4 py-1.5 text-[10px] font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-inner">
-                      </div>
-                    </td>
-                    <td class="px-1 py-5"><input type="number" id="in-f1" class="in-score w-full border border-yellow-100 rounded-lg p-2 text-center text-sm font-bold shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"></td>
-                    <td class="px-1 py-5"><input type="number" id="in-f2" class="in-score w-full border border-yellow-100 rounded-lg p-2 text-center text-sm font-bold shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"></td>
-                    <td class="px-1 py-5"><input type="number" id="in-f3" class="in-score w-full border border-yellow-100 rounded-lg p-2 text-center text-sm font-bold shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"></td>
-                    <td class="px-1 py-5"><input type="number" id="in-t1" class="in-score w-full border border-yellow-100 rounded-lg p-2 text-center text-sm font-bold shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"></td>
-                    <td class="px-1 py-5"><input type="number" id="in-t2" class="in-score w-full border border-yellow-100 rounded-lg p-2 text-center text-sm font-bold shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"></td>
-                    <td class="px-1 py-5"><input type="number" id="in-t3" class="in-score w-full border border-yellow-100 rounded-lg p-2 text-center text-sm font-bold shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"></td>
-                    <td class="px-1 py-5"><input type="number" id="in-asaj" class="in-score w-full border-2 border-yellow-300 font-black text-emerald-700 rounded-lg p-2 text-center text-sm shadow-md focus:ring-2 focus:ring-emerald-500 outline-none"></td>
-                    <td class="px-4 py-5 text-center font-black text-blue-900 bg-blue-100/50 text-xl tracking-tighter shadow-inner border-l border-blue-50" id="in-na">0.0</td>
-                    <td class="px-4 py-5 text-right"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white w-12 h-12 rounded-2xl transition-all shadow-lg shadow-blue-200 flex items-center justify-center mx-auto"><i class="ph ph-floppy-disk-bold text-xl"></i></button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </form>
-          </div>
-        </div>
-      </header>
+      </div>
     </main>
   </div>
 
