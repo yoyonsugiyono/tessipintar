@@ -11,7 +11,7 @@
   <!-- Phosphor Icons (Pengganti Lucide React untuk Vanilla JS) -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-  <!-- SheetJS untuk Export Excel (.xlsx) -->
+  <!-- SheetJS untuk Export/Import Excel (.xlsx) -->
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -43,6 +43,9 @@
     #debug-panel::-webkit-scrollbar { width: 6px; }
     #debug-panel::-webkit-scrollbar-track { background: rgba(0,0,0,0.5); }
     #debug-panel::-webkit-scrollbar-thumb { background: #4ade80; border-radius: 3px; }
+    
+    /* Excel Template Input Placeholder Hidden */
+    .id-sistem-col { display: none; }
   </style>
 </head>
 <body class="font-sans bg-gray-50 text-gray-800 antialiased min-h-screen flex flex-col md:flex-row print:bg-white relative">
@@ -414,6 +417,46 @@
         </div>
       </div>
 
+      <!-- Admin Master Data Section (NEW) -->
+      <div id="sec-admin-master" class="section-container hidden space-y-6 max-w-5xl mx-auto animate-in">
+        <div class="bg-white rounded-xl p-8 border-t-8 border-t-purple-500 shadow-sm">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center text-purple-600 text-2xl"><i class="ph ph-database"></i></div>
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800">Kelola Master Data</h2>
+              <p class="text-gray-500 text-sm">Atur daftar Kelas dan Mata Pelajaran yang berlaku di sekolah.</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Master Kelas -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
+              <h3 class="font-bold text-gray-700 mb-4 border-b border-gray-200 pb-2">Daftar Kelas</h3>
+              <div class="flex gap-2 mb-4">
+                <input type="text" id="in-master-class" placeholder="Cth: X-Akselerasi" class="flex-1 border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                <button id="btn-add-master-class" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded font-medium text-sm transition-colors"><i class="ph ph-plus"></i></button>
+              </div>
+              <div id="master-class-list" class="max-h-64 overflow-y-auto pr-2">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- Master Mapel -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
+              <h3 class="font-bold text-gray-700 mb-4 border-b border-gray-200 pb-2">Daftar Mata Pelajaran</h3>
+              <div class="flex gap-2 mb-4">
+                <input type="text" id="in-master-subject" placeholder="Cth: Mulok" class="flex-1 border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                <button id="btn-add-master-subject" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded font-medium text-sm transition-colors"><i class="ph ph-plus"></i></button>
+              </div>
+              <div id="master-subject-list" class="max-h-64 overflow-y-auto pr-2">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <!-- 2. Admin Siswa Section (CRUD & Import) -->
       <div id="sec-admin-import" class="section-container hidden space-y-6 max-w-5xl mx-auto animate-in">
         <div class="bg-white rounded-xl p-8 border-t-8 border-t-yellow-400 shadow-sm">
@@ -421,7 +464,7 @@
             <div class="bg-yellow-100 w-12 h-12 rounded-full flex items-center justify-center text-yellow-600 text-2xl"><i class="ph ph-users"></i></div>
             <div>
               <h2 class="text-2xl font-bold text-gray-800">Kelola Data Siswa</h2>
-              <p class="text-gray-500 text-sm">Import massal via CSV atau kelola satu-persatu per kelas.</p>
+              <p class="text-gray-500 text-sm">Import massal via Excel atau kelola satu-persatu per kelas.</p>
             </div>
           </div>
           
@@ -430,12 +473,16 @@
             <div class="flex-1 w-full">
               <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih Kelas Tujuan</label>
               <select id="import-class-select" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-yellow-400 outline-none"></select>
+              <button id="btn-template-siswa" class="mt-3 w-full bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 rounded-lg text-sm transition-colors flex justify-center items-center gap-2 shadow-sm">
+                <i class="ph ph-download-simple text-lg"></i> Download Format XLSX
+              </button>
             </div>
-            <div class="flex-1 w-full relative">
-              <input type="file" id="import-csv-file" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-              <div class="bg-white border-2 border-dashed border-gray-300 hover:border-yellow-400 rounded-lg p-4 text-center text-gray-500 flex flex-col items-center justify-center transition-colors">
-                <i class="ph ph-upload-simple text-2xl mb-1"></i>
-                <span class="text-xs font-semibold">Upload CSV Siswa Massal</span>
+            <div class="flex-1 w-full relative h-full min-h-[100px]">
+              <input type="file" id="import-xlsx-siswa" accept=".xlsx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+              <div class="h-full bg-white border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-lg p-4 text-center text-gray-500 flex flex-col items-center justify-center transition-colors">
+                <i class="ph ph-file-xls text-3xl mb-1 text-emerald-600"></i>
+                <span class="text-sm font-semibold text-emerald-700">Upload XLSX Siswa</span>
+                <span class="text-xs text-gray-400 mt-1">Tarik file atau klik di sini</span>
               </div>
             </div>
           </div>
@@ -507,12 +554,15 @@
           <!-- Area Import Guru -->
           <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
             <div class="flex-1 text-sm text-gray-600">
-              <b>Import CSV Massal</b><br>Format File: <code>Username, Role, Password</code><br>Contoh Role: <i>guru, admin, wakasek</i>
+              <b>Import XLSX Massal</b><br>Kolom Wajib: <code>Username</code>, <code>Role</code>, <code>Password</code><br>Contoh Role: <i>guru, admin, wakasek</i>
+              <button id="btn-template-guru" class="mt-2 block bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-1.5 px-3 rounded-lg text-xs transition-colors flex items-center gap-1 w-fit shadow-sm">
+                <i class="ph ph-download-simple"></i> Download Format
+              </button>
             </div>
             <div class="w-full md:w-64 relative">
-              <input type="file" id="import-csv-guru-admin" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-              <button class="w-full bg-white border-2 border-dashed border-gray-300 hover:border-blue-500 rounded-lg p-3 text-center font-semibold text-gray-600 flex justify-center items-center gap-2 transition-colors">
-                <i class="ph ph-upload-simple text-xl"></i> Upload Akun CSV
+              <input type="file" id="import-xlsx-guru-admin" accept=".xlsx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+              <button class="w-full bg-white border-2 border-dashed border-emerald-300 hover:border-emerald-500 rounded-lg p-3 text-center font-semibold text-emerald-700 flex justify-center items-center gap-2 transition-colors">
+                <i class="ph ph-file-xls text-2xl"></i> Upload Akun XLSX
               </button>
             </div>
           </div>
@@ -627,6 +677,15 @@
             <div class="flex flex-wrap items-center gap-2">
               <button id="btn-cancel-edit" class="text-xs text-red-600 hover:underline flex items-center gap-1 mr-2 hidden"><i class="ph ph-x"></i> Batal Edit</button>
               
+              <!-- NEW: Actions for Guru (Import/Export Nilai) -->
+              <div id="guru-excel-actions" class="hidden flex items-center gap-2 mr-2 border-r border-gray-200 pr-3">
+                <button id="btn-template-nilai" class="text-xs bg-white hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-md font-medium transition-colors border border-gray-300 flex items-center gap-1 shadow-sm"><i class="ph ph-download-simple text-blue-600"></i> Format Nilai</button>
+                <div class="relative">
+                  <input type="file" id="import-xlsx-nilai" accept=".xlsx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                  <button class="text-xs bg-white hover:bg-emerald-50 text-gray-700 px-3 py-1.5 rounded-md font-medium transition-colors border border-gray-300 flex items-center gap-1 shadow-sm"><i class="ph ph-upload-simple text-emerald-600"></i> Import Nilai</button>
+                </div>
+              </div>
+
               <!-- Shared Action -->
               <button id="btn-export-excel" class="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm"><i class="ph ph-file-xls"></i> Export Excel</button>
               <button id="btn-show-preview" class="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm"><i class="ph ph-eye"></i> Preview Cetak</button>
@@ -666,13 +725,13 @@
                         <input type="number" id="in-nisn" placeholder="NISN" class="w-full border border-yellow-300 rounded px-2 py-1 text-xs focus:border-blue-500 focus:outline-none">
                       </div>
                     </td>
-                    <td class="px-2 py-3 align-top"><input type="number" id="in-f1" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
-                    <td class="px-2 py-3 align-top"><input type="number" id="in-f2" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
-                    <td class="px-2 py-3 align-top"><input type="number" id="in-f3" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
-                    <td class="px-2 py-3 align-top"><input type="number" id="in-t1" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
-                    <td class="px-2 py-3 align-top"><input type="number" id="in-t2" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
-                    <td class="px-2 py-3 align-top"><input type="number" id="in-t3" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
-                    <td class="px-2 py-3 align-top"><input type="number" id="in-asaj" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none font-bold text-emerald-700 bg-white"></td>
+                    <td class="px-2 py-3 align-top"><input type="number" min="0" max="100" id="in-f1" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
+                    <td class="px-2 py-3 align-top"><input type="number" min="0" max="100" id="in-f2" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
+                    <td class="px-2 py-3 align-top"><input type="number" min="0" max="100" id="in-f3" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
+                    <td class="px-2 py-3 align-top"><input type="number" min="0" max="100" id="in-t1" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
+                    <td class="px-2 py-3 align-top"><input type="number" min="0" max="100" id="in-t2" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
+                    <td class="px-2 py-3 align-top"><input type="number" min="0" max="100" id="in-t3" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none bg-white"></td>
+                    <td class="px-2 py-3 align-top"><input type="number" min="0" max="100" id="in-asaj" class="in-score w-full border border-yellow-300 rounded px-1 py-1 text-center text-sm focus:border-blue-500 outline-none font-bold text-emerald-700 bg-white"></td>
                     <td class="px-4 py-3 text-center font-bold text-blue-700 bg-blue-100/50 align-middle" id="in-na">0.0</td>
                     <td class="px-4 py-3 text-right align-middle"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded shadow-sm transition-colors"><i class="ph ph-floppy-disk"></i></button></td>
                   </tr>
@@ -706,7 +765,7 @@
     // --- FIREBASE IMPORTS ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp, getDocs, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp, getDocs, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- DEBUGGER FUNCTION ---
     const debugPanel = document.getElementById('debug-content');
@@ -778,10 +837,16 @@
         : collection(db, 'users');
     };
 
-    const DEFAULT_SUBJECTS = ["Pendidikan Agama Islam","PPKn","Bahasa Indonesia","Matematika","Bahasa Inggris","Seni Tari","PJOK","Fisika","Biologi","Kimia","Sejarah","Geografi","Ekonomi","Sosiologi","Informatika","Bahasa Madura","Matematika Tingkat Lanjut","Bahasa Inggris Tingkat Lanjut"];
-    const DEFAULT_CLASSES = ["X-1", "X-2", "X-3", "X-4", "X-5", "X-6", "X-7", "XI-A1", "XI-A2", "XI-B1", "XI-B2", "XI-B3", "XII-A1", "XII-A2", "XII-B1", "XII-B2", "XII-C"];
+    const getSettingsCollection = () => {
+      return isCanvasEnv 
+        ? collection(db, 'artifacts', appId, 'public', 'data', 'settings')
+        : collection(db, 'settings');
+    };
 
     // --- GLOBALS ---
+    let MASTER_SUBJECTS = ["Pendidikan Agama Islam","PPKn","Bahasa Indonesia","Matematika","Bahasa Inggris","Seni Tari","PJOK","Fisika","Biologi","Kimia","Sejarah","Geografi","Ekonomi","Sosiologi","Informatika","Bahasa Madura","Matematika Tingkat Lanjut","Bahasa Inggris Tingkat Lanjut"];
+    let MASTER_CLASSES = ["X-1", "X-2", "X-3", "X-4", "X-5", "X-6", "X-7", "XI-A1", "XI-A2", "XI-B1", "XI-B2", "XI-B3", "XII-A1", "XII-A2", "XII-B1", "XII-B2", "XII-C"];
+
     let appUser = null;
     let firebaseUser = null;
     let gradesData = [];
@@ -838,6 +903,7 @@
       secDelete: document.getElementById('sec-admin-delete'),
       secAdminGuru: document.getElementById('sec-admin-guru'),
       secAdminBackup: document.getElementById('sec-admin-backup'),
+      secAdminMaster: document.getElementById('sec-admin-master'),
       secNilai: document.getElementById('sec-nilai'),
       
       // Dashboard UI
@@ -885,10 +951,12 @@
       btnAddSiswa: document.getElementById('btn-add-siswa'),
 
       importClass: document.getElementById('import-class-select'),
-      importCsv: document.getElementById('import-csv-file'),
+      importXlsxSiswa: document.getElementById('import-xlsx-siswa'),
+      btnTemplateSiswa: document.getElementById('btn-template-siswa'),
       deleteClassSel: document.getElementById('delete-class-select'),
       btnDeleteClass: document.getElementById('btn-delete-class'),
-      importCsvGuruAdmin: document.getElementById('import-csv-guru-admin'),
+      importXlsxGuruAdmin: document.getElementById('import-xlsx-guru-admin'),
+      btnTemplateGuru: document.getElementById('btn-template-guru'),
       btnBackupDB: document.getElementById('btn-backup-db'),
       importJsonRestore: document.getElementById('import-json-restore'),
       btnResetDB: document.getElementById('btn-reset-db'),
@@ -906,6 +974,11 @@
       badgeMapel: document.getElementById('badge-mapel'),
       badgeEdit: document.getElementById('badge-edit-mode'),
       btnCancelEdit: document.getElementById('btn-cancel-edit'),
+      
+      guruExcelActions: document.getElementById('guru-excel-actions'),
+      btnTemplateNilai: document.getElementById('btn-template-nilai'),
+      importXlsxNilai: document.getElementById('import-xlsx-nilai'),
+
       btnExportExcel: document.getElementById('btn-export-excel'),
       btnShowPreview: document.getElementById('btn-show-preview'),
       weightsCont: document.getElementById('weights-container'),
@@ -952,16 +1025,7 @@
     function init() {
       // Date
       el.currentDate.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      // Populates Selects
-      const clsOpts = `<option value="">-- Pilih Kelas --</option>` + DEFAULT_CLASSES.map(c => `<option value="${c}">${c}</option>`).join('');
-      const subOpts = `<option value="">-- Pilih Mapel --</option>` + DEFAULT_SUBJECTS.map(s => `<option value="${s}">${s}</option>`).join('');
       
-      el.importClass.innerHTML = clsOpts;
-      el.deleteClassSel.innerHTML = clsOpts;
-      el.fKelas.innerHTML = clsOpts;
-      el.fMapel.innerHTML = subOpts;
-      if (el.crudSiswaKelasFilter) el.crudSiswaKelasFilter.innerHTML = clsOpts;
-
       // Kunci tombol login sementara
       el.btnLoginSubmit.disabled = true;
       el.btnLoginSubmit.classList.add('opacity-50', 'cursor-not-allowed');
@@ -987,17 +1051,97 @@
         firebaseUser = user;
         if (user) {
            logDebug(`Terotentikasi di Firebase. UID: ${user.uid}`);
-           if (debugDot) debugDot.classList.replace('bg-red-500', 'bg-green-500'); // Lampu hijau!
+           if (debugDot) debugDot.classList.replace('bg-red-500', 'bg-green-500'); 
+           
+           await loadMasterData();
            await loadUsersFromDB();
            if(appUser) setupFirestoreListener();
         } else {
            logDebug("Firebase Auth Terputus.");
-           if (debugDot) debugDot.classList.replace('bg-green-500', 'bg-red-500'); // Lampu merah!
+           if (debugDot) debugDot.classList.replace('bg-green-500', 'bg-red-500');
         }
       });
 
       attachEvents();
     }
+
+    function populateDropdowns() {
+      const clsOpts = `<option value="">-- Pilih Kelas --</option>` + MASTER_CLASSES.map(c => `<option value="${c}">${c}</option>`).join('');
+      const subOpts = `<option value="">-- Pilih Mapel --</option>` + MASTER_SUBJECTS.map(s => `<option value="${s}">${s}</option>`).join('');
+      
+      if(el.importClass) el.importClass.innerHTML = clsOpts;
+      if(el.deleteClassSel) el.deleteClassSel.innerHTML = clsOpts;
+      if(el.fKelas) el.fKelas.innerHTML = clsOpts;
+      if(el.crudSiswaKelasFilter) el.crudSiswaKelasFilter.innerHTML = clsOpts;
+      if(el.fMapel) el.fMapel.innerHTML = subOpts;
+    }
+
+    async function loadMasterData() {
+        try {
+            const docRef = doc(getSettingsCollection(), 'master');
+            const snap = await getDoc(docRef);
+            if(snap.exists()) {
+                const data = snap.data();
+                if(data.subjects) MASTER_SUBJECTS = data.subjects;
+                if(data.classes) MASTER_CLASSES = data.classes;
+                logDebug("Berhasil memuat Master Data dari Firebase.");
+            } else {
+                logDebug("Master Data kosong, membuat default...");
+                await setDoc(docRef, { subjects: MASTER_SUBJECTS, classes: MASTER_CLASSES });
+            }
+            populateDropdowns();
+        } catch (err) {
+            logDebug("GAGAL MEMUAT MASTER DATA", err);
+            populateDropdowns(); // Fallback
+        }
+    }
+
+    async function saveMasterData() {
+        try {
+            await setDoc(doc(getSettingsCollection(), 'master'), { subjects: MASTER_SUBJECTS, classes: MASTER_CLASSES });
+            populateDropdowns();
+            renderMasterDataUI();
+            showToast("Master Data berhasil diperbarui!", "success");
+        } catch(err) {
+            logDebug("GAGAL MENYIMPAN MASTER DATA", err);
+            showToast("Gagal menyimpan Master Data", "error");
+        }
+    }
+
+    function renderMasterDataUI() {
+        const clsList = document.getElementById('master-class-list');
+        const subList = document.getElementById('master-subject-list');
+        
+        if (clsList) {
+            clsList.innerHTML = MASTER_CLASSES.map((c, i) => `
+                <div class="flex justify-between items-center p-2 bg-white border border-gray-200 rounded mb-2 shadow-sm">
+                    <span class="font-medium text-gray-700">${c}</span>
+                    <button type="button" onclick="deleteMasterClass(${i})" class="text-red-500 hover:text-red-700"><i class="ph ph-trash text-lg"></i></button>
+                </div>
+            `).join('');
+        }
+
+        if (subList) {
+            subList.innerHTML = MASTER_SUBJECTS.map((s, i) => `
+                <div class="flex justify-between items-center p-2 bg-white border border-gray-200 rounded mb-2 shadow-sm">
+                    <span class="font-medium text-gray-700">${s}</span>
+                    <button type="button" onclick="deleteMasterSubject(${i})" class="text-red-500 hover:text-red-700"><i class="ph ph-trash text-lg"></i></button>
+                </div>
+            `).join('');
+        }
+    }
+
+    window.deleteMasterClass = async (idx) => {
+        if(!confirm(`Hapus kelas "${MASTER_CLASSES[idx]}" dari sistem?`)) return;
+        MASTER_CLASSES.splice(idx, 1);
+        await saveMasterData();
+    };
+
+    window.deleteMasterSubject = async (idx) => {
+        if(!confirm(`Hapus mata pelajaran "${MASTER_SUBJECTS[idx]}" dari sistem?`)) return;
+        MASTER_SUBJECTS.splice(idx, 1);
+        await saveMasterData();
+    };
 
     async function loadUsersFromDB() {
       try {
@@ -1020,7 +1164,7 @@
           
           // Setup Guru Filter Dropdown untuk admin/wakasek
           const guruOpts = `<option value="all">Semua Guru</option>` + USERS_DB.filter(u=>u.role==='guru').map(u => `<option value="${u.username}">${u.username}</option>`).join('');
-          el.fGuru.innerHTML = guruOpts;
+          if (el.fGuru) el.fGuru.innerHTML = guruOpts;
 
           // Aktifkan kembali tombol Login
           el.btnLoginSubmit.disabled = false;
@@ -1038,6 +1182,36 @@
 
     // --- EVENTS ---
     function attachEvents() {
+      // Event Listener Master Data Admin
+      const btnAddMasterClass = document.getElementById('btn-add-master-class');
+      if (btnAddMasterClass) {
+          btnAddMasterClass.onclick = async () => {
+              const val = document.getElementById('in-master-class').value.trim();
+              if(val && !MASTER_CLASSES.includes(val)) {
+                  MASTER_CLASSES.push(val);
+                  document.getElementById('in-master-class').value = '';
+                  await saveMasterData();
+              } else if (MASTER_CLASSES.includes(val)) {
+                  showToast("Kelas sudah ada!", "error");
+              }
+          };
+      }
+
+      const btnAddMasterSubject = document.getElementById('btn-add-master-subject');
+      if (btnAddMasterSubject) {
+          btnAddMasterSubject.onclick = async () => {
+              const val = document.getElementById('in-master-subject').value.trim();
+              if(val && !MASTER_SUBJECTS.includes(val)) {
+                  MASTER_SUBJECTS.push(val);
+                  document.getElementById('in-master-subject').value = '';
+                  await saveMasterData();
+              } else if (MASTER_SUBJECTS.includes(val)) {
+                  showToast("Mata Pelajaran sudah ada!", "error");
+              }
+          };
+      }
+
+
       el.togglePass.onclick = () => {
         const type = el.loginPass.type === 'password' ? 'text' : 'password';
         el.loginPass.type = type;
@@ -1169,12 +1343,24 @@
       if(el.importJsonRestore) el.importJsonRestore.onchange = handleRestoreDatabase;
       if(el.btnResetDB) el.btnResetDB.onclick = handleResetDatabase;
 
+      // Event Listener: Guru Excel Nilai
+      if(el.btnTemplateNilai) el.btnTemplateNilai.onclick = downloadTemplateNilai;
+      if(el.importXlsxNilai) el.importXlsxNilai.onchange = handleImportNilaiExcel;
+
       el.gradeForm.onsubmit = handleSaveNew;
       el.btnCancelEdit.onclick = () => { editGradeId = null; resetForm(); renderTable(); };
       
-      // Auto Calculation on new form
-      const calcNew = () => { el.inNa.textContent = getCalc({f1:el.inF1.value, f2:el.inF2.value, f3:el.inF3.value, t1:el.inT1.value, t2:el.inT2.value, t3:el.inT3.value, asaj:el.inAsaj.value}).final; };
-      document.querySelectorAll('.in-score').forEach(inp => inp.addEventListener('input', calcNew));
+      // Auto Calculation on new form (Memastikan nilai batas 0-100)
+      const sanitizeAndCalc = (e) => {
+          let val = e.target.value;
+          if (val !== "") {
+             let num = parseFloat(val);
+             if (num > 100) e.target.value = 100;
+             if (num < 0) e.target.value = 0;
+          }
+          el.inNa.textContent = getCalc({f1:el.inF1.value, f2:el.inF2.value, f3:el.inF3.value, t1:el.inT1.value, t2:el.inT2.value, t3:el.inT3.value, asaj:el.inAsaj.value}).final; 
+      };
+      document.querySelectorAll('.in-score').forEach(inp => inp.addEventListener('input', sanitizeAndCalc));
 
       // Delegated events for Table (Auto-save)
       el.gradesTbody.addEventListener('input', handleTableInput);
@@ -1278,6 +1464,7 @@
       const titles = { 
         'dashboard':'Dashboard Utama', 
         'admin-import':'Kelola Data Siswa', 
+        'admin-master':'Kelola Master Data',
         'admin-delete':'Hapus Data Kelas', 
         'admin-guru':'Kelola Data Guru', 
         'admin-backup':'Backup & Restore Database', 
@@ -1286,7 +1473,7 @@
       el.pageTitle.textContent = titles[m];
 
       // Hide all, show active
-      el.secDash.classList.add('hidden'); el.secImport.classList.add('hidden'); el.secDelete.classList.add('hidden'); el.secNilai.classList.add('hidden'); el.secAdminGuru.classList.add('hidden'); el.secAdminBackup.classList.add('hidden');
+      el.secDash.classList.add('hidden'); el.secImport.classList.add('hidden'); el.secDelete.classList.add('hidden'); el.secNilai.classList.add('hidden'); el.secAdminGuru.classList.add('hidden'); el.secAdminBackup.classList.add('hidden'); el.secAdminMaster.classList.add('hidden');
       if(m==='dashboard') {
         el.secDash.classList.remove('hidden');
         el.dashName.textContent = appUser.username.split(',')[0];
@@ -1296,6 +1483,10 @@
       } else if(m==='admin-import') {
         el.secImport.classList.remove('hidden');
         renderTableSiswa();
+      }
+      else if(m==='admin-master') {
+        el.secAdminMaster.classList.remove('hidden');
+        renderMasterDataUI();
       }
       else if(m==='admin-delete') el.secDelete.classList.remove('hidden');
       else if(m==='admin-guru') {
@@ -1321,10 +1512,11 @@
       
       if(appUser.role === 'admin') {
         navHtml += `
+          <button data-id="admin-master" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-master')"><i class="ph ph-database text-xl text-blue-400"></i><span>Kelola Master Data</span></button>
           <button data-id="admin-import" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-import')"><i class="ph ph-users text-xl text-blue-400"></i><span>Kelola Data Siswa</span></button>
           <button data-id="admin-guru" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-guru')"><i class="ph ph-users-three text-xl text-blue-400"></i><span>Kelola Data Guru</span></button>
           <button data-id="admin-delete" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-delete')"><i class="ph ph-trash text-xl text-blue-400"></i><span>Hapus Data Kelas</span></button>
-          <button data-id="admin-backup" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-backup')"><i class="ph ph-database text-xl text-blue-400"></i><span>Backup & Restore</span></button>`;
+          <button data-id="admin-backup" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-backup')"><i class="ph ph-hard-drives text-xl text-blue-400"></i><span>Backup & Restore</span></button>`;
       } else {
         navHtml += `
           <div class="pt-4 pb-2 px-5 text-xs font-bold text-blue-400 uppercase tracking-widest">Modul Akademik</div>
@@ -1334,9 +1526,9 @@
 
       // Manual text
       let manHtml = '';
-      if(appUser.role==='admin') manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-gear text-blue-500 text-lg mt-0.5"></i><span><strong>Kelola Data Siswa:</strong> Tambah/Edit/Hapus data siswa, atau unggah CSV masal.</span></li><li class="flex gap-3"><i class="ph ph-users-three text-purple-500 text-lg mt-0.5"></i><span><strong>Kelola Data Guru:</strong> Menambahkan dan mengedit profil login pengguna aplikasi secara manual maupun massal.</span></li><li class="flex gap-3"><i class="ph ph-database text-emerald-500 text-lg mt-0.5"></i><span><strong>Backup, Restore & Reset:</strong> Unduh cadangan JSON, pulihkan data, atau reset total database sekolah.</span></li></ul>`;
+      if(appUser.role==='admin') manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-database text-purple-500 text-lg mt-0.5"></i><span><strong>Master Data:</strong> Atur penamaan kelas dan daftar mata pelajaran.</span></li><li class="flex gap-3"><i class="ph ph-gear text-blue-500 text-lg mt-0.5"></i><span><strong>Kelola Data Siswa:</strong> Tambah/Edit/Hapus data siswa, atau unggah Excel masal.</span></li><li class="flex gap-3"><i class="ph ph-users-three text-purple-500 text-lg mt-0.5"></i><span><strong>Kelola Data Guru:</strong> Menambahkan dan mengedit profil login pengguna aplikasi secara manual maupun massal.</span></li><li class="flex gap-3"><i class="ph ph-hard-drives text-emerald-500 text-lg mt-0.5"></i><span><strong>Backup, Restore & Reset:</strong> Unduh cadangan JSON, pulihkan data, atau reset total database sekolah.</span></li></ul>`;
       else if(appUser.role==='wakasek') manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-funnel text-blue-500 text-lg mt-0.5"></i><span><strong>Monitor & Filter:</strong> Gunakan filter untuk melihat rekap spesifik sesuai tahun & semester yang dipilih saat login.</span></li><li class="flex gap-3"><i class="ph ph-file-xls text-emerald-500 text-lg mt-0.5"></i><span><strong>Export Excel:</strong> Klik tombol Export Excel untuk mendownload rekap nilai menjadi format .xlsx ke komputer Anda.</span></li></ul>`;
-      else manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-pencil-simple text-blue-500 text-lg mt-0.5"></i><span><strong>Mengisi Nilai:</strong> Pilih Mapel & Kelas. Ketik angka, data <b>otomatis tersimpan</b> ke cloud saat pindah kolom. Data akan terikat pada periode ${activeTahun} Semester ${activeSemester}.</span></li><li class="flex gap-3"><i class="ph ph-file-xls text-emerald-500 text-lg mt-0.5"></i><span><strong>Download Nilai:</strong> Anda bisa mengekspor nilai ke Excel kapan saja.</span></li></ul>`;
+      else manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-file-xls text-emerald-500 text-lg mt-0.5"></i><span><strong>Import Nilai Excel:</strong> Unduh Format Nilai di pojok kanan atas tabel, isi angkanya secara offline, lalu Import kembali ke sistem. Cepat dan mudah!</span></li><li class="flex gap-3"><i class="ph ph-pencil-simple text-blue-500 text-lg mt-0.5"></i><span><strong>Mengisi Manual:</strong> Ketik angka langsung di tabel, nilai otomatis tersimpan ke cloud saat pindah kotak. Nilai yang kurang dari KKM (75) akan berwarna <span class="text-red-600 font-bold">merah</span>.</span></li></ul>`;
       el.userManual.innerHTML = manHtml;
 
       // Adjust UI for Nilai
@@ -1344,6 +1536,7 @@
         el.fGuruWrap.classList.remove('hidden');
         el.weightsCont.classList.add('hidden');
         el.rowNewGrade.classList.add('hidden');
+        if(el.guruExcelActions) el.guruExcelActions.classList.add('hidden');
         document.querySelectorAll('.guru-col').forEach(c=>c.classList.add('hidden'));
       } else {
         el.fGuruWrap.classList.add('hidden');
@@ -1374,6 +1567,9 @@
       if(appUser.role==='guru') {
         el.weightsCont.classList.remove('hidden');
         if(!editGradeId) el.rowNewGrade.classList.remove('hidden');
+        if(el.guruExcelActions) el.guruExcelActions.classList.remove('hidden');
+      } else {
+        if(el.guruExcelActions) el.guruExcelActions.classList.add('hidden');
       }
 
       let html = '';
@@ -1384,24 +1580,30 @@
         d.forEach((item, idx) => {
           const fin = getCalc(item.scores).final;
           const bgA = 'bg-emerald-50/50 text-emerald-700 font-bold';
+          
+          // Logika KKM Merah (Batas KKM = 75)
+          const isRemedial = parseFloat(fin) < 75.0;
+          const naColor = isRemedial ? 'text-red-600 bg-red-50' : 'text-blue-700 bg-blue-50/20';
+          const naIcon = isRemedial ? '<i class="ph ph-warning-circle text-red-500 mr-1" title="Di bawah KKM (75)"></i>' : '';
+
           if(appUser.role === 'wakasek' || editGradeId === item.id) {
             // Read only row OR currently editing row (rendered in header for guru)
             if(editGradeId !== item.id) {
-              html += `<tr class="hover:bg-blue-50/50 transition-colors print:bg-white"><td class="px-4 py-3 text-gray-500 text-center">${idx+1}</td><td class="px-4 py-3"><div class="font-medium text-gray-800">${item.studentName}</div><div class="text-xs text-gray-400">${item.nisn}</div>${appUser.role==='wakasek'?`<div class="text-xs text-blue-500">${item.teacherName} | ${item.subject}</div>`:''}</td><td class="px-4 py-3 text-center">${ds(item.scores.f1)}</td><td class="px-4 py-3 text-center">${ds(item.scores.f2)}</td><td class="px-4 py-3 text-center">${ds(item.scores.f3)}</td><td class="px-4 py-3 text-center">${ds(item.scores.t1)}</td><td class="px-4 py-3 text-center">${ds(item.scores.t2)}</td><td class="px-4 py-3 text-center">${ds(item.scores.t3)}</td><td class="px-4 py-3 text-center font-bold text-emerald-700">${ds(item.scores.asaj)}</td><td class="px-4 py-3 text-center font-bold text-blue-700 bg-blue-50/20">${fin}</td></tr>`;
+              html += `<tr class="hover:bg-blue-50/50 transition-colors print:bg-white"><td class="px-4 py-3 text-gray-500 text-center">${idx+1}</td><td class="px-4 py-3"><div class="font-medium text-gray-800">${item.studentName}</div><div class="text-xs text-gray-400">${item.nisn}</div>${appUser.role==='wakasek'?`<div class="text-xs text-blue-500">${item.teacherName} | ${item.subject}</div>`:''}</td><td class="px-4 py-3 text-center">${ds(item.scores.f1)}</td><td class="px-4 py-3 text-center">${ds(item.scores.f2)}</td><td class="px-4 py-3 text-center">${ds(item.scores.f3)}</td><td class="px-4 py-3 text-center">${ds(item.scores.t1)}</td><td class="px-4 py-3 text-center">${ds(item.scores.t2)}</td><td class="px-4 py-3 text-center">${ds(item.scores.t3)}</td><td class="px-4 py-3 text-center font-bold text-emerald-700">${ds(item.scores.asaj)}</td><td class="px-4 py-3 text-center font-bold ${naColor}">${naIcon}${fin}</td></tr>`;
             }
           } else {
             // Guru Editable Row
             html += `<tr data-id="${item.id}" class="hover:bg-blue-50/50 transition-colors print:bg-white">
               <td class="px-4 py-3 text-gray-500 text-center">${idx+1}</td>
               <td class="px-4 py-3"><div class="font-medium text-gray-800">${item.studentName}</div><div class="text-xs text-gray-400 font-mono">${item.nisn}</div></td>
-              <td class="px-2 py-3"><input type="number" data-f="f1" value="${ds(item.scores.f1)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
-              <td class="px-2 py-3"><input type="number" data-f="f2" value="${ds(item.scores.f2)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
-              <td class="px-2 py-3"><input type="number" data-f="f3" value="${ds(item.scores.f3)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
-              <td class="px-2 py-3"><input type="number" data-f="t1" value="${ds(item.scores.t1)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
-              <td class="px-2 py-3"><input type="number" data-f="t2" value="${ds(item.scores.t2)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
-              <td class="px-2 py-3"><input type="number" data-f="t3" value="${ds(item.scores.t3)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
-              <td class="px-2 py-3"><input type="number" data-f="asaj" value="${ds(item.scores.asaj)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500 ${bgA}"></td>
-              <td class="px-4 py-3 text-center font-bold text-blue-700 bg-blue-50/20 cell-na">${fin}</td>
+              <td class="px-2 py-3"><input type="number" min="0" max="100" data-f="f1" value="${ds(item.scores.f1)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+              <td class="px-2 py-3"><input type="number" min="0" max="100" data-f="f2" value="${ds(item.scores.f2)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+              <td class="px-2 py-3"><input type="number" min="0" max="100" data-f="f3" value="${ds(item.scores.f3)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+              <td class="px-2 py-3"><input type="number" min="0" max="100" data-f="t1" value="${ds(item.scores.t1)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+              <td class="px-2 py-3"><input type="number" min="0" max="100" data-f="t2" value="${ds(item.scores.t2)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+              <td class="px-2 py-3"><input type="number" min="0" max="100" data-f="t3" value="${ds(item.scores.t3)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+              <td class="px-2 py-3"><input type="number" min="0" max="100" data-f="asaj" value="${ds(item.scores.asaj)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500 ${bgA}"></td>
+              <td class="px-4 py-3 text-center font-bold ${naColor} cell-na">${naIcon}${fin}</td>
               <td class="px-4 py-3 text-right print-hidden"><div class="flex justify-end gap-1"><button type="button" class="btn-edit p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Edit Data Siswa"><i class="ph ph-book-open text-lg pointer-events-none"></i></button><button type="button" class="btn-del p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Hapus Siswa"><i class="ph ph-trash text-lg pointer-events-none"></i></button></div></td>
             </tr>`;
           }
@@ -1417,7 +1619,15 @@
       if(appUser.role==='guru') {
         el.rowNewGrade = document.getElementById('row-new-grade');
         el.inName = document.getElementById('in-name'); el.inNisn = document.getElementById('in-nisn'); el.inF1 = document.getElementById('in-f1'); el.inF2 = document.getElementById('in-f2'); el.inF3 = document.getElementById('in-f3'); el.inT1 = document.getElementById('in-t1'); el.inT2 = document.getElementById('in-t2'); el.inT3 = document.getElementById('in-t3'); el.inAsaj = document.getElementById('in-asaj'); el.inNa = document.getElementById('in-na');
-        const calcNew = () => { el.inNa.textContent = getCalc({f1:el.inF1.value, f2:el.inF2.value, f3:el.inF3.value, t1:el.inT1.value, t2:el.inT2.value, t3:el.inT3.value, asaj:el.inAsaj.value}).final; };
+        const calcNew = () => { 
+           let vFin = getCalc({f1:el.inF1.value, f2:el.inF2.value, f3:el.inF3.value, t1:el.inT1.value, t2:el.inT2.value, t3:el.inT3.value, asaj:el.inAsaj.value}).final; 
+           el.inNa.textContent = vFin;
+           if(parseFloat(vFin) < 75) {
+               el.inNa.className = "px-4 py-3 text-center font-bold align-middle text-red-600 bg-red-50";
+           } else {
+               el.inNa.className = "px-4 py-3 text-center font-bold align-middle text-blue-700 bg-blue-100/50";
+           }
+        };
         document.querySelectorAll('.in-score').forEach(inp => inp.addEventListener('input', calcNew));
       }
     }
@@ -1426,6 +1636,7 @@
     function resetForm() {
       if(!el.inName) return;
       el.inName.value=''; el.inNisn.value=''; el.inF1.value=''; el.inF2.value=''; el.inF3.value=''; el.inT1.value=''; el.inT2.value=''; el.inT3.value=''; el.inAsaj.value=''; el.inNa.textContent='0.0';
+      el.inNa.className = "px-4 py-3 text-center font-bold align-middle text-blue-700 bg-blue-100/50";
       el.badgeEdit.classList.add('hidden'); el.btnCancelEdit.classList.add('hidden');
       el.rowNewGrade.classList.remove('hidden');
       el.iconNewEdit.innerHTML = '+';
@@ -1484,10 +1695,18 @@
         const id = tr.dataset.id;
         const inps = tr.querySelectorAll('input');
         if (inps.length >= 7) {
+            // Clamping validation
+            let val = parseFloat(e.target.value);
+            if (val > 100) e.target.value = 100;
+            if (val < 0) e.target.value = 0;
+
             const s = { f1:inps[0].value, f2:inps[1].value, f3:inps[2].value, t1:inps[3].value, t2:inps[4].value, t3:inps[5].value, asaj:inps[6].value };
             const cellNa = tr.querySelector('.cell-na');
             if (cellNa) {
-                cellNa.textContent = getCalc(s).final;
+                const finVal = getCalc(s).final;
+                const isRemed = parseFloat(finVal) < 75;
+                cellNa.innerHTML = (isRemed ? '<i class="ph ph-warning-circle text-red-500 mr-1" title="Di bawah KKM"></i>' : '') + finVal;
+                cellNa.className = `px-4 py-3 text-center font-bold cell-na ${isRemed ? 'text-red-600 bg-red-50' : 'text-blue-700 bg-blue-50/20'}`;
             }
         }
       }
@@ -1602,7 +1821,7 @@
       el.btnDeleteClass.disabled = false; el.btnDeleteClass.textContent = "Hapus Permanen Data Kelas";
     }
 
-    // --- FITUR ADMIN: DOWNLOAD TEMPLATE & IMPORT EXCEL ---
+    // --- FITUR ADMIN: DOWNLOAD TEMPLATE & IMPORT EXCEL SISWA ---
 
     function downloadTemplateSiswa() {
       const ws = XLSX.utils.json_to_sheet([
@@ -1654,7 +1873,7 @@
             n = String(n).trim();
             nis = String(nis).trim();
 
-            for(const s of DEFAULT_SUBJECTS) {
+            for(const s of MASTER_SUBJECTS) {
                const p = { 
                  studentName: n, 
                  nisn: nis, 
@@ -1723,6 +1942,103 @@
       reader.readAsArrayBuffer(file);
     }
 
+    // --- FITUR GURU: EXPORT/IMPORT FORMAT NILAI EXCEL ---
+
+    function downloadTemplateNilai() {
+      const d = getDisplayData();
+      if(!d.length) return showToast("Tidak ada data siswa di kelas ini", "error");
+
+      const excelData = d.map((it, i) => ({
+        "ID_SISTEM (JANGAN DIUBAH)": it.id,
+        "No": i + 1,
+        "Nama Siswa": it.studentName,
+        "NISN": it.nisn || "-",
+        "F1": ds(it.scores.f1), "F2": ds(it.scores.f2), "F3": ds(it.scores.f3),
+        "T1": ds(it.scores.t1), "T2": ds(it.scores.t2), "T3": ds(it.scores.t3),
+        "ASAJ": ds(it.scores.asaj)
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      
+      const wscols = [{wch: 35}, {wch: 5}, {wch: 30}, {wch: 15}, {wch: 8},{wch: 8},{wch: 8},{wch: 8},{wch: 8},{wch: 8},{wch: 8}];
+      ws['!cols'] = wscols;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "InputNilai");
+      
+      const filename = `FormatNilai_${selClass}_${selSubject.substring(0,15)}.xlsx`;
+      XLSX.writeFile(wb, filename);
+      showToast("Format nilai berhasil diunduh!", "success");
+    }
+
+    function handleImportNilaiExcel(e) {
+      const file = e.target.files[0];
+      if(!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        showToast("Memproses nilai Excel...", "success");
+        try {
+          const data = new Uint8Array(ev.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(worksheet);
+
+          let updateCount = 0;
+          const batch = writeBatch(db); // Menggunakan batch agar cepat
+
+          for(let row of json) {
+            const id = row["ID_SISTEM (JANGAN DIUBAH)"];
+            if(!id) continue;
+
+            const existingDoc = gradesData.find(g => g.id === id);
+            if(!existingDoc) continue;
+
+            // Pastikan angka valid dan maksimal 100
+            const sanitizeScore = (val) => {
+                if (val === "" || val === null || val === undefined) return null;
+                let num = parseFloat(val);
+                if (isNaN(num)) return null;
+                return num > 100 ? 100 : (num < 0 ? 0 : num); // Batasi 0 - 100
+            };
+
+            const newScores = {
+                f1: sanitizeScore(row["F1"]), f2: sanitizeScore(row["F2"]), f3: sanitizeScore(row["F3"]),
+                t1: sanitizeScore(row["T1"]), t2: sanitizeScore(row["T2"]), t3: sanitizeScore(row["T3"]),
+                asaj: sanitizeScore(row["ASAJ"])
+            };
+
+            const calc = getCalc(newScores);
+            
+            batch.update(doc(getGradesCollection(), id), {
+                scores: newScores,
+                results: {
+                    avgFormative: parseFloat(calc.avgFormative), 
+                    avgTask: parseFloat(calc.avgTask), 
+                    final: parseFloat(calc.final)
+                },
+                updatedAt: serverTimestamp()
+            });
+            updateCount++;
+          }
+
+          if (updateCount > 0) {
+             await batch.commit();
+             logDebug(`Berhasil mengimpor ${updateCount} baris nilai.`);
+             showToast(`Berhasil menyimpan ${updateCount} data nilai!`, "success");
+          } else {
+             showToast("Tidak ada data valid yang diimpor.", "error");
+          }
+
+        } catch(err) {
+          logDebug("GAGAL IMPORT NILAI GURU", err);
+          showToast("Format Excel tidak valid!", "error");
+        }
+        e.target.value = null; // Reset input file
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
     // --- FITUR ADMIN: KELOLA GURU & SISWA (CRUD) ---
 
     // Tutup / Buka Modal Universal
@@ -1730,8 +2046,10 @@
       btn.onclick = (e) => {
         const modal = e.target.closest('.fixed.inset-0');
         const content = modal.querySelector('div.bg-white');
-        content.classList.replace('scale-100', 'scale-95');
-        content.classList.replace('opacity-100', 'opacity-0');
+        if (content) {
+           content.classList.replace('scale-100', 'scale-95');
+           content.classList.replace('opacity-100', 'opacity-0');
+        }
         setTimeout(() => modal.classList.add('hidden'), 200);
       };
     });
@@ -1740,10 +2058,12 @@
       modalEl.classList.remove('hidden');
       modalEl.classList.add('flex');
       const content = modalEl.querySelector('div.bg-white');
-      setTimeout(() => {
-        content.classList.replace('scale-95', 'scale-100');
-        content.classList.replace('opacity-0', 'opacity-100');
-      }, 10);
+      if (content) {
+          setTimeout(() => {
+            content.classList.replace('scale-95', 'scale-100');
+            content.classList.replace('opacity-0', 'opacity-100');
+          }, 10);
+      }
     }
 
     // --- LOGIKA CRUD GURU ---
@@ -1890,7 +2210,7 @@
     window.deleteSiswa = async (encName, encNisn) => {
       const name = decodeURIComponent(encName);
       const nisn = decodeURIComponent(encNisn);
-      if(!confirm(`PERINGATAN: Yakin menghapus seluruh data siswa '${name}'? \n(Seluruh rekap nilai dari 18 mata pelajaran akan ikut terhapus secara permanen!)`)) return;
+      if(!confirm(`PERINGATAN: Yakin menghapus seluruh data siswa '${name}'? \n(Seluruh rekap nilai dari mata pelajaran akan ikut terhapus secara permanen!)`)) return;
       
       try {
         const cls = el.crudSiswaKelasFilter.value;
@@ -1931,9 +2251,9 @@
             await batch.commit();
             showToast("Identitas siswa berhasil diperbarui", "success");
           } else {
-            // Pembuatan 18 dokumen mapel
+            // Pembuatan dokumen mapel berdasar Master Subject terbaru
             const batch = writeBatch(db);
-            for(const s of DEFAULT_SUBJECTS) {
+            for(const s of MASTER_SUBJECTS) {
               const newDocRef = doc(getGradesCollection());
               batch.set(newDocRef, {
                  studentName: newName, 
@@ -1960,54 +2280,19 @@
       };
     }
 
-    function handleImportGuruAdmin(e) {
-      const file = e.target.files[0];
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        logDebug("Memulai impor CSV Guru...");
-        const rows = ev.target.result.split('\n');
-        let count = 0;
-        try {
-          for(let r of rows) {
-             const cols = r.split(',');
-             if(cols.length >= 3) {
-                 const username = cols[0].trim().replace(/^"|"$/g,'');
-                 const role = cols[1].trim().replace(/^"|"$/g,'').toLowerCase();
-                 const password = cols[2].trim().replace(/^"|"$/g,'');
-                 if(username.toLowerCase() === 'username' || !username) continue;
-                 
-                 await addDoc(getUsersCollection(), {
-                     username: username,
-                     role: role,
-                     password: password
-                 });
-                 count++;
-             }
-          }
-          logDebug(`Selesai impor ${count} guru.`);
-          showToast(`Impor ${count} data pengguna selesai!`);
-          await loadUsersFromDB(); // Refresh data pengguna lokal
-        } catch (err) {
-          logDebug("GAGAL IMPOR GURU", err);
-          showToast("Gagal mengimpor data pengguna", "error");
-        }
-        e.target.value = null;
-      };
-      reader.readAsText(file);
-    }
-
     async function handleBackupDatabase() {
       try {
         logDebug("Memulai proses backup database...");
         showToast("Menyiapkan file backup...", "success");
         const gradesSnap = await getDocs(getGradesCollection());
         const usersSnap = await getDocs(getUsersCollection());
+        const settingsSnap = await getDocs(getSettingsCollection());
 
         const data = {
           timestamp: new Date().toISOString(),
           grades: gradesSnap.docs.map(d => ({id: d.id, ...d.data()})),
-          users: usersSnap.docs.map(d => ({id: d.id, ...d.data()}))
+          users: usersSnap.docs.map(d => ({id: d.id, ...d.data()})),
+          settings: settingsSnap.docs.map(d => ({id: d.id, ...d.data()}))
         };
 
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -2047,7 +2332,7 @@
              for(const u of data.users) {
                 const id = u.id;
                 const docData = {...u}; delete docData.id;
-                await setDoc(doc(usersRef, id), docData); // setDoc dengan format ID aslinya
+                await setDoc(doc(usersRef, id), docData); 
              }
           }
 
@@ -2062,10 +2347,22 @@
              }
           }
 
+          // Restore Koleksi Settings (Master Data)
+          if (data.settings && Array.isArray(data.settings)) {
+             logDebug(`Memulihkan pengaturan master data...`);
+             const settingsRef = getSettingsCollection();
+             for(const s of data.settings) {
+                const id = s.id;
+                const docData = {...s}; delete docData.id;
+                await setDoc(doc(settingsRef, id), docData);
+             }
+          }
+
           logDebug("Restore database selesai!");
           showToast("Restore Database Berhasil!", "success");
           
           await loadUsersFromDB(); 
+          await loadMasterData();
           if (activeMenu === 'nilai') renderTable();
         } catch (err) {
           logDebug("GAGAL RESTORE DATABASE", err);
@@ -2093,13 +2390,11 @@
         const deletePromises = [];
         let deleteCount = 0;
 
-        // Kumpulkan semua perintah hapus data nilai
         gradesSnap.docs.forEach(d => {
             deletePromises.push(deleteDoc(d.ref));
             deleteCount++;
         });
 
-        // Kumpulkan perintah hapus data guru (KECUALI role admin, agar tidak ter-lock out)
         usersSnap.docs.forEach(d => {
             const uData = d.data();
             if (uData.role !== 'admin') {
@@ -2108,13 +2403,11 @@
             }
         });
 
-        // Eksekusi semua perintah hapus secara paralel
         await Promise.all(deletePromises);
 
         logDebug(`Reset selesai! ${deleteCount} dokumen telah dihapus.`);
         showToast("Database berhasil di-reset total!", "success");
 
-        // Reload data UI untuk memperbarui status
         await loadUsersFromDB();
         if (activeMenu === 'nilai') renderTable();
 
@@ -2133,7 +2426,6 @@
 
       try {
         logDebug("Mempersiapkan data Export Excel...");
-        // 1. Siapkan data JSON yang rapi untuk Excel
         const excelData = d.map((it, i) => {
           const cal = getCalc(it.scores);
           return {
@@ -2158,38 +2450,19 @@
           };
         });
 
-        // 2. Buat WorkSheet (Lembar Kerja)
         const ws = XLSX.utils.json_to_sheet(excelData);
-        
-        // Atur lebar kolom Excel agar rapi
-        const wscols = [
-            {wch: 5},  // No
-            {wch: 30}, // Nama
-            {wch: 15}, // NISN
-            {wch: 25}, // Mapel
-            {wch: 10}, // Kelas
-            {wch: 25}, // Guru
-            {wch: 15}, // Tahun
-            {wch: 10}, // Smt
-            {wch: 8}, {wch: 8}, {wch: 8}, // F1-F3
-            {wch: 8}, {wch: 8}, {wch: 8}, // T1-T3
-            {wch: 8},  // ASAJ
-            {wch: 18}, {wch: 15}, {wch: 15} // Averages
-        ];
+        const wscols = [ {wch: 5}, {wch: 30}, {wch: 15}, {wch: 25}, {wch: 10}, {wch: 25}, {wch: 15}, {wch: 10}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 18}, {wch: 15}, {wch: 15} ];
         ws['!cols'] = wscols;
 
-        // 3. Buat WorkBook (Buku Kerja) & tambahkan lembar
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Rekap Nilai");
 
-        // 4. Buat Nama File yang Dinamis
         const rGuru = appUser.role==='guru' ? appUser.username.split(',')[0] : (wFilter!=='all' ? wFilter.split(',')[0] : 'SemuaGuru');
         const rMapel = selSubject || 'SemuaMapel';
         const rKelas = selClass || 'SemuaKelas';
         const rTahun = activeTahun.replace('/', '-');
         const filename = `Rekap_${rKelas}_${rMapel}_${rGuru}_${rTahun}_Smt-${activeSemester}.xlsx`;
 
-        // 5. Trigger Download
         XLSX.writeFile(wb, filename);
         logDebug("Export Excel Berhasil: " + filename);
         showToast("Export Excel Berhasil!", "success");
