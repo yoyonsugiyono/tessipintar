@@ -5,6 +5,7 @@ import { db, getUsersCollection, getGradesCollection, getSettingsCollection } fr
 import { USERS_DB, loadUsersFromDB, getActiveTahun, getActiveSemester } from '../services/auth.js';
 import { MASTER_CLASSES, MASTER_SUBJECTS, saveMasterData } from '../services/db-master.js';
 import { renderTableGuru, renderTableSiswa, renderMasterDataUI, populateDropdowns, gradesData } from './tables.js';
+import { writeLog } from '../services/audit.js'; // Tambahkan import writeLog
 
 export function setupAdminEvents() {
     // A. Download Data Siswa Berbasis Database
@@ -79,13 +80,73 @@ export function setupAdminEvents() {
         };
     }
 
-    // --- SISANYA (CRUD GURU, MASTER DATA, BACKUP) TETAP SAMA ---
-    // Logika CRUD Guru, Master Data, dll...
+    // D. Fitur Hapus Kelas Masal
+    const btnDeleteClass = document.getElementById('btn-delete-class');
+    const deleteClassSelect = document.getElementById('delete-class-select');
+    
+    if (deleteClassSelect && btnDeleteClass) {
+        // Nyalakan tombol hanya jika kelas sudah dipilih
+        deleteClassSelect.addEventListener('change', (e) => {
+            if(e.target.value) {
+                btnDeleteClass.disabled = false;
+                btnDeleteClass.classList.remove('bg-gray-200', 'cursor-not-allowed', 'text-gray-500');
+                btnDeleteClass.classList.add('bg-red-600', 'hover:bg-red-700', 'text-white');
+            } else {
+                btnDeleteClass.disabled = true;
+                btnDeleteClass.classList.add('bg-gray-200', 'cursor-not-allowed', 'text-gray-500');
+                btnDeleteClass.classList.remove('bg-red-600', 'hover:bg-red-700', 'text-white');
+            }
+        });
+
+        // Logika saat tombol hapus diklik
+        btnDeleteClass.onclick = async () => {
+            const cls = deleteClassSelect.value;
+            const thn = getActiveTahun();
+            const smt = getActiveSemester();
+            
+            if(!cls) return;
+
+            if(!confirm(`PERINGATAN! Anda yakin ingin MENGHAPUS SEMUA DATA nilai siswa kelas ${cls} pada periode ${thn} ${smt}? Data tidak dapat dikembalikan!`)) return;
+
+            try {
+                // Filter data yang akan dihapus dari gradesData (didapat dari listener tabel)
+                const docsToDelete = gradesData.filter(g => g.className === cls && g.tahun === thn && g.semester === smt);
+                
+                if (docsToDelete.length === 0) {
+                    alert(`Tidak ada data ditemukan untuk kelas ${cls}.`);
+                    return;
+                }
+
+                btnDeleteClass.textContent = "MENGHAPUS...";
+                
+                // Hapus masal
+                await Promise.all(docsToDelete.map(d => deleteDoc(doc(getGradesCollection(), d.id))));
+                await writeLog("HAPUS_KELAS_MASAL", `Menghapus seluruh data kelas ${cls} pada periode aktif.`);
+                
+                alert(`Berhasil menghapus ${docsToDelete.length} data kelas ${cls}.`);
+                deleteClassSelect.value = '';
+                btnDeleteClass.disabled = true;
+                btnDeleteClass.textContent = "EKSEKUSI PENGHAPUSAN";
+                
+            } catch (err) {
+                console.error("Gagal menghapus kelas:", err);
+                alert("Terjadi kesalahan saat menghapus data.");
+                btnDeleteClass.textContent = "EKSEKUSI PENGHAPUSAN";
+            }
+        };
+    }
+
+    // E. Tombol Reset Database Total
+    const btnResetDb = document.getElementById('btn-reset-db');
+    if (btnResetDb) {
+        btnResetDb.onclick = async () => {
+            if(!confirm("BAHAYA: Apakah Anda benar-benar yakin ingin mereset seluruh database?")) return;
+            try {
+                await writeLog("RESET_DATABASE", "Melakukan permintaan reset total database sekolah.");
+                alert("Tindakan dicatat di Log Audit. Untuk keamanan tingkat tinggi, hapus seluruh data hanya bisa dilakukan langsung melalui Firebase Console.");
+            } catch (err) {
+                console.error(err);
+            }
+        };
+    }
 }
-
-// Di dalam fungsi btnDeleteClass.onclick (js/ui/admin.js)
-await Promise.all(docsToDelete.map(d => deleteDoc(doc(getGradesCollection(), d.id))));
-await writeLog("HAPUS_KELAS_MASAL", `Menghapus seluruh data kelas ${cls} pada periode aktif.`);
-
-// Di dalam fungsi btnResetDB.onclick
-await writeLog("RESET_DATABASE", "Melakukan reset total database sekolah.");
