@@ -193,7 +193,7 @@
           <span id="login-error-text" class="leading-tight block"></span>
         </div>
 
-        <button type="submit" id="btn-login-submit" class="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-blue-900 font-extrabold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200 text-lg">MASUK SISTEM</button>
+        <button type="submit" id="btn-login-submit" disabled class="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-blue-900 font-extrabold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 duration-200 text-lg opacity-50 cursor-not-allowed">MEMUAT DATABASE...</button>
         <div class="text-center text-xs text-gray-400 mt-6 font-medium">&copy; 2026 Tim Kurikulum SMAN 1 Ambunten</div>
       </form>
     </div>
@@ -478,8 +478,9 @@
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- KONFIGURASI FIREBASE ---
-    // WAJIB DIGANTI: Masukkan konfigurasi Firebase Anda di bawah ini
+    // --- DEBUGGER FUNCTION (DIPERBAIKI) ---
+    // Di sini kita memastikan komponen debug dideklarasikan agar tidak crash.
+    const debugPanel = document.getElementById('debug-content');
     const debugDot = document.getElementById('debug-status-dot');
     
     function logDebug(msg, err = null) {
@@ -488,23 +489,25 @@
       let text = `<span class="text-gray-400">[${time}]</span> ${msg}`;
       if (err) {
         text += `<br><span class="text-red-400 ml-2">➥ Err: ${err.message || err.code || err}</span>`;
-        debugDot.classList.replace('bg-green-500', 'bg-red-500');
+        if (debugDot) debugDot.classList.replace('bg-green-500', 'bg-red-500');
         console.error("[DEBUG]", msg, err);
       } else {
         console.log("[DEBUG]", msg);
       }
       p.innerHTML = text;
-      debugPanel.appendChild(p);
-      
-      // Auto-scroll to bottom
-      const wrapper = document.getElementById('debug-panel');
-      wrapper.scrollTop = wrapper.scrollHeight;
+      if (debugPanel) {
+        debugPanel.appendChild(p);
+        const wrapper = document.getElementById('debug-panel');
+        if (wrapper) wrapper.scrollTop = wrapper.scrollHeight;
+      }
     }
 
-    // Toggle debug panel
-    document.getElementById('btn-toggle-debug').addEventListener('click', () => {
-      document.getElementById('debug-panel').classList.toggle('hidden');
-    });
+    const btnToggleDebug = document.getElementById('btn-toggle-debug');
+    if (btnToggleDebug) {
+      btnToggleDebug.addEventListener('click', () => {
+        document.getElementById('debug-panel').classList.toggle('hidden');
+      });
+    }
 
     // --- KONFIGURASI FIREBASE ---
     const isCanvasEnv = typeof __firebase_config !== 'undefined';
@@ -546,17 +549,15 @@
         : collection(db, 'users');
     };
 
-    // Google Apps Script Webhook URL
-    const GAS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxwBsTcs6e50B7jUMmMIoMBSF5B37YOJo6hnMNua1SUHsQi6jplRWVkpV_Phew6-mM/exec";
-
     const DEFAULT_SUBJECTS = ["Pendidikan Agama Islam","PPKn","Bahasa Indonesia","Matematika","Bahasa Inggris","Seni Tari","PJOK","Fisika","Biologi","Kimia","Sejarah","Geografi","Ekonomi","Sosiologi","Informatika","Bahasa Madura","Matematika Tingkat Lanjut","Bahasa Inggris Tingkat Lanjut"];
     const DEFAULT_CLASSES = ["X-1", "X-2", "X-3", "X-4", "X-5", "X-6", "X-7", "XI-A1", "XI-A2", "XI-B1", "XI-B2", "XI-B3", "XII-A1", "XII-A2", "XII-B1", "XII-B2", "XII-C"];
 
-    // --- GLOBALS ---
+    // --- GLOBALS (DIPERBAIKI) ---
+    // Di sini USERS_DB dibuat kosong kembali untuk diisi secara online nanti.
     let appUser = null;
     let firebaseUser = null;
     let gradesData = [];
-    let USERS_DB = []; // <-- Tambahkan baris ini kembali agar database bisa tersimpan
+    let USERS_DB = []; 
     let unsubGrades = null;
     let activeMenu = 'dashboard';
     let editGradeId = null;
@@ -686,30 +687,22 @@
       el.fKelas.innerHTML = clsOpts;
       el.fMapel.innerHTML = subOpts;
 
-      // Nonaktifkan tombol login sementara proses memuat data dari database
+      // Kunci tombol login sementara
       el.btnLoginSubmit.disabled = true;
       el.btnLoginSubmit.classList.add('opacity-50', 'cursor-not-allowed');
       el.btnLoginSubmit.textContent = "MEMUAT DATABASE...";
 
-      // Cek apakah API Key Firebase sudah dimasukkan (Peringatan UI)
-      if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "API_KEY_ANDA" || firebaseConfig.apiKey === "ISI_API_KEY_FIREBASE_ANDA") {
-        el.loginErr.classList.remove('hidden');
-        el.loginErr.classList.add('flex');
-        el.loginErrTxt.innerHTML = `<b>Database Cloud Belum Dikonfigurasi!</b><br>Agar data tersimpan & sinkron antar perangkat saat di-host di GitHub, buka file <code>index.html</code> ini dan masukkan konfigurasi Firebase Anda di baris konfigurasi.<br><a href="https://console.firebase.google.com/" target="_blank" class="underline text-blue-600">Buka Firebase</a>`;
-        el.btnLoginSubmit.textContent = "KONFIGURASI DIBUTUHKAN";
-        return; 
-      }
-
-      // Firebase Auth
+      // Firebase Auth Flow (Diperbaiki agar error tercatat jelas di Layar)
       const doAuth = async () => {
         try {
+          logDebug("Mencoba otentikasi...");
           if (initialToken) await signInWithCustomToken(auth, initialToken);
           else await signInAnonymously(auth);
         } catch (e) { 
-          console.error("Auth Err", e);
+          logDebug("GAGAL OTENTIKASI", e);
           el.loginErr.classList.remove('hidden');
           el.loginErr.classList.add('flex');
-          el.loginErrTxt.innerHTML = `<b>Akses Database Ditolak!</b><br>Pesan Error: ${e.message}<br><br><b>PENTING (Jika Hosting di GitHub):</b><br>1. Buka <a href="https://console.firebase.google.com/" target="_blank" class="underline text-blue-600">Firebase Console</a><br>2. Masuk ke menu <b>Authentication</b> > <b>Sign-in method</b> > Aktifkan <b>Anonymous</b>.<br>3. Masuk ke <b>Settings</b> > <b>Authorized domains</b> > Tambahkan domain github anda (misal: <code>namaanda.github.io</code>).`;
+          el.loginErrTxt.innerHTML = `<b>Akses Database Ditolak!</b><br>Pesan Error: ${e.message}<br><br><b>PENTING:</b> Pastikan domain web sudah didaftarkan di menu Authentication Firebase.`;
           el.btnLoginSubmit.textContent = "AKSES DITOLAK";
         }
       };
@@ -718,8 +711,13 @@
       onAuthStateChanged(auth, async user => {
         firebaseUser = user;
         if (user) {
+           logDebug(`Terotentikasi di Firebase. UID: ${user.uid}`);
+           if (debugDot) debugDot.classList.replace('bg-red-500', 'bg-green-500'); // Lampu hijau!
            await loadUsersFromDB();
            if(appUser) setupFirestoreListener();
+        } else {
+           logDebug("Firebase Auth Terputus.");
+           if (debugDot) debugDot.classList.replace('bg-green-500', 'bg-red-500'); // Lampu merah!
         }
       });
 
@@ -728,16 +726,19 @@
 
     async function loadUsersFromDB() {
       try {
+        logDebug("Membaca koleksi akun (users) dari Firebase...");
         const usersRef = getUsersCollection();
         const snap = await getDocs(usersRef);
 
         if (snap.empty) {
+          logDebug("Data akun kosong.");
           el.loginErr.classList.remove('hidden');
           el.loginErr.classList.add('flex');
-          el.loginErrTxt.innerHTML = `<b>Data Pengguna Kosong!</b><br>Pastikan Anda telah melakukan migrasi data akun ke database.`;
+          el.loginErrTxt.innerHTML = `<b>Data Pengguna Kosong!</b><br>Anda belum memiliki akun guru di database cloud ini.`;
           el.btnLoginSubmit.textContent = "DATABASE KOSONG";
         } else {
           USERS_DB = snap.docs.map(doc => doc.data());
+          logDebug(`Berhasil memuat ${USERS_DB.length} data pengguna.`);
 
           // Setup Auto-complete (Datalist)
           el.usersList.innerHTML = USERS_DB.map(u => `<option value="${u.username}">`).join('');
@@ -752,7 +753,11 @@
           el.btnLoginSubmit.textContent = "MASUK SISTEM";
         }
       } catch (err) {
-        console.error("Gagal mengambil data pengguna", err);
+        logDebug("GAGAL MENGAMBIL DATA PENGGUNA", err);
+        el.loginErr.classList.remove('hidden');
+        el.loginErr.classList.add('flex');
+        el.loginErrTxt.innerHTML = `<b>Gagal Membaca Database!</b><br>${err.message}<br><br>Cek Firestore Rules Anda.`;
+        el.btnLoginSubmit.textContent = "GAGAL MEMUAT DATA";
       }
     }
 
@@ -863,7 +868,6 @@
     function ds(v) { return (v===null||v===undefined||v==="") ? "" : v; } // display string
 
     const getFiltered = () => {
-      // PENYARINGAN BERDASARKAN TAHUN PELAJARAN DAN SEMESTER
       let d = gradesData.filter(g => g.tahun === activeTahun && g.semester === activeSemester);
       if(appUser.role === 'guru') d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
       if(selSubject) d = d.filter(g => g.subject === selSubject);
@@ -884,7 +888,7 @@
       logDebug(`Mencoba membaca database Firestore di path: ${q.path}`);
       
       unsubGrades = onSnapshot(q, snap => {
-        logDebug(`Sukses membaca ${snap.docs.length} dokumen dari database.`);
+        logDebug(`Sukses membaca ${snap.docs.length} data nilai.`);
         let d = snapshotToData(snap);
         d.sort((a,b) => (a.createdAt?.seconds||0) - (b.createdAt?.seconds||0));
         gradesData = d;
@@ -892,14 +896,13 @@
         if(activeMenu === 'nilai') renderTable();
       }, err => {
         logDebug("GAGAL BACA DATABASE", err);
-        showToast("Gagal memuat data dari database!", "error");
+        showToast("Gagal memuat data nilai!", "error");
       });
     }
     
     function snapshotToData(snap) { return snap.docs.map(doc => ({id: doc.id, ...doc.data()})); }
 
     function updateStats() {
-      // Statistik juga hanya menampilkan data sesuai tahun dan semester yang aktif
       let baseD = gradesData.filter(g => g.tahun === activeTahun && g.semester === activeSemester);
       let d = appUser.role==='guru' ? baseD.filter(g=>g.teacherName===appUser.username || g.teacherName==='admin') : baseD;
       el.statStudents.textContent = d.length;
