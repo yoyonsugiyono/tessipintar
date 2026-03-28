@@ -4,7 +4,6 @@ import { signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "ht
 import { getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { auth, getUsersCollection } from '../config/firebase.js';
 
-// Global State untuk User
 export let appUser = null;
 export let USERS_DB = [];
 export let activeTahun = '';
@@ -23,10 +22,9 @@ export async function setupAuth(onReady) {
         else await signInAnonymously(auth);
     } catch (e) {
         console.error("[DEBUG] GAGAL OTENTIKASI", e);
-        loginErr.classList.remove('hidden');
-        loginErr.classList.add('flex');
-        loginErrTxt.innerHTML = `<b>Akses Database Ditolak!</b><br>Pesan Error: ${e.message}`;
-        btnLoginSubmit.textContent = "AKSES DITOLAK";
+        if(loginErr) { loginErr.classList.remove('hidden'); loginErr.classList.add('flex'); }
+        if(loginErrTxt) loginErrTxt.innerHTML = `<b>Akses Database Ditolak!</b><br>Pesan Error: ${e.message}`;
+        if(btnLoginSubmit) btnLoginSubmit.textContent = "AKSES DITOLAK";
     }
 
     onAuthStateChanged(auth, async user => {
@@ -51,29 +49,24 @@ export async function loadUsersFromDB() {
         const snap = await getDocs(getUsersCollection());
 
         if (snap.empty) {
-            loginErr.classList.remove('hidden');
-            loginErr.classList.add('flex');
-            loginErrTxt.innerHTML = `<b>Data Pengguna Kosong!</b><br>Belum ada akun di database.`;
-            btnLoginSubmit.textContent = "DATABASE KOSONG";
+            if(loginErr) { loginErr.classList.remove('hidden'); loginErr.classList.add('flex'); }
+            if(loginErrTxt) loginErrTxt.innerHTML = `<b>Data Pengguna Kosong!</b><br>Belum ada akun di database.`;
+            if(btnLoginSubmit) btnLoginSubmit.textContent = "DATABASE KOSONG";
         } else {
             USERS_DB = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+            if (usersList) usersList.innerHTML = USERS_DB.map(u => `<option value="${u.username}">`).join('');
             
-            // Masukkan ke datalist untuk autocomplete
-            if (usersList) {
-                usersList.innerHTML = USERS_DB.map(u => `<option value="${u.username}">`).join('');
+            if(btnLoginSubmit) {
+                btnLoginSubmit.disabled = false;
+                btnLoginSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
+                btnLoginSubmit.textContent = "MASUK SISTEM";
             }
-
-            // Aktifkan tombol
-            btnLoginSubmit.disabled = false;
-            btnLoginSubmit.classList.remove('opacity-50', 'cursor-not-allowed');
-            btnLoginSubmit.textContent = "MASUK SISTEM";
         }
     } catch (err) {
         console.error("[DEBUG] GAGAL MENGAMBIL DATA PENGGUNA", err);
-        loginErr.classList.remove('hidden');
-        loginErr.classList.add('flex');
-        loginErrTxt.innerHTML = `<b>Gagal Membaca Database!</b><br>${err.message}`;
-        btnLoginSubmit.textContent = "GAGAL MEMUAT DATA";
+        if(loginErr) { loginErr.classList.remove('hidden'); loginErr.classList.add('flex'); }
+        if(loginErrTxt) loginErrTxt.innerHTML = `<b>Gagal Membaca Database!</b><br>${err.message}`;
+        if(btnLoginSubmit) btnLoginSubmit.textContent = "GAGAL MEMUAT DATA";
     }
 }
 
@@ -82,7 +75,6 @@ export function initLoginForm(onLoginSuccess) {
     const togglePass = document.getElementById('toggle-password');
     const loginPass = document.getElementById('login-password');
 
-    // Fitur Show/Hide Password
     if (togglePass && loginPass) {
         togglePass.onclick = () => {
             const type = loginPass.type === 'password' ? 'text' : 'password';
@@ -91,7 +83,6 @@ export function initLoginForm(onLoginSuccess) {
         };
     }
 
-    // Submit form login
     if (loginForm) {
         loginForm.onsubmit = (e) => {
             e.preventDefault();
@@ -103,7 +94,6 @@ export function initLoginForm(onLoginSuccess) {
                 appUser = u;
                 activeTahun = document.getElementById('login-tahun').value;
                 activeSemester = document.getElementById('login-semester').value;
-                
                 document.getElementById('login-error').classList.add('hidden');
                 if (onLoginSuccess) onLoginSuccess(u);
             } else {
@@ -121,6 +111,10 @@ export function handleLogout(onLogoutComplete) {
     activeTahun = '';
     activeSemester = '';
     document.getElementById('login-form').reset();
-    
     if (onLogoutComplete) onLogoutComplete();
 }
+
+// 3 Baris yang sering terlewat/salah ketik:
+export const getAppUser = () => appUser;
+export const getActiveTahun = () => activeTahun;
+export const getActiveSemester = () => activeSemester;
