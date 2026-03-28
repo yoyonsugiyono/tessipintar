@@ -11,6 +11,21 @@ export let activeSemester = '';
 
 const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
+// FUNGSI BARU: Mengecek & memulihkan sesi dari Local Storage
+export function restoreSession() {
+    const storedUser = localStorage.getItem('sipintar_user');
+    const storedTahun = localStorage.getItem('sipintar_tahun');
+    const storedSemester = localStorage.getItem('sipintar_semester');
+    
+    if (storedUser && storedTahun && storedSemester) {
+        appUser = JSON.parse(storedUser);
+        activeTahun = storedTahun;
+        activeSemester = storedSemester;
+        return appUser;
+    }
+    return null;
+}
+
 export async function setupAuth(onReady) {
     const btnLoginSubmit = document.getElementById('btn-login-submit');
     const loginErr = document.getElementById('login-error');
@@ -45,7 +60,7 @@ export async function loadUsersFromDB() {
     const usersList = document.getElementById('users-list');
 
     try {
-        console.log("[DEBUG] Membaca koleksi akun (users) dari Firebase...");
+        console.log("[DEBUG] Membaca koleksi akun dari Firebase...");
         const snap = await getDocs(getUsersCollection());
 
         if (snap.empty) {
@@ -95,6 +110,12 @@ export function initLoginForm(onLoginSuccess) {
                 activeTahun = document.getElementById('login-tahun').value;
                 activeSemester = document.getElementById('login-semester').value;
                 document.getElementById('login-error').classList.add('hidden');
+                
+                // SIMPAN KE LOCAL STORAGE
+                localStorage.setItem('sipintar_user', JSON.stringify(u));
+                localStorage.setItem('sipintar_tahun', activeTahun);
+                localStorage.setItem('sipintar_semester', activeSemester);
+
                 if (onLoginSuccess) onLoginSuccess(u);
             } else {
                 const loginErr = document.getElementById('login-error');
@@ -110,11 +131,16 @@ export function handleLogout(onLogoutComplete) {
     appUser = null;
     activeTahun = '';
     activeSemester = '';
+    
+    // HAPUS DARI LOCAL STORAGE SAAT KELUAR
+    localStorage.removeItem('sipintar_user');
+    localStorage.removeItem('sipintar_tahun');
+    localStorage.removeItem('sipintar_semester');
+
     document.getElementById('login-form').reset();
     if (onLogoutComplete) onLogoutComplete();
 }
 
-// 3 Baris yang sering terlewat/salah ketik:
 export const getAppUser = () => appUser;
 export const getActiveTahun = () => activeTahun;
 export const getActiveSemester = () => activeSemester;
