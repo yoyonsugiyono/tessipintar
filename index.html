@@ -11,6 +11,9 @@
   <!-- Phosphor Icons (Pengganti Lucide React untuk Vanilla JS) -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
+  <!-- SheetJS untuk Export Excel (.xlsx) -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
   <style>
     /* Kustomisasi gaya untuk keperluan pencetakan (Print) */
     @media print {
@@ -395,6 +398,7 @@
               <button id="btn-cancel-edit" class="text-xs text-red-600 hover:underline flex items-center gap-1 mr-2 hidden"><i class="ph ph-x"></i> Batal Edit</button>
               
               <!-- Shared Action -->
+              <button id="btn-export-excel" class="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm"><i class="ph ph-file-xls"></i> Export Excel</button>
               <button id="btn-show-preview" class="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors shadow-sm"><i class="ph ph-eye"></i> Preview Cetak</button>
             </div>
           </div>
@@ -504,7 +508,7 @@
 
     // --- KONFIGURASI FIREBASE ---
     const isCanvasEnv = typeof __firebase_config !== 'undefined';
-    const firebaseConfig = {
+   const firebaseConfig = {
   apiKey: "AIzaSyBy4XjK7_GgwvyZszuooaHWuF_zCKpniXk",
   authDomain: "sipintar-f7b13.firebaseapp.com",
   projectId: "sipintar-f7b13",
@@ -512,6 +516,7 @@
   messagingSenderId: "86493439132",
   appId: "1:86493439132:web:ad4786f5931aa277abf959"
 };
+
     logDebug("Inisialisasi Firebase Config (isCanvasEnv: " + isCanvasEnv + ")");
 
     // --- KONFIGURASI APLIKASI ---
@@ -542,9 +547,6 @@
         : collection(db, 'users');
       return path;
     };
-
-    // Google Apps Script Webhook URL
-    const GAS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxwBsTcs6e50B7jUMmMIoMBSF5B37YOJo6hnMNua1SUHsQi6jplRWVkpV_Phew6-mM/exec";
 
     const DEFAULT_SUBJECTS = ["Pendidikan Agama Islam","PPKn","Bahasa Indonesia","Matematika","Bahasa Inggris","Seni Tari","PJOK","Fisika","Biologi","Kimia","Sejarah","Geografi","Ekonomi","Sosiologi","Informatika","Bahasa Madura","Matematika Tingkat Lanjut","Bahasa Inggris Tingkat Lanjut"];
     const DEFAULT_CLASSES = ["X-1", "X-2", "X-3", "X-4", "X-5", "X-6", "X-7", "XI-A1", "XI-A2", "XI-B1", "XI-B2", "XI-B3", "XII-A1", "XII-A2", "XII-B1", "XII-B2", "XII-C"];
@@ -628,6 +630,7 @@
       badgeMapel: document.getElementById('badge-mapel'),
       badgeEdit: document.getElementById('badge-edit-mode'),
       btnCancelEdit: document.getElementById('btn-cancel-edit'),
+      btnExportExcel: document.getElementById('btn-export-excel'),
       btnShowPreview: document.getElementById('btn-show-preview'),
       weightsCont: document.getElementById('weights-container'),
       inWf: document.getElementById('w-f'),
@@ -761,97 +764,6 @@
       }
     }
 
-    // --- SCRIPT MIGRASI (MENGGUNAKAN METODE BATCH) ---
-    // Diperbarui agar lebih cepat dan langsung 47 data masuk berbarengan
-    window.migrateUsers = async () => {
-      const USERS_TO_MIGRATE = [
-        { username: "admin", role: "admin", password: "admin123" },
-        { username: "Dra. Fadilah Waladisnaeni", role: "guru", password: "Guru123" },
-        { username: "Drs. Sauturrasik", role: "guru", password: "Guru123" },
-        { username: "Siti Suhadiya, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Sigit Budi Santosa, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Seger Alharis, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Nurkhalis, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Haris Santoso, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Ummama, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Abdul Hayyi, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Musthafa Imran, S.Ag", role: "guru", password: "Guru123" },
-        { username: "Bumi Firmani Cindar Ilmiah, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Ach. Daud, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Syamsul Arifin, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Arif Budiman, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Agus Widodo, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Heriansyah Kurniadi, S.Kom", role: "guru", password: "Guru123" },
-        { username: "Sunarto, SE.S.Pd", role: "guru", password: "Guru123" },
-        { username: "Rachlai Eko Arisetiawan, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Nurul Hamzah, S.Psi", role: "guru", password: "Guru123" },
-        { username: "Astri Kurniawati, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Iwan Supriadi, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Edi Musaffak, S.Pd.I", role: "guru", password: "Guru123" },
-        { username: "Syaiful Hadi, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Darmansyah Hasim, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Taufiqurrahman, S.Pd.I", role: "guru", password: "Guru123" },
-        { username: "Fajar Efendi, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Zainal Abidin, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Saiful Ramadhan, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Syaiful Anwar, S.Pd.I", role: "guru", password: "Guru123" },
-        { username: "Feri Medianto, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Suaidah, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Ahmad Helmi, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Sonia Hasofah, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Adi Suharsono, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Moh. Tazam, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Melyatus Zholihah, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Moh. Santoso, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Joni Santoso, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Nur Ahmadi, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Riskiyah, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Moh. Imam Gazali, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Reo Dina Regina Aplugi, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Isma Kailatul Isnaini, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Martinah, S.Pd", role: "guru", password: "Guru123" },
-        { username: "Akhmadh Anis, S.Sos", role: "guru", password: "Guru123" },
-        { username: "Wakasek Kurikulum", role: "wakasek", password: "wakakur123", nip: "19800303" }
-      ];
-      
-      logDebug("Memulai memindahkan 47 akun ke Firebase...");
-      el.btnLoginSubmit.textContent = "MEMINDAHKAN DATA...";
-      
-      try {
-        const usersRef = getUsersCollection();
-        
-        // 1. Bersihkan sisa data (seperti 1 data yang nyangkut sebelumnya)
-        const snap = await getDocs(usersRef);
-        if (!snap.empty) {
-          logDebug(`Membersihkan ${snap.docs.length} sisa data lama...`);
-          const batchDelete = writeBatch(db);
-          snap.docs.forEach(d => batchDelete.delete(d.ref));
-          await batchDelete.commit();
-        }
-
-        // 2. Upload ulang dengan Batch (Dikirim Sekaligus)
-        logDebug("Mengirim ulang 47 akun secara massal (Batch)...");
-        const batchInsert = writeBatch(db);
-        let count = 0;
-        
-        USERS_TO_MIGRATE.forEach(u => {
-          const newDoc = doc(usersRef); // Buat ID dokumen otomatis
-          batchInsert.set(newDoc, u);
-          count++;
-        });
-        
-        await batchInsert.commit(); // Kirim ke Firebase
-        
-        logDebug(`Pemindahan BATCH Selesai! ${count} akun diupload.`);
-        alert("Sukses! 47 Akun Guru & Admin telah tersimpan sempurna di Firebase. Silakan Refresh/Reload halaman ini.");
-      } catch (err) {
-        logDebug("Migrasi Gagal", err);
-        alert("Gagal memindahkan data: " + err.message);
-      } finally {
-        el.btnLoginSubmit.textContent = "SELESAI";
-      }
-    };
-
     // --- EVENTS ---
     function attachEvents() {
       el.togglePass.onclick = () => {
@@ -929,6 +841,7 @@
       el.btnCancelDel.onclick = () => el.deleteModal.classList.add('hidden');
       el.btnConfirmDel.onclick = confirmDelete;
 
+      el.btnExportExcel.onclick = handleExportExcel;
       el.btnShowPreview.onclick = () => showPreview(true);
       el.btnClosePreview.onclick = () => showPreview(false);
       el.btnPreviewDownload.onclick = handleDownloadDoc;
@@ -970,22 +883,6 @@
       if(wFilter !== 'all') d = d.filter(g => g.teacherName === wFilter);
       return d;
     };
-
-    // --- GOOGLE SHEETS SYNC ---
-    async function sendToGS(payload) {
-      if (!GAS_WEBHOOK_URL || GAS_WEBHOOK_URL === "URL_WEBHOOK_APPS_SCRIPT_ANDA_DISINI" || GAS_WEBHOOK_URL === "") {
-        console.warn("Peringatan: URL Webhook Apps Script belum diisi.");
-        return; 
-      }
-      try {
-        const res = await fetch(GAS_WEBHOOK_URL, {
-          method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload)
-        });
-        if(!res.ok) console.warn("Peringatan: Gagal terhubung ke Google Script");
-      } catch (err) {
-        console.warn("Peringatan: Terdapat kesalahan jaringan atau setelan CORS dari Apps Script saat mengirim data");
-      }
-    }
 
     // --- FIRESTORE DATABASE MANAGEMENT ---
     function setupFirestoreListener() {
@@ -1079,8 +976,8 @@
       // Manual text
       let manHtml = '';
       if(appUser.role==='admin') manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-gear text-blue-500 text-lg mt-0.5"></i><span><strong>Kelola Data Siswa (Import Massal):</strong> Pilih kelas, upload .csv (Nama Siswa, NISN). Sistem otomatis membagi ke 18 mapel.</span></li><li class="flex gap-3"><i class="ph ph-trash text-red-500 text-lg mt-0.5"></i><span><strong>Hapus Data Kelas:</strong> Reset data kelas permanen pada periode aktif.</span></li></ul>`;
-      else if(appUser.role==='wakasek') manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-funnel text-blue-500 text-lg mt-0.5"></i><span><strong>Monitor & Filter:</strong> Gunakan filter untuk melihat rekap spesifik sesuai tahun & semester yang dipilih saat login.</span></li><li class="flex gap-3"><i class="ph ph-eye text-emerald-500 text-lg mt-0.5"></i><span><strong>Preview & Cetak:</strong> Klik Preview & Download untuk mencetak laporan.</span></li></ul>`;
-      else manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-pencil-simple text-blue-500 text-lg mt-0.5"></i><span><strong>Mengisi Nilai:</strong> Pilih Mapel & Kelas. Ketik angka, data <b>otomatis tersimpan</b> saat pindah kolom. Data akan terikat pada periode ${activeTahun} Semester ${activeSemester}.</span></li></ul>`;
+      else if(appUser.role==='wakasek') manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-funnel text-blue-500 text-lg mt-0.5"></i><span><strong>Monitor & Filter:</strong> Gunakan filter untuk melihat rekap spesifik sesuai tahun & semester yang dipilih saat login.</span></li><li class="flex gap-3"><i class="ph ph-file-xls text-emerald-500 text-lg mt-0.5"></i><span><strong>Export Excel:</strong> Klik tombol Export Excel untuk mendownload rekap nilai menjadi format .xlsx ke komputer Anda.</span></li></ul>`;
+      else manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-pencil-simple text-blue-500 text-lg mt-0.5"></i><span><strong>Mengisi Nilai:</strong> Pilih Mapel & Kelas. Ketik angka, data <b>otomatis tersimpan</b> ke cloud saat pindah kolom. Data akan terikat pada periode ${activeTahun} Semester ${activeSemester}.</span></li><li class="flex gap-3"><i class="ph ph-file-xls text-emerald-500 text-lg mt-0.5"></i><span><strong>Download Nilai:</strong> Anda bisa mengekspor nilai ke Excel kapan saja.</span></li></ul>`;
       el.userManual.innerHTML = manHtml;
 
       // Adjust UI for Nilai
@@ -1214,8 +1111,6 @@
           showToast("Berhasil ditambah");
         }
 
-        // SELALU KIRIM KE SPREADSHEET
-        sendToGS(payload).catch(e=>console.warn(e));
         resetForm();
       } catch (err) { 
         logDebug("GAGAL MENYIMPAN KE FIRESTORE", err);
@@ -1257,7 +1152,6 @@
         const c = getCalc(ns);
         const tn = (item.teacherName==='admin' && appUser.role==='guru') ? appUser.username : item.teacherName;
         
-        // Pastikan properti tahun dan semester ikut diselipkan untuk keperluan pengiriman ke Spreadsheet (Webhook)
         const p = { 
           studentName: item.studentName, 
           nisn: item.nisn, 
@@ -1277,7 +1171,6 @@
           await updateDoc(doc(getGradesCollection(), id), fp);
           logDebug(`Sukses menyimpan perubahan ke Firestore untuk ID ${id}`);
           
-          sendToGS(p).catch(e=>console.warn(e));
         } catch(err) { 
           logDebug("GAGAL AUTO-SAVE KE FIRESTORE", err);
           showToast("Gagal auto-save: " + (err.code || err.message), 'error'); 
@@ -1388,6 +1281,79 @@
       reader.readAsText(file);
     }
     const handleImportAdmin = (e) => { const c = el.importClass.value; if(!c) { showToast("Pilih kelas", "error"); e.target.value=null; return; } doImport(e, c); };
+
+    function handleExportExcel() {
+      const d = getDisplayData();
+      if(!d.length) return showToast("Tidak ada data untuk diexport", "error");
+
+      try {
+        logDebug("Mempersiapkan data Export Excel...");
+        // 1. Siapkan data JSON yang rapi untuk Excel
+        const excelData = d.map((it, i) => {
+          const cal = getCalc(it.scores);
+          return {
+            "No": i + 1,
+            "Nama Siswa": it.studentName,
+            "NISN": it.nisn || "-",
+            "Mata Pelajaran": it.subject,
+            "Kelas": it.className,
+            "Guru Pengajar": it.teacherName,
+            "Tahun Pelajaran": it.tahun || activeTahun,
+            "Semester": it.semester || activeSemester,
+            "Form-1": ds(it.scores.f1),
+            "Form-2": ds(it.scores.f2),
+            "Form-3": ds(it.scores.f3),
+            "Tugas-1": ds(it.scores.t1),
+            "Tugas-2": ds(it.scores.t2),
+            "Tugas-3": ds(it.scores.t3),
+            "ASAJ": ds(it.scores.asaj),
+            "Rata-rata Formatif": parseFloat(cal.avgFormative),
+            "Rata-rata Tugas": parseFloat(cal.avgTask),
+            "Nilai Akhir (NA)": parseFloat(cal.final)
+          };
+        });
+
+        // 2. Buat WorkSheet (Lembar Kerja)
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        
+        // Atur lebar kolom Excel agar rapi
+        const wscols = [
+            {wch: 5},  // No
+            {wch: 30}, // Nama
+            {wch: 15}, // NISN
+            {wch: 25}, // Mapel
+            {wch: 10}, // Kelas
+            {wch: 25}, // Guru
+            {wch: 15}, // Tahun
+            {wch: 10}, // Smt
+            {wch: 8}, {wch: 8}, {wch: 8}, // F1-F3
+            {wch: 8}, {wch: 8}, {wch: 8}, // T1-T3
+            {wch: 8},  // ASAJ
+            {wch: 18}, {wch: 15}, {wch: 15} // Averages
+        ];
+        ws['!cols'] = wscols;
+
+        // 3. Buat WorkBook (Buku Kerja) & tambahkan lembar
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Rekap Nilai");
+
+        // 4. Buat Nama File yang Dinamis
+        const rGuru = appUser.role==='guru' ? appUser.username.split(',')[0] : (wFilter!=='all' ? wFilter.split(',')[0] : 'SemuaGuru');
+        const rMapel = selSubject || 'SemuaMapel';
+        const rKelas = selClass || 'SemuaKelas';
+        const rTahun = activeTahun.replace('/', '-');
+        const filename = `Rekap_${rKelas}_${rMapel}_${rGuru}_${rTahun}_Smt-${activeSemester}.xlsx`;
+
+        // 5. Trigger Download
+        XLSX.writeFile(wb, filename);
+        logDebug("Export Excel Berhasil: " + filename);
+        showToast("Export Excel Berhasil!", "success");
+
+      } catch(err) {
+        logDebug("Gagal Export Excel", err);
+        showToast("Gagal melakukan export Excel", "error");
+      }
+    }
 
     function showPreview(show) {
       if(show) {
