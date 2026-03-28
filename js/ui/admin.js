@@ -82,3 +82,10 @@ export function setupAdminEvents() {
     // --- SISANYA (CRUD GURU, MASTER DATA, BACKUP) TETAP SAMA ---
     // Logika CRUD Guru, Master Data, dll...
 }
+
+// Di dalam fungsi btnDeleteClass.onclick (js/ui/admin.js)
+await Promise.all(docsToDelete.map(d => deleteDoc(doc(getGradesCollection(), d.id))));
+await writeLog("HAPUS_KELAS_MASAL", `Menghapus seluruh data kelas ${cls} pada periode aktif.`);
+
+// Di dalam fungsi btnResetDB.onclick
+await writeLog("RESET_DATABASE", "Melakukan reset total database sekolah.");
