@@ -214,3 +214,44 @@ export function renderTable() {
     // Jadikan Tabel Global agar mudah diakses file lain
     window.renderTable = renderTable;
 }
+
+// ==========================================
+// 4. RENDER MASTER DATA & DROPDOWNS
+// ==========================================
+export function renderMasterDataUI() {
+    const clsList = document.getElementById('master-class-list');
+    const subList = document.getElementById('master-subject-list');
+    
+    if (clsList) {
+        clsList.innerHTML = MASTER_CLASSES.map((c, i) => `
+            <div class="flex justify-between items-center p-2 bg-white border border-gray-200 rounded mb-2 shadow-sm">
+                <span class="font-medium text-gray-700">${c}</span>
+                <button type="button" onclick="window.deleteMasterClass(${i})" class="text-red-500 hover:text-red-700"><i class="ph ph-trash text-lg"></i></button>
+            </div>
+        `).join('');
+    }
+
+    if (subList) {
+        subList.innerHTML = MASTER_SUBJECTS.map((s, i) => `
+            <div class="flex justify-between items-center p-2 bg-white border border-gray-200 rounded mb-2 shadow-sm">
+                <span class="font-medium text-gray-700">${s}</span>
+                <button type="button" onclick="window.deleteMasterSubject(${i})" class="text-red-500 hover:text-red-700"><i class="ph ph-trash text-lg"></i></button>
+            </div>
+        `).join('');
+    }
+}
+
+export function populateDropdowns() {
+    const clsOpts = `<option value="">-- Pilih Kelas --</option>` + MASTER_CLASSES.map(c => `<option value="${c}">${c}</option>`).join('');
+    const subOpts = `<option value="">-- Pilih Mapel --</option>` + MASTER_SUBJECTS.map(s => `<option value="${s}">${s}</option>`).join('');
+    
+    // Isi semua dropdown kelas yang ada di aplikasi
+    ['import-class-select', 'delete-class-select', 'filter-kelas', 'crud-siswa-kelas-filter'].forEach(id => { 
+        const el = document.getElementById(id); 
+        if(el) el.innerHTML = clsOpts; 
+    });
+    
+    // Isi dropdown mapel
+    const elMapel = document.getElementById('filter-mapel');
+    if(elMapel) elMapel.innerHTML = subOpts;
+}
