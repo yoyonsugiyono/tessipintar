@@ -5,6 +5,7 @@ import { getGradesCollection } from '../config/firebase.js';
 import { getAppUser, getActiveTahun, getActiveSemester } from './auth.js';
 import { setGradesData, renderTableSiswa } from '../ui/tables.js';
 import { switchMenu } from '../ui/navigation.js';
+import { writeLog } from './audit.js';
 
 // State untuk Nilai
 export let gradesData = [];
@@ -77,38 +78,28 @@ export function updateStats() {
     }
 }
 
-// Simpan Nilai Baru ke Firestore
+// Simpan Nilai Baru ke Firestore & Catat Log
 export async function saveNewGrade(payload, editId = null) {
     const cRef = getGradesCollection();
     try {
-        if(editId) {
+        if (editId) {
             payload.updatedAt = serverTimestamp();
             await updateDoc(doc(cRef, editId), payload);
             console.log("[DEBUG] Sukses memperbarui data " + editId);
+            
+            // CATAT LOG UPDATE
+            await writeLog("UPDATE_NILAI", `Mengubah nilai siswa: ${payload.studentName} (${payload.subject})`);
         } else {
             payload.createdAt = serverTimestamp();
             await addDoc(cRef, payload);
             console.log("[DEBUG] Sukses menambahkan data baru ke Firestore.");
+            
+            // CATAT LOG TAMBAH
+            await writeLog("TAMBAH_SISWA", `Menambah siswa baru: ${payload.studentName} ke kelas ${payload.className}`);
         }
         return true;
     } catch (err) {
         console.error("[DEBUG] GAGAL MENYIMPAN KE FIRESTORE", err);
         throw err;
-    }
-}
-
-// Import writeLog di bagian atas file
-import { writeLog } from './audit.js';
-
-export async function saveNewGrade(payload, id = null) {
-    const col = getGradesCollection();
-    if (id) {
-        await updateDoc(doc(col, id), { ...payload, updatedAt: serverTimestamp() });
-        // CATAT LOG UPDATE
-        await writeLog("UPDATE_NILAI", `Mengubah nilai siswa: ${payload.studentName} (${payload.subject})`);
-    } else {
-        await addDoc(col, { ...payload, createdAt: serverTimestamp() });
-        // CATAT LOG TAMBAH
-        await writeLog("TAMBAH_SISWA", `Menambah siswa baru: ${payload.studentName} ke kelas ${payload.className}`);
     }
 }
