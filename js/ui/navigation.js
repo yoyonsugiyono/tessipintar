@@ -26,13 +26,13 @@ export function switchMenu(menuId) {
     const appUser = getAppUser();
     if (!appUser) return;
     
-    // Tutup sidebar di HP
+    // Tutup sidebar di HP jika sedang terbuka
     const sidebar = document.getElementById('sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
     if(sidebar) sidebar.classList.add('-translate-x-full'); 
     if(sidebarOverlay) sidebarOverlay.classList.add('hidden');
     
-    // Update tombol aktif
+    // Update tampilan tombol aktif di sidebar
     document.querySelectorAll('.nav-btn').forEach(btn => {
         const icon = btn.querySelector('i');
         if(btn.dataset.id === menuId) {
@@ -44,33 +44,37 @@ export function switchMenu(menuId) {
         }
     });
 
+    // Update Judul Halaman Atas sesuai menu
     const titles = { 
-        'dashboard':'Dashboard Utama', 'admin-import':'Kelola Data Siswa', 'admin-master':'Kelola Master Data',
-        'admin-delete':'Hapus Data Kelas', 'admin-guru':'Kelola Data Guru', 'admin-backup':'Backup & Restore Database', 
+        'dashboard':'Dashboard Utama', 
+        'admin-import':'Kelola Data Siswa', 
+        'admin-master':'Kelola Master Data',
+        'admin-delete':'Hapus Data Kelas', 
+        'admin-guru':'Kelola Data Guru', 
+        'admin-backup':'Backup & Restore Database', 
         'nilai': appUser.role === 'wakasek' ? 'Cek Rekap Nilai Guru' : 'Input Nilai' 
     };
     const pageTitle = document.getElementById('page-title');
     if(pageTitle) pageTitle.textContent = titles[menuId] || 'Si PINTAR';
 
-    // Sembunyikan semua section
+    // Sembunyikan semua section terlebih dahulu
     ['sec-dashboard', 'sec-admin-import', 'sec-admin-delete', 'sec-nilai', 'sec-admin-guru', 'sec-admin-backup', 'sec-admin-master']
         .forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
 
-    // Tampilkan & RENDER berdasarkan menu yang dipilih
+    // Tampilkan & RENDER section berdasarkan menu yang dipilih
     if(menuId === 'dashboard') {
         document.getElementById('sec-dashboard').classList.remove('hidden');
     } 
     else if(menuId === 'admin-import') {
         document.getElementById('sec-admin-import').classList.remove('hidden');
-        renderTableSiswa(); // Memanggil fungsi render tabel siswa
+        renderTableSiswa(); 
     } 
     else if(menuId === 'admin-master') {
         document.getElementById('sec-admin-master').classList.remove('hidden');
-        // renderMasterDataUI(); (Akan kita pindahkan di tahap selanjutnya)
     } 
     else if(menuId === 'admin-guru') {
         document.getElementById('sec-admin-guru').classList.remove('hidden');
-        renderTableGuru(); // Memanggil fungsi render tabel guru
+        renderTableGuru(); 
     } 
     else if(menuId === 'admin-delete') {
         document.getElementById('sec-admin-delete').classList.remove('hidden');
@@ -80,7 +84,22 @@ export function switchMenu(menuId) {
     }
     else if(menuId === 'nilai') {
         document.getElementById('sec-nilai').classList.remove('hidden');
-        // renderTableNilai(); (Akan kita pindahkan di tahap selanjutnya)
+        
+        // --- LOGIKA MENYEMBUNYIKAN FILTER GURU ---
+        const fGuruWrap = document.getElementById('filter-guru-wrapper');
+        if (fGuruWrap) {
+            if (appUser.role === 'wakasek') {
+                fGuruWrap.classList.remove('hidden'); // Munculkan jika Wakasek
+            } else {
+                fGuruWrap.classList.add('hidden'); // Sembunyikan jika Guru biasa
+            }
+        }
+        // ------------------------------------------
+
+        // Render tabel nilai jika fungsinya sudah siap
+        if (typeof window.renderTable === 'function') {
+            window.renderTable();
+        }
     }
 }
 
