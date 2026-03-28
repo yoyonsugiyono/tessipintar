@@ -1159,10 +1159,12 @@
 
       el.deleteClassSel.onchange = (e) => { el.btnDeleteClass.disabled = !e.target.value; el.btnDeleteClass.classList.toggle('bg-red-600', !!e.target.value); el.btnDeleteClass.classList.toggle('bg-gray-300', !e.target.value); };
       el.btnDeleteClass.onclick = handleDeleteClassData;
-      el.importCsv.onchange = handleImportAdmin;
       
-      // Event Listener: Admin Guru & Backup Restore & Reset
-      if(el.importCsvGuruAdmin) el.importCsvGuruAdmin.onchange = handleImportGuruAdmin;
+      // Event Listener: Admin Guru & Siswa Excel & Backup
+      if(el.importXlsxSiswa) el.importXlsxSiswa.onchange = handleImportSiswaExcel;
+      if(el.btnTemplateSiswa) el.btnTemplateSiswa.onclick = downloadTemplateSiswa;
+      if(el.importXlsxGuruAdmin) el.importXlsxGuruAdmin.onchange = handleImportGuruExcel;
+      if(el.btnTemplateGuru) el.btnTemplateGuru.onclick = downloadTemplateGuru;
       if(el.btnBackupDB) el.btnBackupDB.onclick = handleBackupDatabase;
       if(el.importJsonRestore) el.importJsonRestore.onchange = handleRestoreDatabase;
       if(el.btnResetDB) el.btnResetDB.onclick = handleResetDatabase;
@@ -1600,44 +1602,126 @@
       el.btnDeleteClass.disabled = false; el.btnDeleteClass.textContent = "Hapus Permanen Data Kelas";
     }
 
-    function doImport(e, cls) {
+    // --- FITUR ADMIN: DOWNLOAD TEMPLATE & IMPORT EXCEL ---
+
+    function downloadTemplateSiswa() {
+      const ws = XLSX.utils.json_to_sheet([
+        { "Nama Siswa": "Budi Santoso", "NISN": "0011223344" },
+        { "Nama Siswa": "Siti Aminah", "NISN": "0011223355" }
+      ]);
+      const wscols = [{wch: 30}, {wch: 20}];
+      ws['!cols'] = wscols;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "FormatSiswa");
+      XLSX.writeFile(wb, "Format_Import_Siswa.xlsx");
+    }
+
+    function downloadTemplateGuru() {
+      const ws = XLSX.utils.json_to_sheet([
+        { "Username": "Guru Budi, S.Pd", "Role": "guru", "Password": "Guru123" },
+        { "Username": "Admin TU", "Role": "admin", "Password": "admin123" },
+        { "Username": "Wakasek Kurikulum", "Role": "wakasek", "Password": "wakakur123" }
+      ]);
+      const wscols = [{wch: 30}, {wch: 15}, {wch: 20}];
+      ws['!cols'] = wscols;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "FormatGuru");
+      XLSX.writeFile(wb, "Format_Import_Guru.xlsx");
+    }
+
+    function handleImportSiswaExcel(e) {
+      const cls = el.importClass.value; 
+      if(!cls) { showToast("Pilih kelas tujuan di menu atas terlebih dahulu!", "error"); e.target.value=null; return; }
+      
       const file = e.target.files[0];
       if(!file) return;
       const reader = new FileReader();
       reader.onload = async (ev) => {
-        logDebug(`Memulai proses impor CSV untuk kelas ${cls}...`);
-        const rows = ev.target.result.split('\n'); let c=0;
-        for(let i=0; i<rows.length; i++) {
-          const r=rows[i].trim(); if(!r) continue;
-          const cols=r.split(','); let n=cols[0]?.trim().replace(/^"|"$/g,''); let nis=cols[1]?.trim().replace(/^"|"$/g,'')||"";
-          if(n.toLowerCase()==='nama siswa' || n.toLowerCase()==='nama' || !n) continue;
-          for(const s of DEFAULT_SUBJECTS) {
-             const p = { 
-               studentName: n, 
-               nisn: nis, 
-               teacherName: 'admin', 
-               subject: s, 
-               className: cls, 
-               tahun: activeTahun, 
-               semester: activeSemester, 
-               scores: { f1:null, f2:null, f3:null, t1:null, t2:null, t3:null, asaj:null }, 
-               results: { avgFormative:0, avgTask:0, final:0 }, 
-               createdAt: serverTimestamp() 
-             };
-             try{ 
-               await addDoc(getGradesCollection(), p); 
-             } catch(err){
-               logDebug("GAGAL IMPOR DATA", err);
-             }
+        logDebug(`Memulai proses impor XLSX Siswa untuk kelas ${cls}...`);
+        try {
+          const data = new Uint8Array(ev.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
+
+          let count = 0;
+          for(let row of json) {
+            let n = row["Nama Siswa"] || row["Nama"];
+            let nis = row["NISN"] || "";
+            
+            if(!n) continue; // Skip jika kolom nama kosong
+            n = String(n).trim();
+            nis = String(nis).trim();
+
+            for(const s of DEFAULT_SUBJECTS) {
+               const p = { 
+                 studentName: n, 
+                 nisn: nis, 
+                 teacherName: 'admin', 
+                 subject: s, 
+                 className: cls, 
+                 tahun: activeTahun, 
+                 semester: activeSemester, 
+                 scores: { f1:null, f2:null, f3:null, t1:null, t2:null, t3:null, asaj:null }, 
+                 results: { avgFormative:0, avgTask:0, final:0 }, 
+                 createdAt: serverTimestamp() 
+               };
+               try { await addDoc(getGradesCollection(), p); } catch(err) { logDebug("GAGAL IMPOR DATA", err); }
+            }
+            count++;
           }
-          c++;
+          logDebug(`Selesai impor ${count} siswa.`);
+          showToast(`Impor ${count} siswa selesai!`);
+        } catch(err) {
+          logDebug("GAGAL BACA FILE EXCEL SISWA", err);
+          showToast("Format Excel tidak valid atau gagal dibaca", "error");
         }
-        logDebug(`Selesai impor ${c} siswa.`);
-        showToast(`Impor ${c} siswa selesai!`); e.target.value=null;
+        e.target.value = null;
       };
-      reader.readAsText(file);
+      reader.readAsArrayBuffer(file);
     }
-    const handleImportAdmin = (e) => { const c = el.importClass.value; if(!c) { showToast("Pilih kelas", "error"); e.target.value=null; return; } doImport(e, c); };
+
+    function handleImportGuruExcel(e) {
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        logDebug("Memulai impor XLSX Guru...");
+        try {
+          const data = new Uint8Array(ev.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
+
+          let count = 0;
+          for(let row of json) {
+             let username = row["Username"] || row["Nama Lengkap"];
+             let role = row["Role"] || row["Peran"];
+             let password = row["Password"] || row["Sandi"];
+
+             if(!username || !role || !password) continue;
+
+             username = String(username).trim();
+             role = String(role).trim().toLowerCase();
+             password = String(password).trim();
+             
+             await addDoc(getUsersCollection(), { username: username, role: role, password: password });
+             count++;
+          }
+          logDebug(`Selesai impor ${count} guru.`);
+          showToast(`Impor ${count} data pengguna selesai!`);
+          await loadUsersFromDB(); 
+          if(activeMenu === 'admin-guru') renderTableGuru();
+        } catch (err) {
+          logDebug("GAGAL IMPOR GURU", err);
+          showToast("Format Excel tidak valid atau gagal dibaca", "error");
+        }
+        e.target.value = null;
+      };
+      reader.readAsArrayBuffer(file);
+    }
 
     // --- FITUR ADMIN: KELOLA GURU & SISWA (CRUD) ---
 
