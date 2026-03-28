@@ -80,6 +80,119 @@
     </div>
   </div>
 
+  <!-- CRUD Guru Modal -->
+  <div id="crud-guru-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-transform scale-95 opacity-0 duration-200" id="crud-guru-content">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-800" id="crud-guru-title">Tambah Pengguna</h3>
+        <button type="button" class="btn-close-modal text-gray-400 hover:text-gray-600"><i class="ph ph-x text-xl"></i></button>
+      </div>
+      <form id="crud-guru-form" class="space-y-4">
+        <input type="hidden" id="crud-guru-id">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Username / Nama Lengkap</label>
+          <input type="text" id="crud-guru-name" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Role (Peran)</label>
+          <select id="crud-guru-role" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="guru">Guru</option>
+            <option value="wakasek">Wakasek</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+          <input type="text" id="crud-guru-pass" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+        <div class="flex gap-3 pt-4">
+          <button type="button" class="btn-close-modal flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">Batal</button>
+          <button type="submit" class="flex-1 px-4 py-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-xl font-medium transition-colors shadow-lg shadow-blue-200">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CRUD Siswa Modal -->
+  <div id="crud-siswa-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-transform scale-95 opacity-0 duration-200" id="crud-siswa-content">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-800" id="crud-siswa-title">Tambah Siswa</h3>
+        <button type="button" class="btn-close-modal text-gray-400 hover:text-gray-600"><i class="ph ph-x text-xl"></i></button>
+      </div>
+      <form id="crud-siswa-form" class="space-y-4">
+        <input type="hidden" id="crud-siswa-oldname">
+        <input type="hidden" id="crud-siswa-oldnisn">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Kelas</label>
+          <select id="crud-siswa-kelas-input" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 pointer-events-none" readonly></select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap Siswa</label>
+          <input type="text" id="crud-siswa-name" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">NISN (Opsional)</label>
+          <input type="number" id="crud-siswa-nisn" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+        <div class="flex gap-3 pt-4">
+          <button type="button" class="btn-close-modal flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">Batal</button>
+          <button type="submit" class="flex-1 px-4 py-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-xl font-medium transition-colors shadow-lg shadow-blue-200">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Ubah Sandi Modal (User/Guru) -->
+  <div id="ubah-sandi-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-transform scale-95 opacity-0 duration-200">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-800">Ubah Kata Sandi</h3>
+        <button type="button" class="btn-close-modal text-gray-400 hover:text-gray-600"><i class="ph ph-x text-xl"></i></button>
+      </div>
+      <form id="ubah-sandi-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Sandi Lama</label>
+          <input type="password" id="in-sandi-lama" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Sandi Baru</label>
+          <input type="password" id="in-sandi-baru" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Minimal 6 karakter">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Konfirmasi Sandi Baru</label>
+          <input type="password" id="in-sandi-konfirm" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ketik ulang sandi baru">
+        </div>
+        <div class="flex gap-3 pt-4">
+          <button type="button" class="btn-close-modal flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">Batal</button>
+          <button type="submit" class="flex-1 px-4 py-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-xl font-medium transition-colors shadow-lg shadow-blue-200">Simpan Sandi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Reset Sandi Modal (Admin) -->
+  <div id="reset-sandi-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 backdrop-blur-sm print-hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-transform scale-95 opacity-0 duration-200">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-800">Reset Kata Sandi</h3>
+        <button type="button" class="btn-close-modal text-gray-400 hover:text-gray-600"><i class="ph ph-x text-xl"></i></button>
+      </div>
+      <form id="reset-sandi-form" class="space-y-4">
+        <input type="hidden" id="in-reset-sandi-id">
+        <p class="text-sm text-gray-600 mb-4">Mereset kata sandi untuk pengguna: <br><strong id="in-reset-sandi-nama" class="text-lg text-blue-700"></strong></p>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Ketik Sandi Baru</label>
+          <input type="text" id="in-reset-sandi-baru" required class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-orange-500 outline-none font-mono text-lg" placeholder="Sandi baru (Min. 6 karakter)">
+        </div>
+        <div class="flex gap-3 pt-4">
+          <button type="button" class="btn-close-modal flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors">Batal</button>
+          <button type="submit" class="flex-1 px-4 py-2.5 text-white bg-orange-600 hover:bg-orange-700 rounded-xl font-medium transition-colors shadow-lg shadow-orange-200">Reset Sandi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Preview Cetak Modal -->
   <div id="preview-modal" class="fixed inset-0 bg-gray-900/80 z-50 hidden flex-col p-4 md:p-8 backdrop-blur-sm print:relative print:bg-transparent print:p-0">
     <div class="bg-white rounded-t-xl p-4 flex justify-between items-center max-w-5xl w-full mx-auto shadow-lg print-hidden">
@@ -235,6 +348,9 @@
             <p id="auth-user-role" class="text-[10px] text-blue-300 uppercase font-bold tracking-wider"></p>
           </div>
         </div>
+        <button id="btn-ubah-sandi" class="w-full flex items-center justify-center gap-2 bg-blue-800/80 hover:bg-blue-700 text-white py-2 mb-2 rounded-xl text-sm font-medium transition-all shadow-md">
+          <i class="ph ph-lock-key text-lg"></i> Ubah Sandi
+        </button>
         <button id="btn-logout" class="w-full flex items-center justify-center gap-2 bg-red-600/90 hover:bg-red-600 text-white py-2.5 rounded-xl text-sm font-medium transition-all shadow-md hover:shadow-red-900/30">
           <i class="ph ph-sign-out text-lg"></i> Keluar Sistem
         </button>
@@ -298,28 +414,57 @@
         </div>
       </div>
 
-      <!-- 2. Admin Import Section -->
-      <div id="sec-admin-import" class="section-container hidden space-y-6 max-w-2xl mx-auto animate-in">
+      <!-- 2. Admin Siswa Section (CRUD & Import) -->
+      <div id="sec-admin-import" class="section-container hidden space-y-6 max-w-5xl mx-auto animate-in">
         <div class="bg-white rounded-xl p-8 border-t-8 border-t-yellow-400 shadow-sm">
-          <div class="mb-8 text-center">
-            <div class="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-600 text-3xl"><i class="ph ph-upload-simple"></i></div>
-            <h2 class="text-2xl font-bold text-gray-800">Import Data Siswa Massal</h2>
-            <p class="text-gray-500 mt-2">Data yang diimport akan otomatis tersedia di akun semua guru pada kelas yang dipilih.</p>
-            <p class="text-xs text-gray-400 mt-2 font-mono bg-gray-100 p-2 rounded">Format CSV: Nama Siswa, NISN</p>
-          </div>
-          <div class="space-y-6">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="bg-yellow-100 w-12 h-12 rounded-full flex items-center justify-center text-yellow-600 text-2xl"><i class="ph ph-users"></i></div>
             <div>
+              <h2 class="text-2xl font-bold text-gray-800">Kelola Data Siswa</h2>
+              <p class="text-gray-500 text-sm">Import massal via CSV atau kelola satu-persatu per kelas.</p>
+            </div>
+          </div>
+          
+          <!-- Area Import -->
+          <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8 flex flex-col md:flex-row gap-4 items-center">
+            <div class="flex-1 w-full">
               <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih Kelas Tujuan</label>
-              <select id="import-class-select" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-yellow-400 outline-none">
-                <option value="">-- Pilih Kelas --</option>
-              </select>
+              <select id="import-class-select" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-yellow-400 outline-none"></select>
             </div>
-            <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-yellow-400 transition-colors bg-gray-50 relative group cursor-pointer">
+            <div class="flex-1 w-full relative">
               <input type="file" id="import-csv-file" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-              <i class="ph ph-file-text text-5xl mx-auto text-gray-400 group-hover:text-yellow-500 mb-4 transition-colors block"></i>
-              <p class="font-medium text-gray-700 group-hover:text-yellow-600">Klik untuk upload file CSV</p>
-              <p class="text-xs text-gray-400 mt-1">atau tarik file ke sini</p>
+              <div class="bg-white border-2 border-dashed border-gray-300 hover:border-yellow-400 rounded-lg p-4 text-center text-gray-500 flex flex-col items-center justify-center transition-colors">
+                <i class="ph ph-upload-simple text-2xl mb-1"></i>
+                <span class="text-xs font-semibold">Upload CSV Siswa Massal</span>
+              </div>
             </div>
+          </div>
+
+          <!-- Area Tabel CRUD Siswa -->
+          <div class="flex justify-between items-end mb-4">
+            <div class="w-64">
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Tampilkan Daftar Siswa Kelas:</label>
+              <select id="crud-siswa-kelas-filter" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white"></select>
+            </div>
+            <button id="btn-add-siswa" disabled class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <i class="ph ph-plus"></i> Tambah Siswa Baru
+            </button>
+          </div>
+          <div class="overflow-x-auto border border-gray-200 rounded-lg">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-gray-100 text-gray-700 font-bold border-b border-gray-200">
+                <tr>
+                  <th class="px-4 py-3 w-16 text-center">No</th>
+                  <th class="px-4 py-3">Nama Lengkap Siswa</th>
+                  <th class="px-4 py-3">NISN</th>
+                  <th class="px-4 py-3 text-center">Kelas</th>
+                  <th class="px-4 py-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="crud-siswa-tbody" class="divide-y divide-gray-100">
+                <tr><td colspan="5" class="p-4 text-center text-gray-400">Pilih kelas terlebih dahulu</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -345,6 +490,91 @@
             </div>
             <button id="btn-delete-class" disabled class="w-full py-3 rounded-xl font-bold text-white shadow-lg transition-all bg-gray-300 cursor-not-allowed">Hapus Permanen Data Kelas</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Admin Guru Section (CRUD & Import) -->
+      <div id="sec-admin-guru" class="section-container hidden space-y-6 max-w-5xl mx-auto animate-in">
+        <div class="bg-white rounded-xl p-8 border-t-8 border-t-blue-500 shadow-sm">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center text-blue-600 text-2xl"><i class="ph ph-users-three"></i></div>
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800">Kelola Pengguna Aplikasi</h2>
+              <p class="text-gray-500 text-sm">Tambahkan, ubah, atau hapus akun Guru, Admin, dan Wakasek.</p>
+            </div>
+          </div>
+          
+          <!-- Area Import Guru -->
+          <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="flex-1 text-sm text-gray-600">
+              <b>Import CSV Massal</b><br>Format File: <code>Username, Role, Password</code><br>Contoh Role: <i>guru, admin, wakasek</i>
+            </div>
+            <div class="w-full md:w-64 relative">
+              <input type="file" id="import-csv-guru-admin" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+              <button class="w-full bg-white border-2 border-dashed border-gray-300 hover:border-blue-500 rounded-lg p-3 text-center font-semibold text-gray-600 flex justify-center items-center gap-2 transition-colors">
+                <i class="ph ph-upload-simple text-xl"></i> Upload Akun CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Area Tabel CRUD Guru -->
+          <div class="flex justify-between items-end mb-4">
+            <h3 class="text-lg font-bold text-gray-700">Daftar Akun Terdaftar</h3>
+            <button id="btn-add-guru" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 shadow-sm transition-colors">
+              <i class="ph ph-plus"></i> Tambah Pengguna Baru
+            </button>
+          </div>
+          <div class="overflow-x-auto border border-gray-200 rounded-lg">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-gray-100 text-gray-700 font-bold border-b border-gray-200">
+                <tr>
+                  <th class="px-4 py-3 w-16 text-center">No</th>
+                  <th class="px-4 py-3">Nama Lengkap / Username</th>
+                  <th class="px-4 py-3">Role</th>
+                  <th class="px-4 py-3">Password</th>
+                  <th class="px-4 py-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="crud-guru-tbody" class="divide-y divide-gray-100">
+                <!-- Data injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Backup & Restore Section -->
+      <div id="sec-admin-backup" class="section-container hidden space-y-6 max-w-4xl mx-auto animate-in">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Backup -->
+          <div class="bg-white rounded-xl p-8 border-t-8 border-t-emerald-500 shadow-sm text-center">
+            <div class="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600 text-3xl"><i class="ph ph-download-simple"></i></div>
+            <h2 class="text-xl font-bold text-gray-800">Backup Database</h2>
+            <p class="text-gray-500 mt-2 text-sm mb-6">Unduh seluruh data nilai dan akun pengguna dalam format JSON untuk cadangan aman.</p>
+            <button id="btn-backup-db" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+              <i class="ph ph-database"></i> Download File Backup
+            </button>
+          </div>
+          <!-- Restore -->
+          <div class="bg-white rounded-xl p-8 border-t-8 border-t-orange-500 shadow-sm text-center relative overflow-hidden">
+            <div class="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-orange-600 text-3xl"><i class="ph ph-upload-simple"></i></div>
+            <h2 class="text-xl font-bold text-gray-800">Restore Database</h2>
+            <p class="text-gray-500 mt-2 text-sm mb-6">Pulihkan database dari file JSON. <b>Perhatian:</b> Akan menimpa dan menambah data yang ada!</p>
+            <div class="relative w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer">
+              <input type="file" id="import-json-restore" accept=".json" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+              <i class="ph ph-arrows-clockwise"></i> Upload File Restore
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW: Reset Database -->
+        <div class="bg-white rounded-xl p-8 border-t-8 border-t-red-600 shadow-sm text-center mt-6">
+          <div class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600 text-3xl"><i class="ph ph-warning-octagon"></i></div>
+          <h2 class="text-xl font-bold text-gray-800">Reset Total Database</h2>
+          <p class="text-gray-500 mt-2 text-sm mb-6">Menghapus <b>seluruh data nilai</b> dan <b>akun guru</b> secara permanen untuk memulai ulang dari nol. Tindakan ini tidak dapat dibatalkan!</p>
+          <button id="btn-reset-db" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+            <i class="ph ph-trash"></i> Reset Seluruh Database Sekolah
+          </button>
         </div>
       </div>
 
@@ -476,10 +706,9 @@
     // --- FIREBASE IMPORTS ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp, getDocs, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- DEBUGGER FUNCTION (DIPERBAIKI) ---
-    // Di sini kita memastikan komponen debug dideklarasikan agar tidak crash.
+    // --- DEBUGGER FUNCTION ---
     const debugPanel = document.getElementById('debug-content');
     const debugDot = document.getElementById('debug-status-dot');
     
@@ -512,13 +741,14 @@
     // --- KONFIGURASI FIREBASE ---
     const isCanvasEnv = typeof __firebase_config !== 'undefined';
     const firebaseConfig = {
-  apiKey: "AIzaSyBy4XjK7_GgwvyZszuooaHWuF_zCKpniXk",
-  authDomain: "sipintar-f7b13.firebaseapp.com",
-  projectId: "sipintar-f7b13",
-  storageBucket: "sipintar-f7b13.firebasestorage.app",
-  messagingSenderId: "86493439132",
-  appId: "1:86493439132:web:ad4786f5931aa277abf959"
-};
+      apiKey: "AIzaSyD_rW1SrLEMxMPcdN124OVpouLk0wUJmaQ",
+      authDomain: "sipintar-ambunten.firebaseapp.com",
+      projectId: "sipintar-ambunten",
+      storageBucket: "sipintar-ambunten.firebasestorage.app",
+      messagingSenderId: "560048609348",
+      appId: "1:560048609348:web:2f71b21b38b7d6a2dcc411",
+      measurementId: "G-J1SLD3313Y"
+    };
 
     logDebug("Inisialisasi Firebase Config (isCanvasEnv: " + isCanvasEnv + ")");
 
@@ -552,8 +782,7 @@
     const DEFAULT_SUBJECTS = ["Pendidikan Agama Islam","PPKn","Bahasa Indonesia","Matematika","Bahasa Inggris","Seni Tari","PJOK","Fisika","Biologi","Kimia","Sejarah","Geografi","Ekonomi","Sosiologi","Informatika","Bahasa Madura","Matematika Tingkat Lanjut","Bahasa Inggris Tingkat Lanjut"];
     const DEFAULT_CLASSES = ["X-1", "X-2", "X-3", "X-4", "X-5", "X-6", "X-7", "XI-A1", "XI-A2", "XI-B1", "XI-B2", "XI-B3", "XII-A1", "XII-A2", "XII-B1", "XII-B2", "XII-C"];
 
-    // --- GLOBALS (DIPERBAIKI) ---
-    // Di sini USERS_DB dibuat kosong kembali untuk diisi secara online nanti.
+    // --- GLOBALS ---
     let appUser = null;
     let firebaseUser = null;
     let gradesData = [];
@@ -562,6 +791,10 @@
     let activeMenu = 'dashboard';
     let editGradeId = null;
     
+    // CRUD State
+    let isEditGuruMode = false;
+    let isEditSiswaMode = false;
+
     // Periode State
     let activeTahun = '';
     let activeSemester = '';
@@ -593,6 +826,7 @@
       authName: document.getElementById('auth-user-name'),
       authRole: document.getElementById('auth-user-role'),
       btnLogout: document.getElementById('btn-logout'),
+      btnUbahSandi: document.getElementById('btn-ubah-sandi'),
       btnMobileMenu: document.getElementById('btn-mobile-menu'),
       
       pageTitle: document.getElementById('page-title'),
@@ -603,6 +837,8 @@
       secDash: document.getElementById('sec-dashboard'),
       secImport: document.getElementById('sec-admin-import'),
       secDelete: document.getElementById('sec-admin-delete'),
+      secAdminGuru: document.getElementById('sec-admin-guru'),
+      secAdminBackup: document.getElementById('sec-admin-backup'),
       secNilai: document.getElementById('sec-nilai'),
       
       // Dashboard UI
@@ -613,11 +849,50 @@
       statAvg: document.getElementById('stat-avg'),
       userManual: document.getElementById('user-manual-content'),
       
-      // Admin UI
+      // Modals
+      ubahSandiModal: document.getElementById('ubah-sandi-modal'),
+      ubahSandiForm: document.getElementById('ubah-sandi-form'),
+      inSandiLama: document.getElementById('in-sandi-lama'),
+      inSandiBaru: document.getElementById('in-sandi-baru'),
+      inSandiKonfirm: document.getElementById('in-sandi-konfirm'),
+      
+      resetSandiModal: document.getElementById('reset-sandi-modal'),
+      resetSandiForm: document.getElementById('reset-sandi-form'),
+      inResetSandiId: document.getElementById('in-reset-sandi-id'),
+      inResetSandiNama: document.getElementById('in-reset-sandi-nama'),
+      inResetSandiBaru: document.getElementById('in-reset-sandi-baru'),
+
+      // Admin UI Modals & Elements
+      crudGuruModal: document.getElementById('crud-guru-modal'),
+      crudGuruForm: document.getElementById('crud-guru-form'),
+      crudGuruTitle: document.getElementById('crud-guru-title'),
+      crudGuruId: document.getElementById('crud-guru-id'),
+      crudGuruName: document.getElementById('crud-guru-name'),
+      crudGuruRole: document.getElementById('crud-guru-role'),
+      crudGuruPass: document.getElementById('crud-guru-pass'),
+      crudGuruTbody: document.getElementById('crud-guru-tbody'),
+      btnAddGuru: document.getElementById('btn-add-guru'),
+
+      crudSiswaModal: document.getElementById('crud-siswa-modal'),
+      crudSiswaForm: document.getElementById('crud-siswa-form'),
+      crudSiswaTitle: document.getElementById('crud-siswa-title'),
+      crudSiswaOldName: document.getElementById('crud-siswa-oldname'),
+      crudSiswaOldNisn: document.getElementById('crud-siswa-oldnisn'),
+      crudSiswaKelasInput: document.getElementById('crud-siswa-kelas-input'),
+      crudSiswaName: document.getElementById('crud-siswa-name'),
+      crudSiswaNisn: document.getElementById('crud-siswa-nisn'),
+      crudSiswaTbody: document.getElementById('crud-siswa-tbody'),
+      crudSiswaKelasFilter: document.getElementById('crud-siswa-kelas-filter'),
+      btnAddSiswa: document.getElementById('btn-add-siswa'),
+
       importClass: document.getElementById('import-class-select'),
       importCsv: document.getElementById('import-csv-file'),
       deleteClassSel: document.getElementById('delete-class-select'),
       btnDeleteClass: document.getElementById('btn-delete-class'),
+      importCsvGuruAdmin: document.getElementById('import-csv-guru-admin'),
+      btnBackupDB: document.getElementById('btn-backup-db'),
+      importJsonRestore: document.getElementById('import-json-restore'),
+      btnResetDB: document.getElementById('btn-reset-db'),
 
       // Nilai UI
       filterTitle: document.getElementById('filter-title'),
@@ -686,13 +961,14 @@
       el.deleteClassSel.innerHTML = clsOpts;
       el.fKelas.innerHTML = clsOpts;
       el.fMapel.innerHTML = subOpts;
+      if (el.crudSiswaKelasFilter) el.crudSiswaKelasFilter.innerHTML = clsOpts;
 
       // Kunci tombol login sementara
       el.btnLoginSubmit.disabled = true;
       el.btnLoginSubmit.classList.add('opacity-50', 'cursor-not-allowed');
       el.btnLoginSubmit.textContent = "MEMUAT DATABASE...";
 
-      // Firebase Auth Flow (Diperbaiki agar error tercatat jelas di Layar)
+      // Firebase Auth Flow
       const doAuth = async () => {
         try {
           logDebug("Mencoba otentikasi...");
@@ -737,7 +1013,7 @@
           el.loginErrTxt.innerHTML = `<b>Data Pengguna Kosong!</b><br>Anda belum memiliki akun guru di database cloud ini.`;
           el.btnLoginSubmit.textContent = "DATABASE KOSONG";
         } else {
-          USERS_DB = snap.docs.map(doc => doc.data());
+          USERS_DB = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
           logDebug(`Berhasil memuat ${USERS_DB.length} data pengguna.`);
 
           // Setup Auto-complete (Datalist)
@@ -802,6 +1078,69 @@
         el.loginView.classList.remove('hidden');
       };
 
+      // Fitur Ubah Sandi User
+      if (el.btnUbahSandi) {
+        el.btnUbahSandi.onclick = () => {
+          el.ubahSandiForm.reset();
+          openModal(el.ubahSandiModal);
+        };
+      }
+
+      if (el.ubahSandiForm) {
+        el.ubahSandiForm.onsubmit = async (e) => {
+          e.preventDefault();
+          const lama = el.inSandiLama.value;
+          const baru = el.inSandiBaru.value;
+          const konfirm = el.inSandiKonfirm.value;
+
+          if (lama !== appUser.password) { showToast("Sandi lama salah!", "error"); return; }
+          if (baru !== konfirm) { showToast("Konfirmasi sandi tidak cocok!", "error"); return; }
+          if (baru.length < 6) { showToast("Sandi minimal 6 karakter!", "error"); return; }
+
+          const btn = el.ubahSandiForm.querySelector('button[type="submit"]');
+          btn.disabled = true; btn.textContent = 'Menyimpan...';
+
+          try {
+            await updateDoc(doc(getUsersCollection(), appUser.id), { password: baru });
+            appUser.password = baru; 
+            showToast("Kata sandi berhasil diubah!", "success");
+            el.ubahSandiModal.querySelector('.btn-close-modal').click();
+            await loadUsersFromDB();
+          } catch (err) {
+            logDebug("GAGAL UBAH SANDI", err);
+            showToast("Gagal mengubah kata sandi", "error");
+          } finally {
+            btn.disabled = false; btn.textContent = 'Simpan Sandi';
+          }
+        };
+      }
+
+      // Fitur Reset Sandi Admin
+      if (el.resetSandiForm) {
+        el.resetSandiForm.onsubmit = async (e) => {
+          e.preventDefault();
+          const id = el.inResetSandiId.value;
+          const baru = el.inResetSandiBaru.value;
+          if (baru.length < 6) { showToast("Sandi minimal 6 karakter!", "error"); return; }
+
+          const btn = el.resetSandiForm.querySelector('button[type="submit"]');
+          btn.disabled = true; btn.textContent = 'Mereset...';
+
+          try {
+            await updateDoc(doc(getUsersCollection(), id), { password: baru });
+            showToast("Sandi pengguna berhasil direset!", "success");
+            el.resetSandiModal.querySelector('.btn-close-modal').click();
+            await loadUsersFromDB();
+            renderTableGuru();
+          } catch (err) {
+            logDebug("GAGAL RESET SANDI", err);
+            showToast("Gagal mereset kata sandi", "error");
+          } finally {
+            btn.disabled = false; btn.textContent = 'Reset Sandi';
+          }
+        };
+      }
+
       el.btnMobileMenu.onclick = () => {
         el.sidebar.classList.toggle('-translate-x-full');
         el.sidebarOverlay.classList.toggle('hidden');
@@ -822,6 +1161,12 @@
       el.deleteClassSel.onchange = (e) => { el.btnDeleteClass.disabled = !e.target.value; el.btnDeleteClass.classList.toggle('bg-red-600', !!e.target.value); el.btnDeleteClass.classList.toggle('bg-gray-300', !e.target.value); };
       el.btnDeleteClass.onclick = handleDeleteClassData;
       el.importCsv.onchange = handleImportAdmin;
+      
+      // Event Listener: Admin Guru & Backup Restore & Reset
+      if(el.importCsvGuruAdmin) el.importCsvGuruAdmin.onchange = handleImportGuruAdmin;
+      if(el.btnBackupDB) el.btnBackupDB.onclick = handleBackupDatabase;
+      if(el.importJsonRestore) el.importJsonRestore.onchange = handleRestoreDatabase;
+      if(el.btnResetDB) el.btnResetDB.onclick = handleResetDatabase;
 
       el.gradeForm.onsubmit = handleSaveNew;
       el.btnCancelEdit.onclick = () => { editGradeId = null; resetForm(); renderTable(); };
@@ -894,6 +1239,7 @@
         gradesData = d;
         updateStats();
         if(activeMenu === 'nilai') renderTable();
+        if(activeMenu === 'admin-import') renderTableSiswa();
       }, err => {
         logDebug("GAGAL BACA DATABASE", err);
         showToast("Gagal memuat data nilai!", "error");
@@ -928,19 +1274,34 @@
 
       // Title & Subtitle
       el.pageSubtitle.textContent = appUser.username.split(',')[0];
-      const titles = { 'dashboard':'Dashboard Utama', 'admin-import':'Kelola Data Siswa', 'admin-delete':'Hapus Data Kelas', 'nilai': appUser.role==='wakasek'?'Cek Rekap Nilai Guru':'Input Nilai' };
+      const titles = { 
+        'dashboard':'Dashboard Utama', 
+        'admin-import':'Kelola Data Siswa', 
+        'admin-delete':'Hapus Data Kelas', 
+        'admin-guru':'Kelola Data Guru', 
+        'admin-backup':'Backup & Restore Database', 
+        'nilai': appUser.role==='wakasek'?'Cek Rekap Nilai Guru':'Input Nilai' 
+      };
       el.pageTitle.textContent = titles[m];
 
       // Hide all, show active
-      el.secDash.classList.add('hidden'); el.secImport.classList.add('hidden'); el.secDelete.classList.add('hidden'); el.secNilai.classList.add('hidden');
+      el.secDash.classList.add('hidden'); el.secImport.classList.add('hidden'); el.secDelete.classList.add('hidden'); el.secNilai.classList.add('hidden'); el.secAdminGuru.classList.add('hidden'); el.secAdminBackup.classList.add('hidden');
       if(m==='dashboard') {
         el.secDash.classList.remove('hidden');
         el.dashName.textContent = appUser.username.split(',')[0];
         el.dashDesc.textContent = appUser.role==='wakasek'?'Pantau perkembangan akademik siswa dan aktivitas guru secara real-time.':(appUser.role==='admin'?'Kelola data induk siswa dan distribusi kelas untuk seluruh mata pelajaran.':'Kelola nilai siswa dan administrasi rapor dengan lebih efisien dan terstruktur.');
         el.dashActionBtn.onclick = () => switchMenu(appUser.role==='admin'?'admin-import':'nilai');
         el.dashActionBtn.innerHTML = appUser.role==='admin' ? '<i class="ph ph-gear"></i> Kelola Data Siswa' : (appUser.role==='wakasek'?'<i class="ph ph-file-text"></i> Cek Rekap Nilai':'<i class="ph ph-pencil-simple"></i> Mulai Input Nilai');
-      } else if(m==='admin-import') el.secImport.classList.remove('hidden');
+      } else if(m==='admin-import') {
+        el.secImport.classList.remove('hidden');
+        renderTableSiswa();
+      }
       else if(m==='admin-delete') el.secDelete.classList.remove('hidden');
+      else if(m==='admin-guru') {
+        el.secAdminGuru.classList.remove('hidden');
+        renderTableGuru();
+      }
+      else if(m==='admin-backup') el.secAdminBackup.classList.remove('hidden');
       else if(m==='nilai') {
         el.secNilai.classList.remove('hidden');
         renderTable();
@@ -959,8 +1320,10 @@
       
       if(appUser.role === 'admin') {
         navHtml += `
-          <button data-id="admin-import" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-import')"><i class="ph ph-gear text-xl text-blue-400"></i><span>Kelola Data Siswa</span></button>
-          <button data-id="admin-delete" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-delete')"><i class="ph ph-trash text-xl text-blue-400"></i><span>Hapus Data Kelas</span></button>`;
+          <button data-id="admin-import" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-import')"><i class="ph ph-users text-xl text-blue-400"></i><span>Kelola Data Siswa</span></button>
+          <button data-id="admin-guru" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-guru')"><i class="ph ph-users-three text-xl text-blue-400"></i><span>Kelola Data Guru</span></button>
+          <button data-id="admin-delete" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-delete')"><i class="ph ph-trash text-xl text-blue-400"></i><span>Hapus Data Kelas</span></button>
+          <button data-id="admin-backup" class="nav-btn w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200 group text-blue-200 hover:bg-blue-800 hover:text-white" onclick="switchMenu('admin-backup')"><i class="ph ph-database text-xl text-blue-400"></i><span>Backup & Restore</span></button>`;
       } else {
         navHtml += `
           <div class="pt-4 pb-2 px-5 text-xs font-bold text-blue-400 uppercase tracking-widest">Modul Akademik</div>
@@ -970,7 +1333,7 @@
 
       // Manual text
       let manHtml = '';
-      if(appUser.role==='admin') manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-gear text-blue-500 text-lg mt-0.5"></i><span><strong>Kelola Data Siswa (Import Massal):</strong> Pilih kelas, upload .csv (Nama Siswa, NISN). Sistem otomatis membagi ke 18 mapel.</span></li><li class="flex gap-3"><i class="ph ph-trash text-red-500 text-lg mt-0.5"></i><span><strong>Hapus Data Kelas:</strong> Reset data kelas permanen pada periode aktif.</span></li></ul>`;
+      if(appUser.role==='admin') manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-gear text-blue-500 text-lg mt-0.5"></i><span><strong>Kelola Data Siswa:</strong> Tambah/Edit/Hapus data siswa, atau unggah CSV masal.</span></li><li class="flex gap-3"><i class="ph ph-users-three text-purple-500 text-lg mt-0.5"></i><span><strong>Kelola Data Guru:</strong> Menambahkan dan mengedit profil login pengguna aplikasi secara manual maupun massal.</span></li><li class="flex gap-3"><i class="ph ph-database text-emerald-500 text-lg mt-0.5"></i><span><strong>Backup, Restore & Reset:</strong> Unduh cadangan JSON, pulihkan data, atau reset total database sekolah.</span></li></ul>`;
       else if(appUser.role==='wakasek') manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-funnel text-blue-500 text-lg mt-0.5"></i><span><strong>Monitor & Filter:</strong> Gunakan filter untuk melihat rekap spesifik sesuai tahun & semester yang dipilih saat login.</span></li><li class="flex gap-3"><i class="ph ph-file-xls text-emerald-500 text-lg mt-0.5"></i><span><strong>Export Excel:</strong> Klik tombol Export Excel untuk mendownload rekap nilai menjadi format .xlsx ke komputer Anda.</span></li></ul>`;
       else manHtml = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-pencil-simple text-blue-500 text-lg mt-0.5"></i><span><strong>Mengisi Nilai:</strong> Pilih Mapel & Kelas. Ketik angka, data <b>otomatis tersimpan</b> ke cloud saat pindah kolom. Data akan terikat pada periode ${activeTahun} Semester ${activeSemester}.</span></li><li class="flex gap-3"><i class="ph ph-file-xls text-emerald-500 text-lg mt-0.5"></i><span><strong>Download Nilai:</strong> Anda bisa mengekspor nilai ke Excel kapan saja.</span></li></ul>`;
       el.userManual.innerHTML = manHtml;
@@ -1276,6 +1639,410 @@
       reader.readAsText(file);
     }
     const handleImportAdmin = (e) => { const c = el.importClass.value; if(!c) { showToast("Pilih kelas", "error"); e.target.value=null; return; } doImport(e, c); };
+
+    // --- FITUR ADMIN: KELOLA GURU & SISWA (CRUD) ---
+
+    // Tutup / Buka Modal Universal
+    document.querySelectorAll('.btn-close-modal').forEach(btn => {
+      btn.onclick = (e) => {
+        const modal = e.target.closest('.fixed.inset-0');
+        const content = modal.querySelector('div.bg-white');
+        content.classList.replace('scale-100', 'scale-95');
+        content.classList.replace('opacity-100', 'opacity-0');
+        setTimeout(() => modal.classList.add('hidden'), 200);
+      };
+    });
+
+    function openModal(modalEl) {
+      modalEl.classList.remove('hidden');
+      modalEl.classList.add('flex');
+      const content = modalEl.querySelector('div.bg-white');
+      setTimeout(() => {
+        content.classList.replace('scale-95', 'scale-100');
+        content.classList.replace('opacity-0', 'opacity-100');
+      }, 10);
+    }
+
+    // --- LOGIKA CRUD GURU ---
+    function renderTableGuru() {
+      if(!el.crudGuruTbody) return;
+      let html = '';
+      USERS_DB.forEach((u, i) => {
+        const roleColor = u.role === 'admin' ? 'text-red-600' : (u.role === 'wakasek' ? 'text-purple-600' : 'text-blue-600');
+        html += `<tr class="border-b hover:bg-gray-50 transition-colors">
+            <td class="p-3 text-center text-gray-500">${i+1}</td>
+            <td class="p-3 font-medium text-gray-800">${u.username}</td>
+            <td class="p-3 uppercase text-[10px] font-bold tracking-wider ${roleColor}">${u.role}</td>
+            <td class="p-3 font-mono text-gray-400 text-xs">${u.password}</td>
+            <td class="p-3 text-right whitespace-nowrap">
+               <button onclick="window.openResetSandi('${u.id}', '${encodeURIComponent(u.username)}')" class="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded transition-colors mr-2" title="Reset Sandi Pengguna"><i class="ph ph-key text-lg"></i></button>
+               <button onclick="window.editGuru('${u.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-2" title="Edit Akun"><i class="ph ph-pencil-simple text-lg"></i></button>
+               <button onclick="window.deleteGuru('${u.id}', '${encodeURIComponent(u.username)}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors" title="Hapus Akun"><i class="ph ph-trash text-lg"></i></button>
+            </td>
+        </tr>`;
+      });
+      el.crudGuruTbody.innerHTML = html || '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada data pengguna</td></tr>';
+    }
+
+    if(el.btnAddGuru) {
+      el.btnAddGuru.onclick = () => {
+        el.crudGuruForm.reset();
+        el.crudGuruId.value = '';
+        el.crudGuruTitle.textContent = "Tambah Pengguna Baru";
+        isEditGuruMode = false;
+        openModal(el.crudGuruModal);
+      };
+    }
+
+    window.editGuru = (id) => {
+      const u = USERS_DB.find(x => x.id === id);
+      if(!u) return;
+      el.crudGuruId.value = u.id;
+      el.crudGuruName.value = u.username;
+      el.crudGuruRole.value = u.role;
+      el.crudGuruPass.value = u.password;
+      el.crudGuruTitle.textContent = "Edit Data Pengguna";
+      isEditGuruMode = true;
+      openModal(el.crudGuruModal);
+    };
+
+    window.deleteGuru = async (id, encName) => {
+      const name = decodeURIComponent(encName);
+      if(!confirm(`PERINGATAN: Yakin menghapus pengguna '${name}' secara permanen?`)) return;
+      try {
+        await deleteDoc(doc(getUsersCollection(), id));
+        showToast("Pengguna berhasil dihapus", "success");
+        await loadUsersFromDB();
+        renderTableGuru();
+      } catch(err) { showToast("Gagal menghapus pengguna", "error"); logDebug("Gagal hapus guru", err); }
+    };
+
+    // Fungsi Buka Modal Reset Sandi (Admin)
+    window.openResetSandi = (id, encName) => {
+       const name = decodeURIComponent(encName);
+       if(el.resetSandiForm) el.resetSandiForm.reset();
+       el.inResetSandiId.value = id;
+       el.inResetSandiNama.textContent = name;
+       openModal(el.resetSandiModal);
+    };
+
+    if(el.crudGuruForm) {
+      el.crudGuruForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = { username: el.crudGuruName.value, role: el.crudGuruRole.value, password: el.crudGuruPass.value };
+        const btnSubmit = el.crudGuruForm.querySelector('button[type="submit"]');
+        btnSubmit.disabled = true; btnSubmit.textContent = "Memproses...";
+        try {
+          if(isEditGuruMode) {
+            await updateDoc(doc(getUsersCollection(), el.crudGuruId.value), payload);
+            showToast("Data pengguna diperbarui", "success");
+          } else {
+            await addDoc(getUsersCollection(), payload);
+            showToast("Pengguna baru ditambahkan", "success");
+          }
+          el.crudGuruModal.querySelector('.btn-close-modal').click();
+          await loadUsersFromDB();
+          renderTableGuru();
+        } catch(err) { showToast("Gagal menyimpan data", "error"); logDebug("Gagal save guru", err); }
+        finally { btnSubmit.disabled = false; btnSubmit.textContent = "Simpan"; }
+      };
+    }
+
+    // --- LOGIKA CRUD SISWA ---
+    function renderTableSiswa() {
+      if(!el.crudSiswaTbody) return;
+      const cls = el.crudSiswaKelasFilter.value;
+      if(!cls) {
+        el.crudSiswaTbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">Pilih kelas pada menu di atas terlebih dahulu.</td></tr>';
+        if(el.btnAddSiswa) el.btnAddSiswa.disabled = true;
+        return;
+      }
+      if(el.btnAddSiswa) el.btnAddSiswa.disabled = false;
+
+      // Group students by name + nisn
+      const clsData = gradesData.filter(g => g.className === cls && g.tahun === activeTahun && g.semester === activeSemester);
+      const map = new Map();
+      clsData.forEach(g => {
+        const key = g.studentName + "_" + (g.nisn||'');
+        if(!map.has(key)) map.set(key, { name: g.studentName, nisn: g.nisn, className: g.className });
+      });
+      const students = Array.from(map.values());
+
+      let html = '';
+      students.forEach((s, i) => {
+        const encName = encodeURIComponent(s.name);
+        const encNisn = encodeURIComponent(s.nisn || '');
+        html += `<tr class="border-b hover:bg-gray-50 transition-colors"><td class="p-3 text-center text-gray-500">${i+1}</td><td class="p-3 font-medium text-gray-800">${s.name}</td><td class="p-3 font-mono text-gray-500">${s.nisn||'-'}</td><td class="p-3 text-center"><span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">${s.className}</span></td><td class="p-3 text-right"><button onclick="window.editSiswa('${encName}', '${encNisn}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-2" title="Edit Siswa"><i class="ph ph-pencil-simple text-lg"></i></button><button onclick="window.deleteSiswa('${encName}', '${encNisn}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors" title="Hapus Siswa"><i class="ph ph-trash text-lg"></i></button></td></tr>`;
+      });
+      el.crudSiswaTbody.innerHTML = html || `<tr><td colspan="5" class="p-8 text-center text-gray-400">Tidak ada data siswa untuk kelas ${cls} pada periode ini.</td></tr>`;
+    }
+
+    if(el.crudSiswaKelasFilter) el.crudSiswaKelasFilter.onchange = renderTableSiswa;
+
+    if(el.btnAddSiswa) {
+      el.btnAddSiswa.onclick = () => {
+        el.crudSiswaForm.reset();
+        el.crudSiswaOldName.value = '';
+        el.crudSiswaOldNisn.value = '';
+        el.crudSiswaKelasInput.innerHTML = `<option value="${el.crudSiswaKelasFilter.value}">${el.crudSiswaKelasFilter.value}</option>`;
+        el.crudSiswaTitle.textContent = "Tambah Siswa Baru";
+        isEditSiswaMode = false;
+        openModal(el.crudSiswaModal);
+      };
+    }
+
+    window.editSiswa = (encName, encNisn) => {
+      const name = decodeURIComponent(encName);
+      const nisn = decodeURIComponent(encNisn);
+      el.crudSiswaOldName.value = name;
+      el.crudSiswaOldNisn.value = nisn;
+      el.crudSiswaName.value = name;
+      el.crudSiswaNisn.value = nisn;
+      el.crudSiswaKelasInput.innerHTML = `<option value="${el.crudSiswaKelasFilter.value}">${el.crudSiswaKelasFilter.value}</option>`;
+      el.crudSiswaTitle.textContent = "Edit Identitas Siswa";
+      isEditSiswaMode = true;
+      openModal(el.crudSiswaModal);
+    };
+
+    window.deleteSiswa = async (encName, encNisn) => {
+      const name = decodeURIComponent(encName);
+      const nisn = decodeURIComponent(encNisn);
+      if(!confirm(`PERINGATAN: Yakin menghapus seluruh data siswa '${name}'? \n(Seluruh rekap nilai dari 18 mata pelajaran akan ikut terhapus secara permanen!)`)) return;
+      
+      try {
+        const cls = el.crudSiswaKelasFilter.value;
+        const docsToDelete = gradesData.filter(g => g.studentName === name && (g.nisn||'') === nisn && g.className === cls && g.tahun === activeTahun && g.semester === activeSemester);
+        
+        const batch = writeBatch(db);
+        docsToDelete.forEach(d => batch.delete(doc(getGradesCollection(), d.id)));
+        await batch.commit();
+        showToast("Data siswa berhasil dihapus", "success");
+        // renderTableSiswa dipanggil otomatis oleh onSnapshot Firestore
+      } catch(err) { showToast("Gagal menghapus siswa", "error"); logDebug("Gagal hapus siswa", err); }
+    };
+
+    if(el.crudSiswaForm) {
+      el.crudSiswaForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const newName = el.crudSiswaName.value;
+        const newNisn = el.crudSiswaNisn.value;
+        const cls = el.crudSiswaKelasFilter.value;
+        const btnSubmit = el.crudSiswaForm.querySelector('button[type="submit"]');
+
+        try {
+          btnSubmit.disabled = true; btnSubmit.textContent = 'Memproses...';
+
+          if(isEditSiswaMode) {
+            const oldName = el.crudSiswaOldName.value;
+            const oldNisn = el.crudSiswaOldNisn.value;
+            const docsToUpdate = gradesData.filter(g => g.studentName === oldName && (g.nisn||'') === oldNisn && g.className === cls && g.tahun === activeTahun && g.semester === activeSemester);
+            
+            const batch = writeBatch(db);
+            docsToUpdate.forEach(d => {
+              batch.update(doc(getGradesCollection(), d.id), {
+                studentName: newName,
+                nisn: newNisn,
+                updatedAt: serverTimestamp()
+              });
+            });
+            await batch.commit();
+            showToast("Identitas siswa berhasil diperbarui", "success");
+          } else {
+            // Pembuatan 18 dokumen mapel
+            const batch = writeBatch(db);
+            for(const s of DEFAULT_SUBJECTS) {
+              const newDocRef = doc(getGradesCollection());
+              batch.set(newDocRef, {
+                 studentName: newName, 
+                 nisn: newNisn, 
+                 teacherName: 'admin', 
+                 subject: s, 
+                 className: cls, 
+                 tahun: activeTahun, 
+                 semester: activeSemester, 
+                 scores: { f1:null, f2:null, f3:null, t1:null, t2:null, t3:null, asaj:null }, 
+                 results: { avgFormative:0, avgTask:0, final:0 }, 
+                 createdAt: serverTimestamp() 
+              });
+            }
+            await batch.commit();
+            showToast("Siswa berhasil ditambahkan", "success");
+          }
+          el.crudSiswaModal.querySelector('.btn-close-modal').click();
+        } catch(err) { 
+          showToast("Gagal memproses data", "error"); logDebug("CRUD Siswa Error", err);
+        } finally {
+          btnSubmit.disabled = false; btnSubmit.textContent = 'Simpan';
+        }
+      };
+    }
+
+    function handleImportGuruAdmin(e) {
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        logDebug("Memulai impor CSV Guru...");
+        const rows = ev.target.result.split('\n');
+        let count = 0;
+        try {
+          for(let r of rows) {
+             const cols = r.split(',');
+             if(cols.length >= 3) {
+                 const username = cols[0].trim().replace(/^"|"$/g,'');
+                 const role = cols[1].trim().replace(/^"|"$/g,'').toLowerCase();
+                 const password = cols[2].trim().replace(/^"|"$/g,'');
+                 if(username.toLowerCase() === 'username' || !username) continue;
+                 
+                 await addDoc(getUsersCollection(), {
+                     username: username,
+                     role: role,
+                     password: password
+                 });
+                 count++;
+             }
+          }
+          logDebug(`Selesai impor ${count} guru.`);
+          showToast(`Impor ${count} data pengguna selesai!`);
+          await loadUsersFromDB(); // Refresh data pengguna lokal
+        } catch (err) {
+          logDebug("GAGAL IMPOR GURU", err);
+          showToast("Gagal mengimpor data pengguna", "error");
+        }
+        e.target.value = null;
+      };
+      reader.readAsText(file);
+    }
+
+    async function handleBackupDatabase() {
+      try {
+        logDebug("Memulai proses backup database...");
+        showToast("Menyiapkan file backup...", "success");
+        const gradesSnap = await getDocs(getGradesCollection());
+        const usersSnap = await getDocs(getUsersCollection());
+
+        const data = {
+          timestamp: new Date().toISOString(),
+          grades: gradesSnap.docs.map(d => ({id: d.id, ...d.data()})),
+          users: usersSnap.docs.map(d => ({id: d.id, ...d.data()}))
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Backup_SiPINTAR_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        
+        logDebug("Backup database selesai diunduh.");
+        showToast("Backup berhasil diunduh!", "success");
+      } catch (err) {
+        logDebug("GAGAL BACKUP DATABASE", err);
+        showToast("Gagal memproses backup database", "error");
+      }
+    }
+
+    function handleRestoreDatabase(e) {
+      const file = e.target.files[0];
+      if(!file) return;
+
+      if(!window.confirm("PERINGATAN: Memulihkan database akan MENIMPA dan MENAMBAHKAN data yang ada dengan data dari file JSON ini. Lanjutkan?")) {
+          e.target.value = null;
+          return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          logDebug("Memulai proses restore database...");
+          showToast("Memulihkan database, mohon tunggu...", "success");
+          const data = JSON.parse(ev.target.result);
+
+          // Restore Koleksi Users
+          if (data.users && Array.isArray(data.users)) {
+             logDebug(`Memulihkan ${data.users.length} data pengguna...`);
+             const usersRef = getUsersCollection();
+             for(const u of data.users) {
+                const id = u.id;
+                const docData = {...u}; delete docData.id;
+                await setDoc(doc(usersRef, id), docData); // setDoc dengan format ID aslinya
+             }
+          }
+
+          // Restore Koleksi Grades
+          if (data.grades && Array.isArray(data.grades)) {
+             logDebug(`Memulihkan ${data.grades.length} data nilai...`);
+             const gradesRef = getGradesCollection();
+             for(const g of data.grades) {
+                const id = g.id;
+                const docData = {...g}; delete docData.id;
+                await setDoc(doc(gradesRef, id), docData);
+             }
+          }
+
+          logDebug("Restore database selesai!");
+          showToast("Restore Database Berhasil!", "success");
+          
+          await loadUsersFromDB(); 
+          if (activeMenu === 'nilai') renderTable();
+        } catch (err) {
+          logDebug("GAGAL RESTORE DATABASE", err);
+          showToast("File backup tidak valid atau gagal dipulihkan", "error");
+        }
+        e.target.value = null;
+      };
+      reader.readAsText(file);
+    }
+
+    async function handleResetDatabase() {
+      // Dua lapis konfirmasi keamanan
+      if (!window.confirm("PERINGATAN 1: Anda yakin ingin MENGHAPUS SELURUH DATABASE (Data Nilai & Akun Guru)? Tindakan ini SANGAT FATAL dan TIDAK BISA DIBATALKAN!")) return;
+      if (!window.confirm("PERINGATAN 2: KONFIRMASI TERAKHIR! Apakah Anda benar-benar yakin? Pastikan Anda sudah mengunduh Backup Database terlebih dahulu!")) return;
+
+      try {
+        logDebug("Memulai reset database massal...");
+        showToast("Mereset database, mohon tunggu...", "success");
+        el.btnResetDB.disabled = true;
+        el.btnResetDB.textContent = "Sedang Mereset...";
+
+        const gradesSnap = await getDocs(getGradesCollection());
+        const usersSnap = await getDocs(getUsersCollection());
+
+        const deletePromises = [];
+        let deleteCount = 0;
+
+        // Kumpulkan semua perintah hapus data nilai
+        gradesSnap.docs.forEach(d => {
+            deletePromises.push(deleteDoc(d.ref));
+            deleteCount++;
+        });
+
+        // Kumpulkan perintah hapus data guru (KECUALI role admin, agar tidak ter-lock out)
+        usersSnap.docs.forEach(d => {
+            const uData = d.data();
+            if (uData.role !== 'admin') {
+                deletePromises.push(deleteDoc(d.ref));
+                deleteCount++;
+            }
+        });
+
+        // Eksekusi semua perintah hapus secara paralel
+        await Promise.all(deletePromises);
+
+        logDebug(`Reset selesai! ${deleteCount} dokumen telah dihapus.`);
+        showToast("Database berhasil di-reset total!", "success");
+
+        // Reload data UI untuk memperbarui status
+        await loadUsersFromDB();
+        if (activeMenu === 'nilai') renderTable();
+
+      } catch (err) {
+        logDebug("GAGAL RESET DATABASE", err);
+        showToast("Gagal mereset database: " + err.message, "error");
+      } finally {
+        el.btnResetDB.disabled = false;
+        el.btnResetDB.innerHTML = '<i class="ph ph-trash"></i> Reset Seluruh Database Sekolah';
+      }
+    }
 
     function handleExportExcel() {
       const d = getDisplayData();
