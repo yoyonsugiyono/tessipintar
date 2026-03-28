@@ -2325,37 +2325,44 @@
           showToast("Memulihkan database, mohon tunggu...", "success");
           const data = JSON.parse(ev.target.result);
 
+          // FUNGSI HELPER UNTUK BATCH UPLOAD (Maks 500 per batch sesuai limit Firebase)
+          const commitBatches = async (items, collectionRef) => {
+            let batches = [];
+            let currentBatch = writeBatch(db);
+            let count = 0;
+            
+            for(const item of items) {
+              const id = item.id;
+              const docData = {...item}; delete docData.id;
+              currentBatch.set(doc(collectionRef, id), docData);
+              count++;
+              
+              if(count === 500) {
+                batches.push(currentBatch.commit());
+                currentBatch = writeBatch(db); // Buat batch baru
+                count = 0;
+              }
+            }
+            if(count > 0) batches.push(currentBatch.commit()); // Sisa dokumen
+            await Promise.all(batches);
+          };
+
           // Restore Koleksi Users
           if (data.users && Array.isArray(data.users)) {
              logDebug(`Memulihkan ${data.users.length} data pengguna...`);
-             const usersRef = getUsersCollection();
-             for(const u of data.users) {
-                const id = u.id;
-                const docData = {...u}; delete docData.id;
-                await setDoc(doc(usersRef, id), docData); 
-             }
+             await commitBatches(data.users, getUsersCollection());
           }
 
           // Restore Koleksi Grades
           if (data.grades && Array.isArray(data.grades)) {
              logDebug(`Memulihkan ${data.grades.length} data nilai...`);
-             const gradesRef = getGradesCollection();
-             for(const g of data.grades) {
-                const id = g.id;
-                const docData = {...g}; delete docData.id;
-                await setDoc(doc(gradesRef, id), docData);
-             }
+             await commitBatches(data.grades, getGradesCollection());
           }
 
           // Restore Koleksi Settings (Master Data)
           if (data.settings && Array.isArray(data.settings)) {
              logDebug(`Memulihkan pengaturan master data...`);
-             const settingsRef = getSettingsCollection();
-             for(const s of data.settings) {
-                const id = s.id;
-                const docData = {...s}; delete docData.id;
-                await setDoc(doc(settingsRef, id), docData);
-             }
+             await commitBatches(data.settings, getSettingsCollection());
           }
 
           logDebug("Restore database selesai!");
@@ -2379,7 +2386,7 @@
       if (!window.confirm("PERINGATAN 2: KONFIRMASI TERAKHIR! Apakah Anda benar-benar yakin? Pastikan Anda sudah mengunduh Backup Database terlebih dahulu!")) return;
 
       try {
-        logDebug("Memulai reset database massal...");
+        logDebug("Memulai reset database massal (Batch Mode)...");
         showToast("Mereset database, mohon tunggu...", "success");
         el.btnResetDB.disabled = true;
         el.btnResetDB.textContent = "Sedang Mereset...";
@@ -2387,27 +2394,43 @@
         const gradesSnap = await getDocs(getGradesCollection());
         const usersSnap = await getDocs(getUsersCollection());
 
-        const deletePromises = [];
-        let deleteCount = 0;
+        const refsToDelete = [];
 
-        gradesSnap.docs.forEach(d => {
-            deletePromises.push(deleteDoc(d.ref));
-            deleteCount++;
-        });
+        // Kumpulkan semua referensi data nilai
+        gradesSnap.docs.forEach(d => refsToDelete.push(d.ref));
 
+        // Kumpulkan referensi data guru (KECUALI role admin, agar tidak ter-lock out)
         usersSnap.docs.forEach(d => {
-            const uData = d.data();
-            if (uData.role !== 'admin') {
-                deletePromises.push(deleteDoc(d.ref));
-                deleteCount++;
+            if (d.data().role !== 'admin') {
+                refsToDelete.push(d.ref);
             }
         });
+        // Catatan: Koleksi Settings (Master Kelas & Mapel) sengaja tidak dihapus 
+        // agar admin tidak perlu mengetik ulang dari nol setelah reset.
 
-        await Promise.all(deletePromises);
+        // Proses penghapusan dalam Batch (Maks 500 per batch)
+        let batches = [];
+        let currentBatch = writeBatch(db);
+        let count = 0;
 
-        logDebug(`Reset selesai! ${deleteCount} dokumen telah dihapus.`);
+        for (const ref of refsToDelete) {
+            currentBatch.delete(ref);
+            count++;
+            if (count === 500) {
+                batches.push(currentBatch.commit());
+                currentBatch = writeBatch(db);
+                count = 0;
+            }
+        }
+        if (count > 0) batches.push(currentBatch.commit()); // Sisa dokumen
+
+        // Eksekusi semua batch secara paralel yang aman
+        await Promise.all(batches);
+
+        logDebug(`Reset selesai! ${refsToDelete.length} dokumen telah dihapus.`);
         showToast("Database berhasil di-reset total!", "success");
 
+        // Reload data UI untuk memperbarui status
         await loadUsersFromDB();
         if (activeMenu === 'nilai') renderTable();
 
