@@ -5,67 +5,46 @@ import { setupAuth, initLoginForm, handleLogout, getActiveTahun, getActiveSemest
 import { loadMasterData } from './services/db-master.js';
 import { setupNavigation, buildSidebarNav, switchMenu as coreSwitchMenu } from './ui/navigation.js';
 import { setupFirestoreListener } from './services/db-grades.js';
-import { renderTableSiswa, renderTableGuru, renderTable, populateDropdowns, renderMasterDataUI, gradesData } from './ui/tables.js';
+import { renderTableSiswa, renderTableGuru, renderTable, renderTableRekap, populateDropdowns, renderMasterDataUI, gradesData } from './ui/tables.js';
 import { setupUIEvents } from './ui/events.js';
 import { setupAdminEvents } from './ui/admin.js';
 import { updateDashboardChart } from './services/charts.js';
 
 function init() {
-    console.log("[DEBUG] Inisialisasi Si PINTAR...");
-
     const currentDateEl = document.getElementById('current-date');
-    if (currentDateEl) {
-        currentDateEl.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    }
+    if (currentDateEl) currentDateEl.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     const debugDot = document.getElementById('debug-status-dot');
     const btnToggleDebug = document.getElementById('btn-toggle-debug');
     const debugPanel = document.getElementById('debug-panel');
     if (btnToggleDebug && debugPanel) btnToggleDebug.onclick = () => debugPanel.classList.toggle('hidden');
 
-    setupNavigation();
-    setupUIEvents(); 
-    setupAdminEvents();
+    setupNavigation(); setupUIEvents(); setupAdminEvents();
     
-    initLoginForm((user) => {
-        showApp(user);
-    });
+    initLoginForm((user) => { showApp(user); });
 
     const btnLogout = document.getElementById('btn-logout');
     if (btnLogout) btnLogout.onclick = () => handleLogout();
 
     const btnApplyDashFilter = document.getElementById('btn-apply-dash-filter');
-    if (btnApplyDashFilter) {
-        btnApplyDashFilter.onclick = () => {
-            updateDashboardView();
-        };
-    }
+    if (btnApplyDashFilter) btnApplyDashFilter.onclick = () => { updateDashboardView(); };
 
     setupAuth(async (firebaseUser) => {
-        if (debugDot) {
-            debugDot.classList.replace('bg-red-500', 'bg-green-500');
-            debugDot.classList.remove('animate-pulse');
-        }
-
-        await loadMasterData();
-        populateDropdowns(); 
+        if (debugDot) { debugDot.classList.replace('bg-red-500', 'bg-green-500'); debugDot.classList.remove('animate-pulse'); }
+        await loadMasterData(); populateDropdowns(); 
         
         const savedUser = restoreSession();
-        if (savedUser) {
-            console.log("[DEBUG] Sesi aktif ditemukan. Langsung masuk...");
-            showApp(savedUser);
-        }
+        if (savedUser) showApp(savedUser);
         
         setupFirestoreListener(() => {
-            populateDropdowns();
-            updateDashboardView();
-
+            populateDropdowns(); updateDashboardView();
             const activeSec = document.querySelector('.section-container:not(.hidden)');
             if (activeSec) {
                 if (activeSec.id === 'sec-admin-import') renderTableSiswa(); 
                 if (activeSec.id === 'sec-admin-guru') renderTableGuru();
                 if (activeSec.id === 'sec-admin-master') renderMasterDataUI(); 
                 if (activeSec.id === 'sec-nilai') renderTable();
+                if (activeSec.id === 'sec-rekap') renderTableRekap();
             }
         });
     });
@@ -76,21 +55,16 @@ function init() {
         if (menuId === 'admin-guru') renderTableGuru();
         if (menuId === 'admin-import') renderTableSiswa();
         if (menuId === 'nilai') renderTable();
+        if (menuId === 'rekap') renderTableRekap();
     };
 }
 
 export function updateDashboardView() {
     if (!gradesData) return;
-    
-    let thn = getActiveTahun();
-    let smt = getActiveSemester();
-    
+    let thn = getActiveTahun(); let smt = getActiveSemester();
     const dashTahun = document.getElementById('dash-filter-tahun');
     const dashSmt = document.getElementById('dash-filter-smt');
-    if (dashTahun && dashSmt) {
-        thn = dashTahun.value;
-        smt = dashSmt.value;
-    }
+    if (dashTahun && dashSmt) { thn = dashTahun.value; smt = dashSmt.value; }
 
     const activeGrades = gradesData.filter(g => g.tahun === thn && g.semester === smt);
     const totalSiswa = [...new Set(activeGrades.map(g => g.studentName + g.nisn))].length;
@@ -103,37 +77,23 @@ export function updateDashboardView() {
 }
 
 function showApp(user) {
-    if (!user) return; // Cegah error jika objek user kosong
-    
+    if (!user) return; 
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('main-view').classList.remove('hidden');
     
-    // SAFEGUARD: Ambil nama dengan aman, cegah split() error jika format data kacau
     const rawName = user.username || user.name || 'Pengguna';
     const shortName = String(rawName).split(',')[0];
     
-    const elAuthName = document.getElementById('auth-user-name');
-    if (elAuthName) elAuthName.textContent = shortName;
+    if (document.getElementById('auth-user-name')) document.getElementById('auth-user-name').textContent = shortName;
+    if (document.getElementById('page-subtitle-name')) document.getElementById('page-subtitle-name').textContent = shortName;
     
-    const elPageSub = document.getElementById('page-subtitle-name');
-    if (elPageSub) elPageSub.textContent = shortName;
-    
-    // Menampilkan Jabatan Akurat di Sidebar
     let displayRole = user.role === 'admin' ? 'Administrator' : 'Guru Mata Pelajaran';
     if (user.role !== 'admin') {
-        if (user.tugasTambahan === 'Wakasek Kurikulum' || user.role === 'wakasek') {
-            displayRole = 'Wakasek Kurikulum';
-        } else if (user.tugasTambahan === 'Wali Kelas' || user.jabatan === 'Wali Kelas') {
-            displayRole = `Wali Kelas ${user.waliKelas ? user.waliKelas : ''}`;
-        }
+        if (user.tugasTambahan === 'Wakasek Kurikulum' || user.role === 'wakasek') displayRole = 'Wakasek Kurikulum';
+        else if (user.tugasTambahan === 'Wali Kelas' || user.jabatan === 'Wali Kelas') displayRole = `Wali Kelas ${user.waliKelas ? user.waliKelas : ''}`;
     }
-    
-    const elAuthRole = document.getElementById('auth-user-role');
-    if (elAuthRole) elAuthRole.textContent = displayRole;
+    if (document.getElementById('auth-user-role')) document.getElementById('auth-user-role').textContent = displayRole;
 
-    // ========================================================
-    // MENGISI BANNER DASHBOARD BIRU BERDASARKAN ROLE
-    // ========================================================
     const dashName = document.getElementById('dash-name');
     const dashDesc = document.getElementById('dash-desc');
     const dashBtn = document.getElementById('dash-action-btn');
@@ -141,10 +101,10 @@ function showApp(user) {
     if (dashName) dashName.textContent = shortName;
 
     if (user.role === 'admin') {
-        if (dashDesc) dashDesc.textContent = "Pusat kendali database sekolah. Kelola data master, pengguna, dan sistem secara keseluruhan.";
+        if (dashDesc) dashDesc.textContent = "Pusat kendali database sekolah. Pantau rekapitulasi nilai dan kelola pengguna sistem.";
         if (dashBtn) {
-            dashBtn.innerHTML = '<i class="ph ph-database text-xl"></i> Kelola Master Data';
-            dashBtn.onclick = () => window.switchMenu('admin-master');
+            dashBtn.innerHTML = '<i class="ph ph-table text-xl"></i> Pantau Rekap Nilai';
+            dashBtn.onclick = () => window.switchMenu('rekap');
         }
     } else if (user.role === 'wakasek' || user.tugasTambahan === 'Wakasek Kurikulum') {
         if (dashDesc) dashDesc.textContent = "Pantau perkembangan akademik siswa dan kelola administrasi kurikulum sekolah secara menyeluruh.";
@@ -153,7 +113,6 @@ function showApp(user) {
             dashBtn.onclick = () => window.switchMenu('nilai');
         }
     } else {
-        // Guru Mapel & Wali Kelas
         if (dashDesc) dashDesc.textContent = "Kelola nilai siswa dan administrasi rapor dengan lebih efisien dan terstruktur.";
         if (dashBtn) {
             dashBtn.innerHTML = '<i class="ph ph-pencil-simple text-xl"></i> Mulai Input Nilai';
@@ -163,34 +122,21 @@ function showApp(user) {
     
     const thn = getActiveTahun();
     const smt = getActiveSemester();
-    
-    const elPeriode = document.getElementById('display-periode');
-    if (elPeriode) elPeriode.innerHTML = `<i class="ph ph-calendar-check mr-2"></i> TA. ${thn} - ${smt}`;
+    if (document.getElementById('display-periode')) document.getElementById('display-periode').innerHTML = `<i class="ph ph-calendar-check mr-2"></i> TA. ${thn} - ${smt}`;
     
     if (user.role === 'admin' || user.role === 'wakasek' || user.tugasTambahan === 'Wakasek Kurikulum') {
         const filterDash = document.getElementById('dashboard-filter-bar');
         if (filterDash) {
             filterDash.classList.remove('hidden');
-            const dashFilterTahun = document.getElementById('dash-filter-tahun');
-            const dashFilterSmt = document.getElementById('dash-filter-smt');
-            if (dashFilterTahun) dashFilterTahun.value = thn;
-            if (dashFilterSmt) dashFilterSmt.value = smt;
+            if (document.getElementById('dash-filter-tahun')) document.getElementById('dash-filter-tahun').value = thn;
+            if (document.getElementById('dash-filter-smt')) document.getElementById('dash-filter-smt').value = smt;
         }
     }
 
-    const labelCopyTahun = document.getElementById('label-copy-tahun-aktif');
-    const labelCopySmt = document.getElementById('label-copy-smt-aktif');
-    if (labelCopyTahun) labelCopyTahun.textContent = thn;
-    if (labelCopySmt) labelCopySmt.textContent = smt;
+    if (document.getElementById('label-copy-tahun-aktif')) document.getElementById('label-copy-tahun-aktif').textContent = thn;
+    if (document.getElementById('label-copy-smt-aktif')) document.getElementById('label-copy-smt-aktif').textContent = smt;
 
-    // Build sidebar dan tampilkan dashboard
-    try {
-        buildSidebarNav();
-    } catch(e) {
-        console.error("[DEBUG] Gagal build sidebar:", e);
-    }
-    
-    window.switchMenu('dashboard');
+    buildSidebarNav(); window.switchMenu('dashboard');
 }
 
 window.onload = init;
