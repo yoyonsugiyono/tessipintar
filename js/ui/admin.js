@@ -1,6 +1,5 @@
 // File: js/ui/admin.js
 
-// PERUBAHAN: Menambahkan impor 'collection' untuk fungsi Tambah Guru
 import { doc, deleteDoc, updateDoc, addDoc, serverTimestamp, writeBatch, getDocs, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db, getGradesCollection } from '../config/firebase.js';
 import { USERS_DB, getActiveTahun, getActiveSemester, getAppUser } from '../services/auth.js';
@@ -32,7 +31,7 @@ export function setupAdminEvents() {
 
             try {
                 const usersRef = collection(db, 'users');
-                const docRef = await addDoc(usersRef, {
+                await addDoc(usersRef, {
                     username: username,
                     password: password,
                     role: role.toLowerCase(),
@@ -41,9 +40,7 @@ export function setupAdminEvents() {
                     createdAt: serverTimestamp()
                 });
                 
-                // Tambahkan ke array lokal agar tabel langsung terupdate
-                USERS_DB.push({ id: docRef.id, username, password, role: role.toLowerCase(), jabatan: 'Guru Mapel', waliKelas: '' });
-                renderTableGuru();
+                renderTableGuru(); // Panggil ulang data dari database
                 await writeLog("TAMBAH_PENGGUNA", `Admin membuat akun baru: ${username} (${role})`);
                 alert(`Berhasil! Pengguna "${username}" telah ditambahkan ke database.`);
             } catch(e) {
@@ -375,8 +372,13 @@ export function setupAdminEvents() {
     // ========================================================
     const btnTemplateGuru = document.getElementById('btn-template-guru');
     if (btnTemplateGuru) {
-        btnTemplateGuru.onclick = () => {
-            const dataToExport = USERS_DB.map(u => ({ "Username": u.username, "Role": u.role, "Jabatan": u.jabatan || "-", "Kelas Asuhan": u.waliKelas || "-", "Password": u.password }));
+        btnTemplateGuru.onclick = async () => {
+            // Tarik data segar dari database sebelum mendownload
+            const usersSnap = await getDocs(collection(db, 'users'));
+            let freshUsers = [];
+            usersSnap.forEach(doc => { freshUsers.push(doc.data()); });
+
+            const dataToExport = freshUsers.map(u => ({ "Username": u.username, "Role": u.role, "Jabatan": u.jabatan || "-", "Kelas Asuhan": u.waliKelas || "-", "Password": u.password }));
             const ws = XLSX.utils.json_to_sheet(dataToExport);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "DataGuru");
@@ -455,7 +457,7 @@ export function setupAdminEvents() {
 }
 
 // ========================================================
-// GLOBAL FUNCTIONS (Diakses langsung dari tombol HTML)
+// GLOBAL FUNCTIONS (Diakses langsung dari HTML)
 // ========================================================
 window.deleteMasterTahun = async (idx) => {
     if(!confirm("Hapus tahun ajaran tambahan ini?")) return;
@@ -478,19 +480,15 @@ window.deleteMasterSubject = async (idx) => {
     catch(e) { MASTER_SUBJECTS.splice(idx, 0, removed[0]); alert("Gagal menghapus."); }
 };
 
-window.editGuru = async (id) => {
-    const userIndex = USERS_DB.findIndex(u => u.id === id);
-    if(userIndex === -1) return;
-    
-    const user = USERS_DB[userIndex];
-    
-    const newJabatan = prompt(
-        `Edit Jabatan untuk ${user.username}:\nKetik persis salah satu:\n- Guru Mapel\n- Wali Kelas\n- Wakasek Kurikulum`, 
-        user.jabatan || 'Guru Mapel'
-    );
+// ========================================================
+// FUNGSI GURU (CRUD LANGSUNG KE FIREBASE)
+// ========================================================
+window.editGuru = async (id, oldUsername, oldJabatan, oldWaliKelas) => {
+    const decodedName = decodeURIComponent(oldUsername);
+    const newJabatan = prompt(`Edit Jabatan untuk ${decodedName}:\nKetik persis salah satu:\n- Guru Mapel\n- Wali Kelas\n- Wakasek Kurikulum`, oldJabatan || 'Guru Mapel');
     if(!newJabatan) return;
 
-    let newWaliKelas = user.waliKelas || '';
+    let newWaliKelas = oldWaliKelas || '';
     if (newJabatan === 'Wali Kelas') {
         newWaliKelas = prompt(`Masukkan KELAS ASUHAN untuk Wali Kelas ini (Contoh: X-1):`, newWaliKelas);
         if(!newWaliKelas) { alert("Proses dibatalkan. Wali Kelas wajib memiliki kelas asuhan."); return; }
@@ -498,21 +496,17 @@ window.editGuru = async (id) => {
 
     try {
         await updateDoc(doc(db, 'users', id), { jabatan: newJabatan, waliKelas: newWaliKelas });
-        user.jabatan = newJabatan; user.waliKelas = newWaliKelas;
-        renderTableGuru();
-        alert(`Berhasil! Jabatan ${user.username} diperbarui menjadi ${newJabatan} ${newWaliKelas ? '('+newWaliKelas+')' : ''}.`);
-    } catch(e) { alert("Gagal mengupdate database."); }
+        renderTableGuru(); // Re-render dari Firebase
+        alert(`Berhasil! Jabatan ${decodedName} diperbarui menjadi ${newJabatan} ${newWaliKelas ? '('+newWaliKelas+')' : ''}.`);
+    } catch(e) { alert("Gagal mengupdate database Firebase."); }
 };
 
 window.deleteGuru = async (id, name) => {
     const decodedName = decodeURIComponent(name);
     if (!confirm(`Yakin ingin MENGHAPUS akun pengguna "${decodedName}" secara permanen?`)) return;
-    
     try {
         await deleteDoc(doc(db, 'users', id));
-        const idx = USERS_DB.findIndex(u => u.id === id);
-        if (idx > -1) USERS_DB.splice(idx, 1);
-        renderTableGuru();
+        renderTableGuru(); // Re-render dari Firebase
         await writeLog("HAPUS_PENGGUNA", `Admin menghapus akun: ${decodedName}`);
         alert(`Akun ${decodedName} berhasil dihapus.`);
     } catch(e) { alert("Gagal menghapus akun."); }
@@ -522,23 +516,20 @@ window.openResetSandi = async (id, name) => {
     const decodedName = decodeURIComponent(name);
     const newPass = prompt(`Masukkan password baru untuk "${decodedName}":`, "123456");
     if (!newPass) return;
-
     try {
         await updateDoc(doc(db, 'users', id), { password: newPass });
-        const user = USERS_DB.find(u => u.id === id);
-        if (user) user.password = newPass;
-        renderTableGuru();
+        renderTableGuru(); // Re-render dari Firebase
         await writeLog("RESET_SANDI", `Admin mereset sandi untuk akun: ${decodedName}`);
         alert(`Password ${decodedName} berhasil direset!`);
     } catch(e) { alert("Gagal mereset password."); }
 };
 
+// ========================================================
+// FUNGSI SISWA
+// ========================================================
 window.editSiswa = async (encN, encI, encC) => {
-    const oldName = decodeURIComponent(encN);
-    const oldNisn = decodeURIComponent(encI);
-    const studentClass = decodeURIComponent(encC);
-    const thn = getActiveTahun();
-    const smt = getActiveSemester();
+    const oldName = decodeURIComponent(encN); const oldNisn = decodeURIComponent(encI); const studentClass = decodeURIComponent(encC);
+    const thn = getActiveTahun(); const smt = getActiveSemester();
 
     const newName = prompt("Edit Nama Lengkap Siswa:", oldName);
     if(!newName || newName.trim() === '') return;
@@ -546,7 +537,6 @@ window.editSiswa = async (encN, encI, encC) => {
 
     try {
         const docsToUpdate = gradesData.filter(g => g.className === studentClass && g.tahun === thn && g.semester === smt && g.studentName === oldName && (g.nisn || '') === oldNisn);
-
         if(docsToUpdate.length > 0) {
             const batch = writeBatch(db);
             docsToUpdate.forEach(d => { batch.update(doc(getGradesCollection(), d.id), { studentName: newName, nisn: newNisn, updatedAt: serverTimestamp() }); });
@@ -559,24 +549,19 @@ window.editSiswa = async (encN, encI, encC) => {
 };
 
 window.deleteSiswa = async (encN, encI, encC) => {
-    const name = decodeURIComponent(encN);
-    const nisn = decodeURIComponent(encI);
-    const studentClass = decodeURIComponent(encC);
-    const thn = getActiveTahun();
-    const smt = getActiveSemester();
+    const name = decodeURIComponent(encN); const nisn = decodeURIComponent(encI); const studentClass = decodeURIComponent(encC);
+    const thn = getActiveTahun(); const smt = getActiveSemester();
 
     if(!confirm(`Hapus seluruh data (nama & nilai) "${name}" di kelas ${studentClass}?`)) return;
 
     try {
         const docsToDelete = gradesData.filter(g => g.className === studentClass && g.tahun === thn && g.semester === smt && g.studentName === name && (g.nisn || '') === nisn);
-
         if(docsToDelete.length > 0) {
             const backupJSON = JSON.stringify(docsToDelete.map(d => ({ mapel: d.subject, scores: d.scores })));
             const batch = writeBatch(db);
             docsToDelete.forEach(d => batch.delete(doc(getGradesCollection(), d.id)));
             await batch.commit();
-            
-            await writeLog("HAPUS_SISWA_UTUH", `${getAppUser().username} menghapus siswa ${name} (${studentClass}). Backup Nilai: ${backupJSON}`);
+            await writeLog("HAPUS_SISWA_UTUH", `${getAppUser().username} menghapus siswa ${name} (${studentClass}). Backup: ${backupJSON}`);
             alert(`Data ${name} dihapus.`);
             renderTableSiswa();
         }
