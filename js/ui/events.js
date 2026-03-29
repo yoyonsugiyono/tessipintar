@@ -38,16 +38,40 @@ export function setupUIEvents() {
         const docSub = document.getElementById('preview-doc-subtitle');
         const ttdName = document.getElementById('preview-ttd-name');
         const ttdRole = document.getElementById('preview-ttd-role');
+        const ttdNip = document.getElementById('preview-ttd-nip');
         const dateEl = document.getElementById('preview-date');
         const appUser = getAppUser();
 
-        // Format Tanggal Cetak
+        // ---------------------------------------------------------
+        // MAGIC EDIT: Memungkinkan Guru Mengedit Tanda Tangan Langsung di Layar!
+        // ---------------------------------------------------------
+        
+        // 1. Tanggal
         const d = new Date();
         const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         dateEl.textContent = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-        
-        // Nama Penandatangan
-        ttdName.textContent = appUser.username.split(',')[0];
+        dateEl.contentEditable = "true";
+        dateEl.className = "outline-none hover:bg-gray-100 focus:bg-blue-50 cursor-text px-2 py-0.5 rounded border border-dashed border-transparent hover:border-gray-300 print:border-none print:bg-transparent print:p-0 transition-colors";
+        dateEl.title = "Klik untuk mengubah tanggal";
+
+        // 2. Jabatan
+        ttdRole.contentEditable = "true";
+        ttdRole.className = "mb-20 outline-none hover:bg-gray-100 focus:bg-blue-50 cursor-text px-2 py-0.5 rounded border border-dashed border-transparent hover:border-gray-300 print:border-none print:bg-transparent print:p-0 block transition-colors";
+        ttdRole.title = "Klik untuk mengubah jabatan penandatangan";
+
+        // 3. Nama (Diambil utuh dengan Gelar)
+        ttdName.textContent = appUser.username;
+        ttdName.contentEditable = "true";
+        ttdName.className = "font-bold underline uppercase tracking-wide outline-none hover:bg-gray-100 focus:bg-blue-50 cursor-text px-2 py-0.5 rounded border border-dashed border-transparent hover:border-gray-300 print:border-none print:bg-transparent print:p-0 transition-colors";
+        ttdName.title = "Klik untuk mengubah atau menambah Gelar";
+
+        // 4. NIP (Diambil dari DB jika ada, jika tidak sediakan tempat ketik)
+        const userNip = appUser.nip && appUser.nip !== '-' ? appUser.nip : "[Klik & Ketik NIP]";
+        ttdNip.textContent = "NIP. " + userNip;
+        ttdNip.contentEditable = "true";
+        ttdNip.className = "text-sm mt-1 outline-none hover:bg-gray-100 focus:bg-blue-50 cursor-text px-2 py-0.5 rounded border border-dashed border-transparent hover:border-gray-300 print:border-none print:bg-transparent print:p-0 transition-colors block";
+        ttdNip.title = "Klik untuk mengetik NIP Anda sebelum dicetak";
+
 
         // LOGIKA CETAK: TABEL INPUT NILAI
         if (type === 'nilai') {
@@ -61,7 +85,6 @@ export function setupUIEvents() {
 
             const data = getDisplayData();
             
-            // Bangun Tabel Bersih (Tanpa Kotak Input)
             let html = `
             <table class="w-full text-[10pt] border-collapse border border-black text-black">
               <thead class="bg-gray-100 font-bold text-center">
@@ -115,12 +138,10 @@ export function setupUIEvents() {
                 const clone = sourceTable.cloneNode(true);
                 clone.className = "w-full text-[10pt] border-collapse border border-black text-black";
                 
-                // Setel ulang semua border dan text color agar hitam murni
                 clone.querySelectorAll('th, td').forEach(el => {
                     el.className = "border border-black p-2 text-black " + (el.tagName === 'TH' ? 'font-bold text-center bg-gray-100' : 'text-center');
                 });
                 
-                // Pastikan kolom Nama tetap rata kiri
                 const tdNames = clone.querySelectorAll('tbody td:nth-child(2)');
                 tdNames.forEach(td => td.classList.replace('text-center', 'text-left'));
                 const thNames = clone.querySelectorAll('thead th');
@@ -133,7 +154,6 @@ export function setupUIEvents() {
             }
         }
         
-        // Tampilkan Modal
         modal.classList.remove('hidden');
         modal.classList.add('flex');
     };
