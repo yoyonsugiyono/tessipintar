@@ -10,15 +10,18 @@ import { writeLog } from '../services/audit.js';
 export function setupAdminEvents() {
     
     // ========================================================
-    // 0. KELOLA PENGGUNA: TAMBAH GURU LENGKAP
+    // 0. KELOLA PENGGUNA: TAMBAH GURU LENGKAP DENGAN NIP
     // ========================================================
     const btnAddGuru = document.getElementById('btn-add-guru');
     if (btnAddGuru) {
         btnAddGuru.onclick = async () => {
-            const username = prompt("Masukkan Nama Lengkap Guru baru:");
+            const username = prompt("Masukkan Nama Lengkap Guru (Boleh beserta Gelar):");
             if (!username) return;
             
-            const password = prompt(`Masukkan Password untuk "${username}":`, "123456");
+            const nip = prompt(`Masukkan NIP untuk "${username}":\n(Ketik tanda "-" jika bukan PNS/PPPK)`, "-");
+            if (nip === null) return;
+
+            const password = prompt(`Masukkan Password login untuk "${username}":`, "123456");
             if (!password) return;
 
             const isAdminConfirm = confirm(`Apakah "${username}" ini adalah akun Administrator Tertinggi?\n(Pilih OK jika Admin, Pilih BATAL/CANCEL jika Guru)`);
@@ -32,6 +35,7 @@ export function setupAdminEvents() {
                 await addDoc(usersRef, {
                     username: username,
                     password: password,
+                    nip: nip,
                     role: role,
                     jabatan: role === 'admin' ? 'Administrator' : 'Guru Mata Pelajaran',
                     tugasTambahan: '',
@@ -40,8 +44,8 @@ export function setupAdminEvents() {
                 });
                 
                 renderTableGuru();
-                await writeLog("TAMBAH_PENGGUNA", `Admin membuat akun baru: ${username} (${role})`);
-                alert(`Berhasil! Pengguna "${username}" telah ditambahkan ke database. Anda dapat mengatur tugas tambahan melalui tombol Edit.`);
+                await writeLog("TAMBAH_PENGGUNA", `Admin membuat akun: ${username} (${role})`);
+                alert(`Berhasil! Pengguna "${username}" telah ditambahkan ke database.`);
             } catch(e) {
                 console.error(e);
                 alert("Gagal menambahkan pengguna. Pastikan koneksi internet Anda lancar.");
@@ -206,7 +210,6 @@ export function setupAdminEvents() {
             const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
             const isWali = appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
 
-            // Wakasek dan Admin bebas. Wali Kelas dikunci.
             if (isWali && appUser.waliKelas && clsTujuan !== appUser.waliKelas) {
                 alert(`AKSES DITOLAK: Anda menjabat sebagai Wali Kelas ${appUser.waliKelas}. Anda tidak berhak menyalin data ke kelas ${clsTujuan}.`); return;
             }
@@ -462,7 +465,7 @@ export function setupAdminEvents() {
 }
 
 // ========================================================
-// GLOBAL FUNCTIONS (Diakses langsung dari HTML)
+// GLOBAL FUNCTIONS
 // ========================================================
 window.deleteMasterTahun = async (idx) => {
     if(!confirm("Hapus tahun ajaran tambahan ini?")) return;
@@ -486,7 +489,7 @@ window.deleteMasterSubject = async (idx) => {
 };
 
 // ========================================================
-// FUNGSI EDIT GURU (MENGGUNAKAN POP-UP MODAL LIST)
+// FUNGSI EDIT GURU (POP-UP MODAL LIST + NIP)
 // ========================================================
 window.editGuru = (id) => {
     const user = USERS_DB.find(u => u.id === id);
@@ -505,10 +508,15 @@ window.editGuru = (id) => {
     modalDiv.innerHTML = `
         <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transform transition-transform">
             <div class="bg-blue-600 p-4 text-white">
-                <h3 class="font-bold text-lg">Atur Tugas Tambahan</h3>
+                <h3 class="font-bold text-lg">Atur Profil Guru</h3>
                 <p class="text-xs text-blue-200">${user.username}</p>
             </div>
             <div class="p-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">NIP (Nomor Induk Pegawai)</label>
+                    <input type="text" id="edit-nip" value="${user.nip || '-'}" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium">
+                    <p class="text-[10px] text-gray-500 mt-1">*Ketik tanda strip "-" jika bukan PNS/PPPK.</p>
+                </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">Pilih Tugas Tambahan</label>
                     <select id="edit-tugas" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium cursor-pointer">
@@ -527,7 +535,7 @@ window.editGuru = (id) => {
             </div>
             <div class="bg-gray-50 p-4 flex justify-end gap-3 border-t border-gray-100">
                 <button id="btn-cancel-edit-guru" class="px-5 py-2.5 text-gray-600 font-bold text-sm hover:bg-gray-200 rounded-lg transition-colors">Batal</button>
-                <button id="btn-save-edit-guru" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg transition-colors shadow-md">Simpan Perubahan</button>
+                <button id="btn-save-edit-guru" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg transition-colors shadow-md">Simpan Profil</button>
             </div>
         </div>
     `;
@@ -546,6 +554,7 @@ window.editGuru = (id) => {
     document.getElementById('btn-save-edit-guru').onclick = async () => {
         const btn = document.getElementById('btn-save-edit-guru');
         const tugas = selectTugas.value;
+        const nipValue = document.getElementById('edit-nip').value || '-';
         let kelas = '';
         let newRole = 'guru';
 
@@ -553,7 +562,7 @@ window.editGuru = (id) => {
             kelas = document.getElementById('edit-kelas').value;
             if (!kelas) { alert("Wali Kelas wajib memiliki satu Kelas Asuhan!"); return; }
         } else if (tugas === 'Wakasek Kurikulum') {
-            newRole = 'wakasek'; // Beri privilege sistem sebagai Wakasek
+            newRole = 'wakasek';
         }
 
         btn.innerHTML = "Menyimpan..."; btn.disabled = true;
@@ -563,14 +572,15 @@ window.editGuru = (id) => {
                 tugasTambahan: tugas, 
                 waliKelas: kelas,
                 role: newRole,
-                jabatan: 'Guru Mata Pelajaran' // Menyeragamkan jabatan utama
+                jabatan: 'Guru Mata Pelajaran',
+                nip: nipValue
             });
             modalDiv.remove();
-            alert(`Sukses! Tugas tambahan ${user.username} berhasil diatur.`);
+            alert(`Sukses! Profil dan tugas tambahan ${user.username} berhasil diatur.`);
             renderTableGuru(); 
         } catch(e) {
             alert("Gagal mengupdate database Firebase.");
-            btn.innerHTML = "Simpan Perubahan"; btn.disabled = false;
+            btn.innerHTML = "Simpan Profil"; btn.disabled = false;
         }
     };
 };
