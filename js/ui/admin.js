@@ -1,10 +1,10 @@
 // File: js/ui/admin.js
 
-import { doc, deleteDoc, updateDoc, addDoc, getDocs, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { db, getUsersCollection, getGradesCollection, getSettingsCollection } from '../config/firebase.js';
-import { USERS_DB, loadUsersFromDB, getActiveTahun, getActiveSemester } from '../services/auth.js';
-import { MASTER_CLASSES, MASTER_SUBJECTS, saveMasterData } from '../services/db-master.js';
-import { renderTableGuru, renderTableSiswa, renderMasterDataUI, populateDropdowns, gradesData } from './tables.js';
+import { doc, deleteDoc, updateDoc, addDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { db, getGradesCollection } from '../config/firebase.js';
+import { USERS_DB, getActiveTahun, getActiveSemester } from '../services/auth.js';
+import { MASTER_CLASSES, MASTER_SUBJECTS } from '../services/db-master.js';
+import { renderTableGuru, renderTableSiswa, gradesData } from './tables.js';
 import { writeLog } from '../services/audit.js';
 
 export function setupAdminEvents() {
@@ -33,7 +33,7 @@ export function setupAdminEvents() {
         };
     }
 
-    // B. Download Data Guru Berbasis Database
+    // B. Download Data Guru
     const btnTemplateGuru = document.getElementById('btn-template-guru');
     if (btnTemplateGuru) {
         btnTemplateGuru.onclick = () => {
@@ -45,7 +45,7 @@ export function setupAdminEvents() {
         };
     }
 
-    // C. Import Siswa Masal (Otomatis Mapel)
+    // C. Import Siswa Masal (Otomatis Semua Mapel)
     const importXlsxSiswa = document.getElementById('import-xlsx-siswa');
     if (importXlsxSiswa) {
         importXlsxSiswa.onchange = (e) => {
@@ -73,7 +73,7 @@ export function setupAdminEvents() {
                         count++;
                     }
                     alert(`Impor ${count} siswa berhasil!`);
-                    renderTableSiswa(); // Refresh tabel otomatis
+                    renderTableSiswa();
                 } catch(err) { alert("Format Excel salah."); }
                 e.target.value = null;
             };
@@ -81,10 +81,9 @@ export function setupAdminEvents() {
         };
     }
 
-    // D. Listener Dropdown Kelas untuk Render Tabel Siswa
+    // D. Listener Filter Kelas Admin
     const filterKelasSiswa = document.getElementById('crud-siswa-kelas-filter');
     if (filterKelasSiswa) {
-        // Ketika admin memilih kelas, paksa tabel untuk merender ulang datanya
         filterKelasSiswa.addEventListener('change', () => {
             renderTableSiswa();
         });
@@ -98,12 +97,10 @@ export function setupAdminEvents() {
         deleteClassSelect.addEventListener('change', (e) => {
             if(e.target.value) {
                 btnDeleteClass.disabled = false;
-                btnDeleteClass.classList.remove('bg-gray-200', 'cursor-not-allowed', 'text-gray-500');
-                btnDeleteClass.classList.add('bg-red-600', 'hover:bg-red-700', 'text-white');
+                btnDeleteClass.classList.replace('bg-gray-300', 'bg-red-600');
             } else {
                 btnDeleteClass.disabled = true;
-                btnDeleteClass.classList.add('bg-gray-200', 'cursor-not-allowed', 'text-gray-500');
-                btnDeleteClass.classList.remove('bg-red-600', 'hover:bg-red-700', 'text-white');
+                btnDeleteClass.classList.replace('bg-red-600', 'bg-gray-300');
             }
         });
 
@@ -111,130 +108,96 @@ export function setupAdminEvents() {
             const cls = deleteClassSelect.value;
             const thn = getActiveTahun();
             const smt = getActiveSemester();
-            
             if(!cls) return;
-            if(!confirm(`PERINGATAN! Anda yakin ingin MENGHAPUS SEMUA DATA nilai siswa kelas ${cls} pada periode ${thn} ${smt}? Data tidak dapat dikembalikan!`)) return;
+
+            if(!confirm(`Yakin ingin MENGHAPUS SEMUA DATA nilai kelas ${cls} periode ${thn} ${smt}?`)) return;
 
             try {
                 const docsToDelete = gradesData.filter(g => g.className === cls && g.tahun === thn && g.semester === smt);
-                
-                if (docsToDelete.length === 0) {
-                    alert(`Tidak ada data ditemukan untuk kelas ${cls}.`);
-                    return;
-                }
+                if (docsToDelete.length === 0) { alert("Data tidak ditemukan."); return; }
 
                 btnDeleteClass.textContent = "MENGHAPUS...";
-                
-                // Hapus masal menggunakan Batch untuk performa & keamanan
                 const batch = writeBatch(db);
-                docsToDelete.forEach(d => {
-                    const ref = doc(getGradesCollection(), d.id);
-                    batch.delete(ref);
-                });
+                docsToDelete.forEach(d => batch.delete(doc(getGradesCollection(), d.id)));
                 await batch.commit();
 
-                await writeLog("HAPUS_KELAS_MASAL", `Menghapus seluruh data kelas ${cls} pada periode aktif.`);
-                
-                alert(`Berhasil menghapus ${docsToDelete.length} data kelas ${cls}.`);
+                await writeLog("HAPUS_KELAS_MASAL", `Menghapus data kelas ${cls}.`);
+                alert(`Berhasil menghapus ${docsToDelete.length} data.`);
                 deleteClassSelect.value = '';
                 btnDeleteClass.disabled = true;
                 btnDeleteClass.textContent = "EKSEKUSI PENGHAPUSAN";
-                renderTableSiswa(); // Refresh tabel siswa jika sedang terbuka
-                
-            } catch (err) {
-                console.error("Gagal menghapus kelas:", err);
-                alert("Terjadi kesalahan saat menghapus data.");
-                btnDeleteClass.textContent = "EKSEKUSI PENGHAPUSAN";
-            }
+                renderTableSiswa();
+            } catch (err) { alert("Gagal menghapus."); }
         };
     }
 
-    // F. Tombol Reset Database Total
+    // F. Reset Database
     const btnResetDb = document.getElementById('btn-reset-db');
     if (btnResetDb) {
         btnResetDb.onclick = async () => {
-            if(!confirm("BAHAYA: Apakah Anda benar-benar yakin ingin mereset seluruh database?")) return;
-            try {
-                await writeLog("RESET_DATABASE", "Melakukan permintaan reset total database sekolah.");
-                alert("Tindakan dicatat di Log Audit. Untuk keamanan tingkat tinggi, hapus seluruh data hanya bisa dilakukan langsung melalui Firebase Console.");
-            } catch (err) {
-                console.error(err);
-            }
+            if(!confirm("Reset seluruh database sekolah?")) return;
+            await writeLog("RESET_DATABASE", "Request reset total database.");
+            alert("Tindakan dicatat. Silakan lakukan penghapusan manual di Firebase Console.");
         };
     }
 }
 
 // ========================================================
-// FUNGSI GLOBAL: Edit Identitas Siswa oleh Admin
+// GLOBAL: Edit Siswa oleh Admin (Batch)
 // ========================================================
-window.editSiswa = async (encN, encI) => {
+window.editSiswa = async (encN, encI, encC) => {
     const oldName = decodeURIComponent(encN);
     const oldNisn = decodeURIComponent(encI);
-    const cls = document.getElementById('crud-siswa-kelas-filter').value;
+    const studentClass = decodeURIComponent(encC);
     const thn = getActiveTahun();
     const smt = getActiveSemester();
 
     const newName = prompt("Edit Nama Lengkap Siswa:", oldName);
     if(!newName || newName.trim() === '') return;
-    const newNisn = prompt("Edit NISN (Kosongkan jika tidak ada):", oldNisn) || "";
-
-    if(newName === oldName && newNisn === oldNisn) return; // Tidak ada perubahan
+    const newNisn = prompt("Edit NISN:", oldNisn) || "";
 
     try {
-        // Cari semua dokumen mapel (baris nilai) milik anak ini
         const docsToUpdate = gradesData.filter(g =>
-            g.className === cls && g.tahun === thn && g.semester === smt &&
+            g.className === studentClass && g.tahun === thn && g.semester === smt &&
             g.studentName === oldName && (g.nisn || '') === oldNisn
         );
 
         if(docsToUpdate.length > 0) {
-            // Gunakan Batch Update agar nama siswa berubah serentak di SEMUA MATA PELAJARAN
             const batch = writeBatch(db);
             docsToUpdate.forEach(d => {
-                const ref = doc(getGradesCollection(), d.id);
-                batch.update(ref, { studentName: newName, nisn: newNisn, updatedAt: serverTimestamp() });
+                batch.update(doc(getGradesCollection(), d.id), { studentName: newName, nisn: newNisn, updatedAt: serverTimestamp() });
             });
             await batch.commit();
-            alert(`Data siswa ${oldName} berhasil diupdate di semua mata pelajaran!`);
-            renderTableSiswa(); // Refresh tabel
+            alert(`Siswa ${oldName} berhasil diupdate!`);
+            renderTableSiswa();
         }
-    } catch(err) {
-        console.error("Gagal update siswa:", err);
-        alert("Terjadi kesalahan saat menyimpan perubahan.");
-    }
+    } catch(err) { alert("Gagal update."); }
 };
 
 // ========================================================
-// FUNGSI GLOBAL: Hapus Siswa oleh Admin
+// GLOBAL: Hapus Siswa oleh Admin (Batch)
 // ========================================================
-window.deleteSiswa = async (encN, encI) => {
+window.deleteSiswa = async (encN, encI, encC) => {
     const name = decodeURIComponent(encN);
     const nisn = decodeURIComponent(encI);
-    const cls = document.getElementById('crud-siswa-kelas-filter').value;
+    const studentClass = decodeURIComponent(encC);
     const thn = getActiveTahun();
     const smt = getActiveSemester();
 
-    if(!confirm(`Peringatan! Yakin ingin MENGHAPUS SELURUH rekap nilai untuk siswa "${name}" di kelas ${cls}? Data yang dihapus tidak dapat dikembalikan!`)) return;
+    if(!confirm(`Hapus seluruh data nilai "${name}" di kelas ${studentClass}?`)) return;
 
     try {
         const docsToDelete = gradesData.filter(g =>
-            g.className === cls && g.tahun === thn && g.semester === smt &&
+            g.className === studentClass && g.tahun === thn && g.semester === smt &&
             g.studentName === name && (g.nisn || '') === nisn
         );
 
         if(docsToDelete.length > 0) {
-            // Gunakan Batch Delete untuk menghapus siswa dari SEMUA MATA PELAJARAN sekaligus
             const batch = writeBatch(db);
-            docsToDelete.forEach(d => {
-                const ref = doc(getGradesCollection(), d.id);
-                batch.delete(ref);
-            });
+            docsToDelete.forEach(d => batch.delete(doc(getGradesCollection(), d.id)));
             await batch.commit();
-            alert(`Semua data nilai atas nama ${name} berhasil dihapus.`);
-            renderTableSiswa(); // Refresh tabel
+            alert(`Data ${name} dihapus.`);
+            renderTableSiswa();
         }
-    } catch(err) {
-        console.error("Gagal menghapus siswa:", err);
-        alert("Terjadi kesalahan saat mencoba menghapus data.");
-    }
+    } catch(err) { alert("Gagal hapus."); }
 };
