@@ -193,7 +193,7 @@ export function setupAdminEvents() {
     }
 
     // ========================================================
-    // 3. KELOLA SISWA: NAIK KELAS / SALIN SISWA
+    // 3. KELOLA SISWA: NAIK KELAS / SALIN SISWA (ANTI-DUPLIKAT)
     // ========================================================
     const btnCopySiswa = document.getElementById('btn-copy-siswa');
     if (btnCopySiswa) {
@@ -215,15 +215,38 @@ export function setupAdminEvents() {
             }
 
             if (confirm(`Salin siswa dari kelas ${clsAsal} (${thnAsal}) ke kelas ${clsTujuan} untuk periode berjalan (${thnAktif} - ${smtAktif})?`)) {
+                
+                // Kumpulkan data siswa asal
                 const sourceData = gradesData.filter(g => g.tahun === thnAsal && g.className === clsAsal);
                 const map = new Map();
                 sourceData.forEach(g => {
-                    const key = g.studentName + "_" + (g.nisn || '');
+                    const key = g.studentName.toLowerCase().trim() + "_" + (g.nisn || '').trim();
                     if (!map.has(key)) map.set(key, { name: g.studentName, nisn: g.nisn });
                 });
                 
-                const studentsToCopy = Array.from(map.values());
-                if (studentsToCopy.length === 0) { alert(`Tidak ada siswa di kelas ${clsAsal} pada tahun ${thnAsal}.`); return; }
+                // SISTEM ANTI-DUPLIKAT: Cek apakah siswa sudah ada di kelas tujuan tahun aktif
+                const existingTujuanData = new Set(
+                    gradesData
+                        .filter(g => g.tahun === thnAktif && g.semester === smtAktif && g.className === clsTujuan)
+                        .map(g => (g.studentName.toLowerCase().trim() + "_" + (g.nisn || '').trim()))
+                );
+
+                const studentsToCopy = [];
+                let countSkipped = 0;
+
+                Array.from(map.values()).forEach(s => {
+                    const key = s.name.toLowerCase().trim() + "_" + (s.nisn || '').trim();
+                    if(existingTujuanData.has(key)) {
+                        countSkipped++; // Siswa sudah ada, lewati
+                    } else {
+                        studentsToCopy.push(s);
+                    }
+                });
+                
+                if (studentsToCopy.length === 0) { 
+                    alert(`Proses dibatalkan. Tidak ada siswa baru yang disalin (Mungkin kelas asal kosong atau semua siswa tersebut sudah ada di kelas tujuan).`); 
+                    return; 
+                }
 
                 btnCopySiswa.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> Sedang Menyalin...';
                 btnCopySiswa.disabled = true;
@@ -247,8 +270,12 @@ export function setupAdminEvents() {
                     if (opCount > 0) commitPromises.push(currentBatch.commit());
                     await Promise.all(commitPromises);
 
-                    await writeLog("SALIN_SISWA", `${appUser.username} menyalin ${studentsToCopy.length} siswa dari ${clsAsal} ke ${clsTujuan}.`);
-                    alert(`Sukses! ${studentsToCopy.length} siswa berhasil dinaikkan/disalin ke kelas ${clsTujuan}.`);
+                    await writeLog("SALIN_SISWA", `${appUser.username} menyalin ${studentsToCopy.length} siswa ke ${clsTujuan}. Duplicate dilewati: ${countSkipped}`);
+                    
+                    let msg = `Sukses! ${studentsToCopy.length} siswa berhasil disalin ke kelas ${clsTujuan}.`;
+                    if (countSkipped > 0) msg += `\n(Catatan: ${countSkipped} siswa diabaikan karena sudah terdaftar di kelas tujuan)`;
+                    alert(msg);
+                    
                     renderTableSiswa();
                 } catch (err) { alert("Terjadi kesalahan sistem saat menyalin data."); } 
                 finally { btnCopySiswa.innerHTML = '<i class="ph ph-arrow-circle-right text-lg"></i> Proses Salin'; btnCopySiswa.disabled = false; }
@@ -257,7 +284,7 @@ export function setupAdminEvents() {
     }
 
     // ========================================================
-    // 4. KELOLA SISWA: EXPORT & IMPORT VIA EXCEL
+    // 4. KELOLA SISWA: EXPORT & IMPORT VIA EXCEL (ANTI-DUPLIKAT)
     // ========================================================
     const btnTemplateSiswa = document.getElementById('btn-template-siswa');
     if (btnTemplateSiswa) {
@@ -316,6 +343,8 @@ export function setupAdminEvents() {
             btnProcessSiswa.disabled = true;
 
             const reader = new FileReader();
+            const thnAktif = getActiveTahun();
+            const smtAktif = getActiveSemester();
 
             const resetSiswaUploadUI = () => {
                 importXlsxSiswa.value = null; selectedSiswaFile = null;
@@ -326,23 +355,50 @@ export function setupAdminEvents() {
             };
 
             reader.onload = async (ev) => {
-                let count = 0; let processedSiswa = [];
+                let countNew = 0; 
+                let countSkipped = 0;
+                let processedSiswa = [];
 
                 try {
                     const data = new Uint8Array(ev.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                     
+                    // SISTEM ANTI-DUPLIKAT (Ambil semua siswa di tahun & semester aktif)
+                    const existingData = new Set(
+                        gradesData
+                            .filter(g => g.tahun === thnAktif && g.semester === smtAktif)
+                            .map(g => (g.studentName.toLowerCase().trim() + "_" + (g.nisn || '').trim() + "_" + g.className.trim()))
+                    );
+
                     for(let row of json) {
                         let n = String(row["Nama Siswa"] || "").trim();
+                        let nisn = String(row["NISN"] || "").trim();
                         let cls = String(row["Kelas"] || "").trim();
                         if(!n || !cls) continue;
+                        
                         if (isWali && appUser.waliKelas && cls !== appUser.waliKelas) continue;
-                        processedSiswa.push({ name: n, nisn: String(row["NISN"] || ""), className: cls });
+                        
+                        // Cek apakah siswa ini sudah ada di kelas tersebut
+                        const key = (n.toLowerCase() + "_" + nisn + "_" + cls).trim();
+                        if (existingData.has(key)) {
+                            countSkipped++;
+                            continue; // Abaikan siswa ini
+                        }
+
+                        processedSiswa.push({ name: n, nisn: nisn, className: cls });
+                        existingData.add(key); // Cegah duplikat di dalam file excel yg sama
                     }
                 } catch(err) { alert("ERROR: Gagal membaca file Excel Siswa."); resetSiswaUploadUI(); return; }
 
-                if (processedSiswa.length === 0) { alert("Tidak ada data siswa ditemukan."); resetSiswaUploadUI(); return; }
+                if (processedSiswa.length === 0) { 
+                    if (countSkipped > 0) {
+                        alert(`Proses dibatalkan. ${countSkipped} siswa di dalam file Excel sudah terdaftar di database.`);
+                    } else {
+                        alert("Tidak ada data siswa baru yang ditemukan di dalam file Excel."); 
+                    }
+                    resetSiswaUploadUI(); return; 
+                }
 
                 try {
                     let currentBatch = writeBatch(db); let opCount = 0; const commitPromises = [];
@@ -350,20 +406,24 @@ export function setupAdminEvents() {
                         for(const mapel of MASTER_SUBJECTS) {
                             currentBatch.set(doc(getGradesCollection()), { 
                                 studentName: s.name, nisn: s.nisn, teacherName: 'admin', subject: mapel, className: s.className, 
-                                tahun: getActiveTahun(), semester: getActiveSemester(), 
+                                tahun: thnAktif, semester: smtAktif, 
                                 scores: { f1:null, f2:null, f3:null, t1:null, t2:null, t3:null, asaj:null }, 
                                 results: { avgFormative:0, avgTask:0, final:0 }, createdAt: serverTimestamp() 
                             });
                             opCount++;
                             if (opCount >= 450) { commitPromises.push(currentBatch.commit()); currentBatch = writeBatch(db); opCount = 0; }
                         }
-                        count++;
+                        countNew++;
                     }
                     if (opCount > 0) commitPromises.push(currentBatch.commit());
                     await Promise.all(commitPromises);
 
-                    await writeLog("IMPORT_SISWA", `${appUser.username} mengimpor ${count} siswa baru.`);
-                    alert(`Berhasil! ${count} siswa baru telah ditambahkan ke sistem.`);
+                    await writeLog("IMPORT_SISWA", `${appUser.username} mengimpor ${countNew} siswa baru. Duplikat diskip: ${countSkipped}`);
+                    
+                    let msg = `Berhasil! ${countNew} siswa baru telah ditambahkan ke sistem.`;
+                    if (countSkipped > 0) msg += `\n(Catatan: ${countSkipped} siswa diabaikan karena duplikat / sudah terdaftar)`;
+                    alert(msg);
+                    
                     renderTableSiswa();
                 } catch(err) { alert("ERROR DATABASE: Gagal menyimpan data siswa ke server."); }
                 resetSiswaUploadUI();
@@ -488,9 +548,6 @@ window.deleteMasterSubject = async (idx) => {
     catch(e) { MASTER_SUBJECTS.splice(idx, 0, removed[0]); alert("Gagal menghapus."); }
 };
 
-// ========================================================
-// FUNGSI EDIT GURU (POP-UP MODAL LIST + NIP)
-// ========================================================
 window.editGuru = (id) => {
     const user = USERS_DB.find(u => u.id === id);
     if(!user) return;
@@ -608,9 +665,6 @@ window.openResetSandi = async (id, name) => {
     } catch(e) { alert("Gagal mereset password."); }
 };
 
-// ========================================================
-// FUNGSI SISWA
-// ========================================================
 window.editSiswa = async (encN, encI, encC) => {
     const oldName = decodeURIComponent(encN); const oldNisn = decodeURIComponent(encI); const studentClass = decodeURIComponent(encC);
     const thn = getActiveTahun(); const smt = getActiveSemester();
