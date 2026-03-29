@@ -21,10 +21,8 @@ export function buildSidebarNav() {
     const user = getAppUser();
     if (!nav || !user) return;
 
-    // Normalisasi Jabatan (Jika kosong, anggap Guru Mapel)
-    const jabatan = user.jabatan || 'Guru Mapel';
-    const isWaliKelas = jabatan === 'Wali Kelas';
-    const isWakasek = jabatan === 'Wakasek Kurikulum';
+    const isWali = user.tugasTambahan === 'Wali Kelas' || user.jabatan === 'Wali Kelas';
+    const isWakasek = user.tugasTambahan === 'Wakasek Kurikulum' || user.role === 'wakasek';
     const isAdmin = user.role === 'admin';
 
     let html = `
@@ -36,16 +34,19 @@ export function buildSidebarNav() {
         </button>
     `;
 
-    // Menu Kelola Siswa: Terbuka untuk Admin, Wakasek, DAN Wali Kelas!
-    if (isAdmin || isWakasek || isWaliKelas) {
-        let titleSiswa = isWaliKelas ? `Kelola Siswa (${user.waliKelas})` : 'Kelola Data Siswa';
+    // Menu Kelola Siswa: Admin, Wakasek (Semua Kelas), Wali Kelas (Kelas Sendiri)
+    if (isAdmin || isWakasek || isWali) {
+        let titleSiswa = 'Kelola Data Siswa';
+        if (!isAdmin && !isWakasek && isWali) {
+            titleSiswa = `Kelola Siswa (${user.waliKelas})`;
+        }
+        
         html += `
         <button onclick="window.switchMenu('admin-import')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-blue-100 hover:bg-blue-800 hover:text-white transition-all font-medium group text-left mt-1">
             <i class="ph ph-users text-xl group-hover:text-yellow-400 transition-colors"></i> ${titleSiswa}
         </button>`;
     }
 
-    // Menu Khusus Admin
     if (isAdmin) {
         html += `
         <div class="my-4 border-t border-blue-800/50"></div>
