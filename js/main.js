@@ -41,17 +41,14 @@ function init() {
 
     // 4. Proses Otentikasi & Load Data
     setupAuth(async (firebaseUser) => {
-        // Hijaukan indikator debug
         if (debugDot) {
             debugDot.classList.replace('bg-red-500', 'bg-green-500');
             debugDot.classList.remove('animate-pulse');
         }
 
-        // Load Master Data (Kelas/Mapel)
         await loadMasterData();
         populateDropdowns(); 
         
-        // --- CEK AUTO LOGIN ---
         const savedUser = restoreSession();
         if (savedUser) {
             console.log("[DEBUG] Sesi aktif ditemukan. Langsung masuk...");
@@ -60,14 +57,19 @@ function init() {
         
         // Aktifkan Real-time Update dari Database
         setupFirestoreListener(() => {
-            // Update Statistik & Grafik di Dashboard
-            const totalSiswa = [...new Set(gradesData.map(g => g.studentName))].length;
-            const avgNilai = gradesData.reduce((acc, curr) => acc + (curr.results?.final || 0), 0) / (gradesData.length || 1);
+            // PERBAIKAN: Filter data berdasarkan Tahun & Semester Aktif
+            const thn = getActiveTahun();
+            const smt = getActiveSemester();
+            const activeGrades = gradesData.filter(g => g.tahun === thn && g.semester === smt);
+
+            // Update Statistik & Grafik di Dashboard HANYA untuk periode aktif
+            const totalSiswa = [...new Set(activeGrades.map(g => g.studentName))].length;
+            const avgNilai = activeGrades.reduce((acc, curr) => acc + (curr.results?.final || 0), 0) / (activeGrades.length || 1);
             
             if(document.getElementById('stat-students')) document.getElementById('stat-students').textContent = totalSiswa;
             if(document.getElementById('stat-avg')) document.getElementById('stat-avg').textContent = avgNilai.toFixed(1);
             
-            updateDashboardChart(gradesData);
+            updateDashboardChart(activeGrades);
 
             // Re-render Tabel jika menu tersebut sedang dibuka
             const activeSec = document.querySelector('.section-container:not(.hidden)');
