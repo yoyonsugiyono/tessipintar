@@ -4,7 +4,6 @@ import { getAppUser, getActiveTahun, getActiveSemester, USERS_DB } from '../serv
 import { getCalc, weights, ds } from '../services/db-grades.js';
 import { MASTER_CLASSES, MASTER_SUBJECTS } from '../services/db-master.js';
 
-// --- STATE LOKAL TABEL ---
 export let gradesData = [];
 export let selClass = '';
 export let selSubject = '';
@@ -12,23 +11,14 @@ export let wFilter = 'all';
 export let editGradeId = null;
 export let searchQuery = ''; 
 
-// --- SETTER UNTUK STATE ---
 export function setGradesData(data) { gradesData = data; }
 export function setEditGradeId(id) { editGradeId = id; }
 export function setSearchQuery(q) { searchQuery = q.toLowerCase(); }
-export function setFilters(c, s, w) { 
-    selClass = c; 
-    selSubject = s; 
-    wFilter = w; 
-}
+export function setFilters(c, s, w) { selClass = c; selSubject = s; wFilter = w; }
 
-// ==========================================
-// 1. RENDER TABEL GURU (KHUSUS ADMIN)
-// ==========================================
 export function renderTableGuru() {
     const tbody = document.getElementById('crud-guru-tbody');
     if(!tbody) return;
-
     tbody.innerHTML = USERS_DB.map((u, i) => {
         const roleColor = u.role === 'admin' ? 'text-red-600' : (u.role === 'wakasek' ? 'text-purple-600' : 'text-blue-600');
         return `
@@ -45,28 +35,18 @@ export function renderTableGuru() {
     }).join('') || '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada data pengguna terdaftar.</td></tr>';
 }
 
-// ==========================================
-// 2. RENDER TABEL SISWA (KHUSUS ADMIN)
-// ==========================================
 export function renderTableSiswa() {
     const tbody = document.getElementById('crud-siswa-tbody');
     const filter = document.getElementById('crud-siswa-kelas-filter');
-    
     if(!tbody || !filter) return;
     
     const cls = filter.value; 
     const thn = getActiveTahun();
     const smt = getActiveSemester();
 
-    // Ambil data siswa untuk periode aktif
     let clsData = gradesData.filter(g => g.tahun === thn && g.semester === smt);
-    
-    // Filter jika kelas dipilih, jika "-- Semua Kelas --" tampilkan semua
-    if (cls) {
-        clsData = clsData.filter(g => g.className === cls);
-    }
+    if (cls) clsData = clsData.filter(g => g.className === cls);
 
-    // Kumpulkan data unik berdasarkan Nama + NISN + Kelas
     const map = new Map();
     clsData.forEach(g => {
         const key = g.studentName + "_" + (g.nisn||'') + "_" + g.className;
@@ -92,34 +72,22 @@ export function renderTableSiswa() {
     }).join('') || `<tr><td colspan="5" class="p-8 text-center text-gray-400">Belum ada data siswa ditemukan pada periode ini.</td></tr>`;
 }
 
-// ==========================================
-// 3. LOGIKA FILTER & PENCARIAN DATA NILAI
-// ==========================================
 export function getDisplayData() {
     const appUser = getAppUser();
     const thn = getActiveTahun();
     const smt = getActiveSemester();
 
     let d = gradesData.filter(g => g.tahun === thn && g.semester === smt);
-    
-    if(appUser.role === 'guru') {
-        d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
-    }
+    if(appUser.role === 'guru') d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
     
     if(selSubject) d = d.filter(g => g.subject === selSubject);
     if(selClass) d = d.filter(g => g.className === selClass);
     if(wFilter !== 'all') d = d.filter(g => g.teacherName === wFilter);
-    
-    if(searchQuery) {
-        d = d.filter(g => g.studentName.toLowerCase().includes(searchQuery));
-    }
+    if(searchQuery) d = d.filter(g => g.studentName.toLowerCase().includes(searchQuery));
     
     return d;
 }
 
-// ==========================================
-// 4. RENDER TABEL NILAI UTAMA (GURU & WAKASEK)
-// ==========================================
 export function renderTable() {
     const appUser = getAppUser();
     const tableCont = document.getElementById('table-container');
@@ -199,13 +167,9 @@ export function renderTable() {
     const total = d.length;
     const percent = total > 0 ? Math.round((countPass / total) * 100) : 0;
     
-    const statPercent = document.getElementById('stat-pass-percent');
-    const statPassCount = document.getElementById('count-pass');
-    const statRemedCount = document.getElementById('count-remed');
-
-    if (statPercent) statPercent.textContent = `${percent}%`;
-    if (statPassCount) statPassCount.textContent = `${countPass} Siswa`;
-    if (statRemedCount) statRemedCount.textContent = `${countRemed} Siswa`;
+    if (document.getElementById('stat-pass-percent')) document.getElementById('stat-pass-percent').textContent = `${percent}%`;
+    if (document.getElementById('count-pass')) document.getElementById('count-pass').textContent = `${countPass} Siswa`;
+    if (document.getElementById('count-remed')) document.getElementById('count-remed').textContent = `${countRemed} Siswa`;
 
     const rowNewGrade = document.getElementById('row-new-grade');
     gradesTbody.innerHTML = (appUser.role === 'guru' ? (rowNewGrade?.outerHTML || '') : '') + (html || '<tr><td colspan="11" class="p-20 text-center text-gray-400 font-medium">Data tidak ditemukan atau belum diinput.</td></tr>');
@@ -213,13 +177,9 @@ export function renderTable() {
     window.renderTable = renderTable;
 }
 
-// ==========================================
-// 5. RENDER MASTER DATA (KELAS & MAPEL)
-// ==========================================
 export function renderMasterDataUI() {
     const clsList = document.getElementById('master-class-list');
     const subList = document.getElementById('master-subject-list');
-    
     if (clsList) {
         clsList.innerHTML = MASTER_CLASSES.map((c, i) => `
             <div class="flex justify-between items-center p-2.5 bg-white border border-gray-200 rounded-lg mb-2 shadow-sm">
@@ -227,7 +187,6 @@ export function renderMasterDataUI() {
                 <button onclick="window.deleteMasterClass(${i})" class="text-red-500 hover:bg-red-50 p-1.5 rounded-md"><i class="ph ph-trash text-lg"></i></button>
             </div>`).join('');
     }
-
     if (subList) {
         subList.innerHTML = MASTER_SUBJECTS.map((s, i) => `
             <div class="flex justify-between items-center p-2.5 bg-white border border-gray-200 rounded-lg mb-2 shadow-sm">
@@ -237,15 +196,13 @@ export function renderMasterDataUI() {
     }
 }
 
-// ==========================================
-// 6. POPULATE DROPDOWNS (SELECT OPTIONS)
-// ==========================================
+// PERUBAHAN: Menambahkan 2 Dropdown baru untuk fitur Salin Siswa ke dalam fungsi otomatis ini
 export function populateDropdowns() {
     const clsOptsPilih = `<option value="">-- Pilih Kelas --</option>` + MASTER_CLASSES.map(c => `<option value="${c}">${c}</option>`).join('');
     const clsOptsSemua = `<option value="">-- Semua Kelas --</option>` + MASTER_CLASSES.map(c => `<option value="${c}">${c}</option>`).join('');
     const subOpts = `<option value="">-- Pilih Mapel --</option>` + MASTER_SUBJECTS.map(s => `<option value="${s}">${s}</option>`).join('');
     
-    ['import-class-select', 'delete-class-select'].forEach(id => { 
+    ['import-class-select', 'delete-class-select', 'copy-class-asal', 'copy-class-tujuan'].forEach(id => { 
         const el = document.getElementById(id); 
         if(el) el.innerHTML = clsOptsPilih; 
     });
