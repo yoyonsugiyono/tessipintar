@@ -9,7 +9,7 @@ import { writeLog } from '../services/audit.js';
 
 export function setupAdminEvents() {
     
-    // --- FITUR BARU: MASTER DATA TAHUN AJARAN ---
+    // --- FITUR TAMBAH MASTER DATA (TAHUN, KELAS, MAPEL) ---
     const btnAddTahun = document.getElementById('btn-add-master-tahun');
     if(btnAddTahun) {
         btnAddTahun.onclick = async () => {
@@ -23,9 +23,40 @@ export function setupAdminEvents() {
                 try {
                     await saveMasterData();
                     document.getElementById('in-master-tahun').value = '';
-                    renderMasterDataUI();
-                    populateDropdowns(); 
-                } catch(e) { alert("Gagal menyimpan tahun ajaran baru."); MASTER_TAHUN.pop(); }
+                    renderMasterDataUI(); populateDropdowns();
+                } catch(e) { alert("Gagal menyimpan."); MASTER_TAHUN.pop(); }
+            }
+        };
+    }
+
+    const btnAddClass = document.getElementById('btn-add-master-class');
+    if(btnAddClass) {
+        btnAddClass.onclick = async () => {
+            const val = document.getElementById('in-master-class').value.trim();
+            if(!val) return;
+            if(!MASTER_CLASSES.includes(val)) {
+                MASTER_CLASSES.push(val);
+                try {
+                    await saveMasterData();
+                    document.getElementById('in-master-class').value = '';
+                    renderMasterDataUI(); populateDropdowns();
+                } catch(e) { alert("Gagal menyimpan."); MASTER_CLASSES.pop(); }
+            }
+        };
+    }
+
+    const btnAddSubject = document.getElementById('btn-add-master-subject');
+    if(btnAddSubject) {
+        btnAddSubject.onclick = async () => {
+            const val = document.getElementById('in-master-subject').value.trim();
+            if(!val) return;
+            if(!MASTER_SUBJECTS.includes(val)) {
+                MASTER_SUBJECTS.push(val);
+                try {
+                    await saveMasterData();
+                    document.getElementById('in-master-subject').value = '';
+                    renderMasterDataUI(); populateDropdowns();
+                } catch(e) { alert("Gagal menyimpan."); MASTER_SUBJECTS.pop(); }
             }
         };
     }
@@ -63,8 +94,7 @@ export function setupAdminEvents() {
 
                     for (const s of studentsToCopy) {
                         for (const mapel of MASTER_SUBJECTS) {
-                            const newDocRef = doc(getGradesCollection());
-                            currentBatch.set(newDocRef, {
+                            currentBatch.set(doc(getGradesCollection()), {
                                 studentName: s.name, nisn: s.nisn, teacherName: 'admin', subject: mapel, className: clsTujuan, 
                                 tahun: thnAktif, semester: smtAktif, 
                                 scores: { f1:null, f2:null, f3:null, t1:null, t2:null, t3:null, asaj:null }, 
@@ -93,7 +123,7 @@ export function setupAdminEvents() {
         };
     }
 
-    // --- SISANYA TETAP SAMA ---
+    // --- IMPORT, EXPORT, HAPUS KELAS, DLL ---
     const btnTemplateSiswa = document.getElementById('btn-template-siswa');
     if (btnTemplateSiswa) {
         btnTemplateSiswa.onclick = () => {
@@ -262,21 +292,32 @@ export function setupAdminEvents() {
 }
 
 // ========================================================
-// GLOBAL: Delete Master Tahun
+// GLOBAL: Hapus Master Data (Tahun, Kelas, Mapel)
 // ========================================================
 window.deleteMasterTahun = async (idx) => {
     if(!confirm("Hapus tahun ajaran tambahan ini?")) return;
     const removed = MASTER_TAHUN.splice(idx, 1);
-    try {
-        await saveMasterData();
-        renderMasterDataUI();
-        populateDropdowns(); 
-    } catch(e) {
-        MASTER_TAHUN.splice(idx, 0, removed[0]); // Kembalikan jika gagal
-        alert("Gagal menghapus tahun.");
-    }
+    try { await saveMasterData(); renderMasterDataUI(); populateDropdowns(); }
+    catch(e) { MASTER_TAHUN.splice(idx, 0, removed[0]); alert("Gagal menghapus."); }
 };
 
+window.deleteMasterClass = async (idx) => {
+    if(!confirm("Hapus kelas ini dari master data?")) return;
+    const removed = MASTER_CLASSES.splice(idx, 1);
+    try { await saveMasterData(); renderMasterDataUI(); populateDropdowns(); }
+    catch(e) { MASTER_CLASSES.splice(idx, 0, removed[0]); alert("Gagal menghapus."); }
+};
+
+window.deleteMasterSubject = async (idx) => {
+    if(!confirm("Hapus mata pelajaran ini dari master data?")) return;
+    const removed = MASTER_SUBJECTS.splice(idx, 1);
+    try { await saveMasterData(); renderMasterDataUI(); populateDropdowns(); }
+    catch(e) { MASTER_SUBJECTS.splice(idx, 0, removed[0]); alert("Gagal menghapus."); }
+};
+
+// ========================================================
+// GLOBAL: Edit / Hapus Siswa Individual
+// ========================================================
 window.editSiswa = async (encN, encI, encC) => {
     const oldName = decodeURIComponent(encN);
     const oldNisn = decodeURIComponent(encI);
