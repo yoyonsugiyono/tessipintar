@@ -83,7 +83,6 @@ export function renderTableSiswa() {
     const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     const isWali = appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
 
-    // Jika Wali Kelas, kunci filter Kelola Siswa secara paksa
     if (isWali && appUser.waliKelas) {
         clsData = clsData.filter(g => g.className === appUser.waliKelas);
     } else if (filter.value) { 
@@ -123,7 +122,6 @@ export function getDisplayData() {
     let d = gradesData.filter(g => g.tahun === thn && g.semester === smt);
     const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     
-    // Saat melihat Data Nilai, filter berdasarkan nama guru pembuat nilai tersebut
     if (appUser.role === 'guru' && !isWakasek) {
         d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
     }
@@ -144,6 +142,25 @@ export function renderTable() {
 
     if(!appUser || !tableCont || !gradesTbody) return;
 
+    const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
+
+    // FITUR BARU: Menyembunyikan Dropdown Filter Guru untuk role Guru biasa
+    const filterGuruWrap = document.getElementById('filter-guru-wrapper');
+    const filterGrid = document.getElementById('filter-grid');
+    if (filterGuruWrap && filterGrid) {
+        if (appUser.role !== 'admin' && !isWakasek) {
+            filterGuruWrap.classList.add('hidden');
+            // Menyesuaikan grid agar Mapel dan Kelas mengisi ruang yang kosong
+            filterGrid.classList.remove('md:grid-cols-3');
+            filterGrid.classList.add('md:grid-cols-2');
+        } else {
+            filterGuruWrap.classList.remove('hidden');
+            // Mengembalikan grid ke 3 kolom untuk Admin / Wakasek
+            filterGrid.classList.remove('md:grid-cols-2');
+            filterGrid.classList.add('md:grid-cols-3');
+        }
+    }
+
     if(!selClass || ((appUser.role === 'guru' || appUser.role === 'admin') && !selSubject)) {
         if(emptyState) emptyState.classList.remove('hidden');
         tableCont.classList.add('hidden');
@@ -152,8 +169,6 @@ export function renderTable() {
 
     if(emptyState) emptyState.classList.add('hidden');
     tableCont.classList.remove('hidden');
-
-    const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
 
     if(document.getElementById('badge-guru')) {
         document.getElementById('badge-guru').classList.toggle('hidden', !isWakasek && appUser.role !== 'admin');
@@ -297,17 +312,17 @@ export function populateDropdowns() {
 
     const appUser = getAppUser();
     
-    // Kumpulkan Semua Kelas dari Database dan Master
+    // 1. Kumpulkan Semua Kelas
     const dbClasses = [...new Set(gradesData.map(g => g.className))].filter(Boolean);
     const allClassesGeneral = [...new Set([...MASTER_CLASSES, ...dbClasses])].sort();
     
     const isWakasek = appUser && (appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum');
     const isWali = appUser && appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
 
-    // 1. OPSI UNTUK "DATA NILAI" (Guru/Wali Kelas bisa melihat semua kelas yang diajarnya)
+    // OPSI 1: Untuk menu "Data Nilai" (Bebas pilih kelas manapun)
     const clsOptsSemuaNilai = `<option value="">-- Semua Kelas --</option>` + allClassesGeneral.map(c => `<option value="${c}">${c}</option>`).join('');
 
-    // 2. OPSI UNTUK "KELOLA SISWA" (Wali kelas terkunci di kelasnya saja)
+    // OPSI 2: Untuk menu "Kelola Siswa" (Dikunci jika Wali Kelas)
     let allClassesManajemen = [...allClassesGeneral];
     if (isWali && appUser.waliKelas) {
         allClassesManajemen = [appUser.waliKelas];
