@@ -203,7 +203,10 @@ export function setupAdminEvents() {
 
             if (!thnAsal || !clsAsal || !clsTujuan) { alert("Pilih Tahun Asal, Kelas Asal, dan Kelas Tujuan terlebih dahulu."); return; }
 
-            const isWali = appUser.role !== 'admin' && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+            const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
+            const isWali = appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+
+            // Wakasek dan Admin bebas. Wali Kelas dikunci.
             if (isWali && appUser.waliKelas && clsTujuan !== appUser.waliKelas) {
                 alert(`AKSES DITOLAK: Anda menjabat sebagai Wali Kelas ${appUser.waliKelas}. Anda tidak berhak menyalin data ke kelas ${clsTujuan}.`); return;
             }
@@ -299,7 +302,9 @@ export function setupAdminEvents() {
             const appUser = getAppUser();
             const targetClass = document.getElementById('import-class-select').value;
 
-            const isWali = appUser.role !== 'admin' && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+            const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
+            const isWali = appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+
             if (isWali && appUser.waliKelas && targetClass !== appUser.waliKelas) {
                 alert(`AKSES DITOLAK: Anda menjabat sebagai Wali Kelas ${appUser.waliKelas}. Anda dilarang mengimpor data siswa untuk kelas ${targetClass}.`); return;
             }
@@ -480,20 +485,20 @@ window.deleteMasterSubject = async (idx) => {
     catch(e) { MASTER_SUBJECTS.splice(idx, 0, removed[0]); alert("Gagal menghapus."); }
 };
 
-// PERBAIKAN BESAR: FITUR EDIT GURU MENGGUNAKAN POP-UP MODAL LIST
+// ========================================================
+// FUNGSI EDIT GURU (MENGGUNAKAN POP-UP MODAL LIST)
+// ========================================================
 window.editGuru = (id) => {
     const user = USERS_DB.find(u => u.id === id);
     if(!user) return;
 
     if (user.role === 'admin') {
-        alert("Akun Administrator memiliki hak akses penuh secara bawaan dan tidak dapat ditambahkan tugas tambahan melalui panel ini.");
+        alert("Akun Administrator memiliki hak akses penuh secara bawaan dan tidak perlu ditambahkan tugas tambahan.");
         return;
     }
 
-    // Bangun elemen dropdown list Kelas dari MASTER_CLASSES
     const classOpts = MASTER_CLASSES.map(c => `<option value="${c}" ${user.waliKelas === c ? 'selected' : ''}>${c}</option>`).join('');
     
-    // Buat HTML Modal secara dinamis
     const modalDiv = document.createElement('div');
     modalDiv.id = 'modal-edit-guru-tugas';
     modalDiv.className = 'fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity';
@@ -505,7 +510,7 @@ window.editGuru = (id) => {
             </div>
             <div class="p-6 space-y-5">
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Pilih Tugas Tambahan (List)</label>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Pilih Tugas Tambahan</label>
                     <select id="edit-tugas" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium cursor-pointer">
                         <option value="" ${!user.tugasTambahan && user.jabatan !== 'Wali Kelas' && user.role !== 'wakasek' ? 'selected' : ''}>Tidak Ada (Hanya Guru Mapel)</option>
                         <option value="Wali Kelas" ${(user.tugasTambahan === 'Wali Kelas' || user.jabatan === 'Wali Kelas') ? 'selected' : ''}>Wali Kelas</option>
@@ -528,7 +533,6 @@ window.editGuru = (id) => {
     `;
     document.body.appendChild(modalDiv);
 
-    // Event Listener Interaktif untuk memunculkan Dropdown Kelas
     const selectTugas = document.getElementById('edit-tugas');
     const wrapKelas = document.getElementById('wrap-kelas');
     
@@ -537,10 +541,8 @@ window.editGuru = (id) => {
         else wrapKelas.classList.add('hidden');
     };
 
-    // Tombol Batal
     document.getElementById('btn-cancel-edit-guru').onclick = () => modalDiv.remove();
 
-    // Tombol Simpan
     document.getElementById('btn-save-edit-guru').onclick = async () => {
         const btn = document.getElementById('btn-save-edit-guru');
         const tugas = selectTugas.value;
@@ -551,7 +553,7 @@ window.editGuru = (id) => {
             kelas = document.getElementById('edit-kelas').value;
             if (!kelas) { alert("Wali Kelas wajib memiliki satu Kelas Asuhan!"); return; }
         } else if (tugas === 'Wakasek Kurikulum') {
-            newRole = 'wakasek';
+            newRole = 'wakasek'; // Beri privilege sistem sebagai Wakasek
         }
 
         btn.innerHTML = "Menyimpan..."; btn.disabled = true;
@@ -596,6 +598,9 @@ window.openResetSandi = async (id, name) => {
     } catch(e) { alert("Gagal mereset password."); }
 };
 
+// ========================================================
+// FUNGSI SISWA
+// ========================================================
 window.editSiswa = async (encN, encI, encC) => {
     const oldName = decodeURIComponent(encN); const oldNisn = decodeURIComponent(encI); const studentClass = decodeURIComponent(encC);
     const thn = getActiveTahun(); const smt = getActiveSemester();
