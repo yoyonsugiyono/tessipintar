@@ -8,6 +8,8 @@ import {
 } from './tables.js';
 import { doc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getGradesCollection } from '../config/firebase.js';
+// PERUBAHAN: Import writeLog untuk mencatat aktivitas Guru
+import { writeLog } from '../services/audit.js';
 
 export function setupUIEvents() {
     console.log("[DEBUG] Menginisialisasi Event Listeners UI...");
@@ -113,7 +115,7 @@ export function setupUIEvents() {
     // 5. EXPORT & IMPORT NILAI (EXCEL)
     // ==========================================
     
-    // DOWNLOAD FORMAT (Isi Otomatis Data Siswa Terpilih)
+    // DOWNLOAD FORMAT
     const btnTemplateNilai = document.getElementById('btn-template-nilai');
     if (btnTemplateNilai) {
         btnTemplateNilai.onclick = () => {
@@ -168,6 +170,10 @@ export function setupUIEvents() {
                         });
                         count++;
                     }
+                    
+                    // PERUBAHAN: Catat Log Import Excel Guru
+                    await writeLog("IMPORT_NILAI_EXCEL", `Guru memperbarui ${count} data nilai untuk mapel ${selSubject} kelas ${selClass}.`);
+                    
                     alert(`Berhasil memperbarui ${count} data nilai via Excel.`);
                     renderTable();
                 } catch(err) { alert("Format file Excel tidak sesuai."); }
@@ -188,14 +194,12 @@ export function setupUIEvents() {
             if(e.target.tagName === 'INPUT') {
                 const tr = e.target.closest('tr');
                 if (tr.id === 'row-new-grade') {
-                    // Kalkulasi untuk baris input baru
                     const inps = tr.querySelectorAll('.in-score');
                     const s = { f1:inps[0].value, f2:inps[1].value, f3:inps[2].value, t1:inps[3].value, t2:inps[4].value, t3:inps[5].value, asaj:inps[6].value };
                     document.getElementById('in-na').textContent = getCalc(s).final;
                     return;
                 }
                 
-                // Kalkulasi untuk baris yang sudah ada (Auto-Update Cell NA)
                 const inps = tr.querySelectorAll('input');
                 if (inps.length >= 7) {
                     const s = { f1:inps[0].value, f2:inps[1].value, f3:inps[2].value, t1:inps[3].value, t2:inps[4].value, t3:inps[5].value, asaj:inps[6].value };
@@ -223,7 +227,6 @@ export function setupUIEvents() {
                 const field = e.target.dataset.f;
                 const val = e.target.value;
                 
-                // Cek jika tidak ada perubahan, jangan simpan (hemat kuota database)
                 if(item.scores[field] == val) return;
 
                 console.log(`[DEBUG] Auto-saving nilai ${field} untuk ${item.studentName}...`);
@@ -268,14 +271,29 @@ export function setupUIEvents() {
                 }
             }
 
+            // PERUBAHAN: Menambahkan Backup Data ke Log sebelum Dihapus
             if (btnDel) {
                 const tr = btnDel.closest('tr');
                 const id = tr.dataset.id;
                 const item = gradesData.find(g => g.id === id);
-                if (confirm(`Hapus data nilai siswa "${item.studentName}"?`)) {
+                
+                if (item && confirm(`Hapus data nilai siswa "${item.studentName}" pada mata pelajaran ${item.subject}?`)) {
+                    
+                    // Backup data utuh siswa ke dalam string JSON
+                    const backupDataJSON = JSON.stringify(item);
+
                     deleteDoc(doc(getGradesCollection(), id))
-                        .then(() => { alert("Data terhapus."); renderTable(); })
-                        .catch(() => alert("Gagal menghapus."));
+                        .then(async () => { 
+                            // Catat log penghapusan beserta backup datanya!
+                            await writeLog(
+                                "HAPUS_NILAI_GURU", 
+                                `Menghapus nilai: ${item.studentName} (${item.className} - ${item.subject}). Backup: ${backupDataJSON}`
+                            );
+                            
+                            alert("Data berhasil dihapus."); 
+                            renderTable(); 
+                        })
+                        .catch(() => alert("Gagal menghapus data. Periksa koneksi Anda."));
                 }
             }
         });
