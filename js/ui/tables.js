@@ -1,6 +1,6 @@
 // File: js/ui/tables.js
 
-import { getAppUser, getActiveTahun, getActiveSemester, USERS_DB } from '../services/auth.js';
+import { getAppUser, getActiveTahun, getActiveSemester } from '../services/auth.js';
 import { getCalc, weights, ds } from '../services/db-grades.js';
 import { MASTER_CLASSES, MASTER_SUBJECTS, MASTER_TAHUN, DEFAULT_TAHUN } from '../services/db-master.js';
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -28,9 +28,6 @@ export async function renderTableGuru() {
         const usersSnap = await getDocs(collection(db, 'users'));
         let usersList = [];
         usersSnap.forEach(doc => { usersList.push({ id: doc.id, ...doc.data() }); });
-
-        USERS_DB.length = 0; 
-        usersList.forEach(u => USERS_DB.push(u));
 
         if (usersList.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada data pengguna terdaftar.</td></tr>';
@@ -86,10 +83,10 @@ export function renderTableSiswa() {
     const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     const isWali = appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
 
-    // Jika Wali Kelas, kunci filter secara paksa
+    // Jika Wali Kelas, kunci filter Kelola Siswa secara paksa
     if (isWali && appUser.waliKelas) {
         clsData = clsData.filter(g => g.className === appUser.waliKelas);
-    } else if (filter.value) { // Wakasek / Admin bisa filter bebas
+    } else if (filter.value) { 
         clsData = clsData.filter(g => g.className === filter.value);
     }
 
@@ -126,8 +123,8 @@ export function getDisplayData() {
     let d = gradesData.filter(g => g.tahun === thn && g.semester === smt);
     const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     
-    // Saat input nilai, Wakasek dan Admin bisa lihat semua guru. Guru Mapel/Wali Kelas hanya dirinya sendiri.
-    if (appUser.role !== 'admin' && !isWakasek) {
+    // Saat melihat Data Nilai, filter berdasarkan nama guru pembuat nilai tersebut
+    if (appUser.role === 'guru' && !isWakasek) {
         d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
     }
     
@@ -165,7 +162,6 @@ export function renderTable() {
     if(document.getElementById('badge-kelas')) document.getElementById('badge-kelas').textContent = selClass;
     if(document.getElementById('badge-mapel')) document.getElementById('badge-mapel').textContent = selSubject || 'Semua Mapel';
     
-    // Fitur Input Nilai: Wakasek Kurikulum HANYA memantau, TIDAK mengedit nilai (kecuali jika ia adalah admin)
     if(appUser.role === 'admin' || (!isWakasek && appUser.role === 'guru')) {
         document.getElementById('weights-container')?.classList.remove('hidden');
         document.getElementById('guru-excel-actions')?.classList.remove('hidden');
@@ -301,33 +297,41 @@ export function populateDropdowns() {
 
     const appUser = getAppUser();
     
+    // Kumpulkan Semua Kelas dari Database dan Master
     const dbClasses = [...new Set(gradesData.map(g => g.className))].filter(Boolean);
-    let allClasses = [...new Set([...MASTER_CLASSES, ...dbClasses])].sort();
+    const allClassesGeneral = [...new Set([...MASTER_CLASSES, ...dbClasses])].sort();
     
     const isWakasek = appUser && (appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum');
     const isWali = appUser && appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
 
-    // Jika yang login adalah murni Wali Kelas, paksa list dropdown hanya berisi kelas dia
+    // 1. OPSI UNTUK "DATA NILAI" (Guru/Wali Kelas bisa melihat semua kelas yang diajarnya)
+    const clsOptsSemuaNilai = `<option value="">-- Semua Kelas --</option>` + allClassesGeneral.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    // 2. OPSI UNTUK "KELOLA SISWA" (Wali kelas terkunci di kelasnya saja)
+    let allClassesManajemen = [...allClassesGeneral];
     if (isWali && appUser.waliKelas) {
-        allClasses = [appUser.waliKelas];
+        allClassesManajemen = [appUser.waliKelas];
     }
+    const clsOptsPilihManajemen = `<option value="">-- Pilih Kelas --</option>` + allClassesManajemen.map(c => `<option value="${c}">${c}</option>`).join('');
+    const clsOptsSemuaManajemen = `<option value="">-- Semua Kelas --</option>` + allClassesManajemen.map(c => `<option value="${c}">${c}</option>`).join('');
 
     const dbSubjects = [...new Set(gradesData.map(g => g.subject))].filter(Boolean);
     const allMapel = [...new Set([...MASTER_SUBJECTS, ...dbSubjects])].sort();
-
-    const clsOptsPilih = `<option value="">-- Pilih Kelas --</option>` + allClasses.map(c => `<option value="${c}">${c}</option>`).join('');
-    const clsOptsSemua = `<option value="">-- Semua Kelas --</option>` + allClasses.map(c => `<option value="${c}">${c}</option>`).join('');
     const subOpts = `<option value="">-- Pilih Mapel --</option>` + allMapel.map(s => `<option value="${s}">${s}</option>`).join('');
     
+    // Terapkan ke dropdown Manajemen Kelola Siswa
     ['import-class-select', 'delete-class-select', 'copy-class-asal', 'copy-class-tujuan'].forEach(id => { 
         const el = document.getElementById(id); 
-        if(el) { const v = el.value; el.innerHTML = clsOptsPilih; el.value = v; }
+        if(el) { const v = el.value; el.innerHTML = clsOptsPilihManajemen; el.value = v; }
+    });
+    ['crud-siswa-kelas-filter'].forEach(id => { 
+        const el = document.getElementById(id); 
+        if(el) { const v = el.value; el.innerHTML = clsOptsSemuaManajemen; el.value = v; }
     });
 
-    ['filter-kelas', 'crud-siswa-kelas-filter'].forEach(id => { 
-        const el = document.getElementById(id); 
-        if(el) { const v = el.value; el.innerHTML = clsOptsSemua; el.value = v; }
-    });
+    // Terapkan ke dropdown Data Nilai
+    const elFilterKelasNilai = document.getElementById('filter-kelas');
+    if(elFilterKelasNilai) { const v = elFilterKelasNilai.value; elFilterKelasNilai.innerHTML = clsOptsSemuaNilai; elFilterKelasNilai.value = v; }
 
     const elMapel = document.getElementById('filter-mapel');
     if(elMapel) { const v = elMapel.value; elMapel.innerHTML = subOpts; elMapel.value = v; }
