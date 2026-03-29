@@ -21,9 +21,14 @@ export function buildSidebarNav() {
     const user = getAppUser();
     if (!nav || !user) return;
 
-    const isWali = user.tugasTambahan === 'Wali Kelas' || user.jabatan === 'Wali Kelas';
-    const isWakasek = user.tugasTambahan === 'Wakasek Kurikulum' || user.role === 'wakasek';
-    const isAdmin = user.role === 'admin';
+    // SAFEGUARD: Amankan pembacaan data agar tidak error jika null/undefined
+    const role = user.role || 'guru';
+    const tugas = user.tugasTambahan || user.jabatan || '';
+    const kelasAsuhan = user.waliKelas || 'Belum Diatur';
+
+    const isWali = tugas === 'Wali Kelas';
+    const isWakasek = tugas === 'Wakasek Kurikulum' || role === 'wakasek';
+    const isAdmin = role === 'admin';
 
     let html = `
         <button onclick="window.switchMenu('dashboard')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-blue-100 hover:bg-blue-800 hover:text-white transition-all font-medium group text-left">
@@ -38,7 +43,7 @@ export function buildSidebarNav() {
     if (isAdmin || isWakasek || isWali) {
         let titleSiswa = 'Kelola Data Siswa';
         if (!isAdmin && !isWakasek && isWali) {
-            titleSiswa = `Kelola Siswa (${user.waliKelas})`;
+            titleSiswa = `Kelola Siswa (${kelasAsuhan})`;
         }
         
         html += `
