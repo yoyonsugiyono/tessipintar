@@ -1,9 +1,8 @@
 // File: js/ui/tables.js
 
-import { getAppUser, getActiveTahun, getActiveSemester } from '../services/auth.js';
+import { getAppUser, getActiveTahun, getActiveSemester, USERS_DB } from '../services/auth.js';
 import { getCalc, weights, ds } from '../services/db-grades.js';
 import { MASTER_CLASSES, MASTER_SUBJECTS, MASTER_TAHUN, DEFAULT_TAHUN } from '../services/db-master.js';
-// PERBAIKAN: Import modul Firestore untuk menarik data pengguna langsung dari DB
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db } from '../config/firebase.js';
 
@@ -20,7 +19,7 @@ export function setSearchQuery(q) { searchQuery = q.toLowerCase(); }
 export function setFilters(c, s, w) { selClass = c; selSubject = s; wFilter = w; }
 
 // ==========================================
-// 1. RENDER TABEL GURU (TARIK DARI FIREBASE)
+// 1. RENDER TABEL GURU (DENGAN TUGAS TAMBAHAN)
 // ==========================================
 export async function renderTableGuru() {
     const tbody = document.getElementById('crud-guru-tbody');
@@ -29,12 +28,13 @@ export async function renderTableGuru() {
     tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500"><i class="ph ph-spinner animate-spin text-2xl"></i> Memuat data dari database...</td></tr>';
 
     try {
-        // Tarik data langsung dari koleksi 'users' di Firebase
         const usersSnap = await getDocs(collection(db, 'users'));
         let usersList = [];
-        usersSnap.forEach(doc => {
-            usersList.push({ id: doc.id, ...doc.data() });
-        });
+        usersSnap.forEach(doc => { usersList.push({ id: doc.id, ...doc.data() }); });
+
+        // Update cache lokal
+        USERS_DB.length = 0; 
+        usersList.forEach(u => USERS_DB.push(u));
 
         if (usersList.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada data pengguna terdaftar.</td></tr>';
@@ -42,39 +42,40 @@ export async function renderTableGuru() {
         }
 
         tbody.innerHTML = usersList.map((u, i) => {
-            const isWali = u.jabatan === 'Wali Kelas';
-            const roleColor = u.role === 'admin' ? 'text-red-600' : (u.role === 'wakasek' ? 'text-purple-600' : 'text-blue-600');
+            const isAdmin = u.role === 'admin';
+            const isWali = u.tugasTambahan === 'Wali Kelas' || u.jabatan === 'Wali Kelas';
+            const isWakasek = u.tugasTambahan === 'Wakasek Kurikulum' || u.role === 'wakasek';
             
-            const jabatanHtml = `
-                <div class="font-bold uppercase tracking-wider ${roleColor}">${u.role}</div>
-                <div class="text-xs text-gray-500 mt-0.5">
-                    ${u.jabatan || 'Guru Mapel'} ${isWali && u.waliKelas ? `<span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded ml-1 font-bold">${u.waliKelas}</span>` : ''}
-                </div>
-            `;
+            let jabatanHtml = '';
+            if (isAdmin) {
+                jabatanHtml = `<div class="font-bold text-red-600 uppercase tracking-wider text-xs">Administrator</div>`;
+            } else {
+                jabatanHtml = `<div class="font-bold text-gray-800 text-xs">Guru Mata Pelajaran</div>`;
+                if (isWali && u.waliKelas) {
+                    jabatanHtml += `<div class="text-[10px] text-blue-600 mt-1 font-bold flex items-center gap-1"><i class="ph ph-star-fill"></i> Tugas: Wali Kelas <span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">${u.waliKelas}</span></div>`;
+                } else if (isWakasek) {
+                    jabatanHtml += `<div class="text-[10px] text-purple-600 mt-1 font-bold flex items-center gap-1"><i class="ph ph-star-fill"></i> Tugas: Wakasek Kurikulum</div>`;
+                }
+            }
 
-            // PERBAIKAN: Melemparkan data lama ke fungsi edit agar tidak bergantung pada memori sementara
             return `
                 <tr class="border-b hover:bg-gray-50 transition-colors">
                     <td class="p-3 text-center text-gray-500">${i+1}</td>
                     <td class="p-3 font-medium text-gray-800">${u.username}</td>
-                    <td class="p-3 text-[10px]">${jabatanHtml}</td>
+                    <td class="p-3">${jabatanHtml}</td>
                     <td class="p-3 font-mono text-gray-400 text-xs">${u.password}</td>
                     <td class="p-3 text-right whitespace-nowrap">
-                       <button onclick="window.openResetSandi('${u.id}', '${encodeURIComponent(u.username)}')" class="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded transition-colors mr-2" title="Reset Sandi Pengguna"><i class="ph ph-key text-lg"></i></button>
-                       <button onclick="window.editGuru('${u.id}', '${encodeURIComponent(u.username)}', '${u.jabatan || ''}', '${u.waliKelas || ''}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-2" title="Edit Akun"><i class="ph ph-pencil-simple text-lg"></i></button>
+                       <button onclick="window.openResetSandi('${u.id}', '${encodeURIComponent(u.username)}')" class="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded transition-colors mr-2" title="Reset Sandi"><i class="ph ph-key text-lg"></i></button>
+                       <button onclick="window.editGuru('${u.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-2" title="Atur Tugas Tambahan"><i class="ph ph-briefcase text-lg"></i></button>
                        <button onclick="window.deleteGuru('${u.id}', '${encodeURIComponent(u.username)}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors" title="Hapus Akun"><i class="ph ph-trash text-lg"></i></button>
                     </td>
                 </tr>`;
         }).join('');
     } catch (err) {
-        console.error("Gagal memuat pengguna:", err);
-        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-red-500">Gagal mengambil data dari server. Periksa koneksi Anda.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-red-500">Gagal mengambil data server.</td></tr>';
     }
 }
 
-// ==========================================
-// FUNGSI-FUNGSI LAINNYA TETAP SAMA
-// ==========================================
 export function renderTableSiswa() {
     const tbody = document.getElementById('crud-siswa-tbody');
     const filter = document.getElementById('crud-siswa-kelas-filter');
@@ -86,7 +87,9 @@ export function renderTableSiswa() {
     const smt = getActiveSemester();
     let clsData = gradesData.filter(g => g.tahun === thn && g.semester === smt);
 
-    if (appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
+    const isWali = appUser.role !== 'admin' && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+
+    if (isWali && appUser.waliKelas) {
         clsData = clsData.filter(g => g.className === appUser.waliKelas);
     } else if (filter.value) {
         clsData = clsData.filter(g => g.className === filter.value);
@@ -123,8 +126,9 @@ export function getDisplayData() {
     const smt = getActiveSemester();
 
     let d = gradesData.filter(g => g.tahun === thn && g.semester === smt);
+    const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     
-    if (appUser.role === 'guru' && appUser.jabatan !== 'Wakasek Kurikulum') {
+    if (appUser.role === 'guru' && !isWakasek) {
         d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
     }
     
@@ -298,7 +302,8 @@ export function populateDropdowns() {
     const dbClasses = [...new Set(gradesData.map(g => g.className))].filter(Boolean);
     let allClasses = [...new Set([...MASTER_CLASSES, ...dbClasses])].sort();
     
-    if (appUser && appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
+    const isWali = appUser && appUser.role !== 'admin' && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+    if (isWali && appUser.waliKelas) {
         allClasses = [appUser.waliKelas];
     }
 
