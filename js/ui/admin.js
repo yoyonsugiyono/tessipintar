@@ -9,7 +9,7 @@ import { writeLog } from '../services/audit.js';
 
 export function setupAdminEvents() {
     
-    // --- FITUR BARU: EXPORT / IMPORT MASTER DATA VIA EXCEL ---
+    // --- FITUR BARU: EXPORT / IMPORT MASTER DATA VIA EXCEL (DENGAN TOMBOL PROSES) ---
     const btnTemplateMaster = document.getElementById('btn-template-master');
     if (btnTemplateMaster) {
         btnTemplateMaster.onclick = () => {
@@ -27,10 +27,28 @@ export function setupAdminEvents() {
     }
 
     const importXlsxMaster = document.getElementById('import-xlsx-master');
-    if (importXlsxMaster) {
+    const labelXlsxMaster = document.getElementById('label-xlsx-master');
+    const btnProcessMaster = document.getElementById('btn-process-master');
+    let selectedMasterFile = null;
+
+    if (importXlsxMaster && btnProcessMaster) {
         importXlsxMaster.onchange = (e) => {
-            const file = e.target.files[0];
-            if(!file) return;
+            selectedMasterFile = e.target.files[0];
+            if (selectedMasterFile) {
+                if (labelXlsxMaster) labelXlsxMaster.innerHTML = `<span class="text-purple-800 font-bold text-sm bg-purple-100 px-3 py-1 rounded-full border border-purple-200">${selectedMasterFile.name}</span>`;
+                btnProcessMaster.classList.remove('hidden');
+            } else {
+                if (labelXlsxMaster) labelXlsxMaster.textContent = "Pilih File Master (.xlsx)";
+                btnProcessMaster.classList.add('hidden');
+            }
+        };
+
+        btnProcessMaster.onclick = () => {
+            if (!selectedMasterFile) return;
+            
+            btnProcessMaster.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> Sedang Memproses...';
+            btnProcessMaster.disabled = true;
+
             const reader = new FileReader();
             reader.onload = async (ev) => {
                 try {
@@ -46,7 +64,6 @@ export function setupAdminEvents() {
                             if (val && !MASTER_TAHUN.includes(val)) { MASTER_TAHUN.push(val); countTahun++; }
                         });
                     }
-
                     if (workbook.SheetNames.includes("Daftar Kelas")) {
                         const jsonKelas = XLSX.utils.sheet_to_json(workbook.Sheets["Daftar Kelas"]);
                         jsonKelas.forEach(row => {
@@ -54,7 +71,6 @@ export function setupAdminEvents() {
                             if (val && !MASTER_CLASSES.includes(val)) { MASTER_CLASSES.push(val); countKelas++; }
                         });
                     }
-
                     if (workbook.SheetNames.includes("Daftar Mapel")) {
                         const jsonMapel = XLSX.utils.sheet_to_json(workbook.Sheets["Daftar Mapel"]);
                         jsonMapel.forEach(row => {
@@ -70,15 +86,21 @@ export function setupAdminEvents() {
                         await writeLog("IMPORT_MASTER", `Mengimpor ${countTahun} Tahun, ${countKelas} Kelas, ${countMapel} Mapel.`);
                         alert(`Berhasil mengimpor data baru:\n- ${countTahun} Tahun Ajaran\n- ${countKelas} Kelas\n- ${countMapel} Mata Pelajaran`);
                     } else {
-                        alert("Tidak ada data baru yang ditambahkan (mungkin format kosong atau data sudah ada).");
+                        alert("Tidak ada data baru yang ditambahkan (mungkin format tidak sesuai atau data sudah ada di sistem).");
                     }
                 } catch(err) { 
                     console.error("Gagal parse Master XLSX:", err);
-                    alert("Format Excel salah atau terjadi kesalahan sistem."); 
+                    alert("Format Excel salah atau terjadi kesalahan sistem. Pastikan Anda menggunakan file Format Master yang didownload."); 
+                } finally {
+                    importXlsxMaster.value = null;
+                    selectedMasterFile = null;
+                    if (labelXlsxMaster) labelXlsxMaster.textContent = "Pilih File Master (.xlsx)";
+                    btnProcessMaster.classList.add('hidden');
+                    btnProcessMaster.innerHTML = '<i class="ph ph-check-circle text-lg"></i> Simpan & Proses Data';
+                    btnProcessMaster.disabled = false;
                 }
-                e.target.value = null; // Reset input file
             };
-            reader.readAsArrayBuffer(file);
+            reader.readAsArrayBuffer(selectedMasterFile);
         };
     }
 
@@ -196,7 +218,7 @@ export function setupAdminEvents() {
         };
     }
 
-    // --- IMPORT, EXPORT, HAPUS KELAS, DLL ---
+    // --- IMPORT DATA SISWA VIA EXCEL (DENGAN TOMBOL PROSES) ---
     const btnTemplateSiswa = document.getElementById('btn-template-siswa');
     if (btnTemplateSiswa) {
         btnTemplateSiswa.onclick = () => {
@@ -220,6 +242,84 @@ export function setupAdminEvents() {
         };
     }
 
+    const importXlsxSiswa = document.getElementById('import-xlsx-siswa');
+    const labelXlsxSiswa = document.getElementById('label-xlsx-siswa');
+    const btnProcessSiswa = document.getElementById('btn-process-siswa');
+    let selectedSiswaFile = null;
+
+    if (importXlsxSiswa && btnProcessSiswa) {
+        importXlsxSiswa.onchange = (e) => {
+            selectedSiswaFile = e.target.files[0];
+            if (selectedSiswaFile) {
+                if (labelXlsxSiswa) labelXlsxSiswa.innerHTML = `<span class="text-emerald-800 font-bold text-sm bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">${selectedSiswaFile.name}</span>`;
+                btnProcessSiswa.classList.remove('hidden');
+            } else {
+                if (labelXlsxSiswa) labelXlsxSiswa.textContent = "Pilih File Siswa (.xlsx)";
+                btnProcessSiswa.classList.add('hidden');
+            }
+        };
+
+        btnProcessSiswa.onclick = () => {
+            if (!selectedSiswaFile) return;
+            
+            btnProcessSiswa.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> Sedang Memproses...';
+            btnProcessSiswa.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                try {
+                    const data = new Uint8Array(ev.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    let count = 0;
+                    
+                    let currentBatch = writeBatch(db);
+                    let opCount = 0;
+                    const commitPromises = [];
+
+                    for(let row of json) {
+                        let n = String(row["Nama Siswa"] || "").trim();
+                        let cls = String(row["Kelas"] || "").trim();
+                        if(!n || !cls) continue;
+                        
+                        for(const s of MASTER_SUBJECTS) {
+                            currentBatch.set(doc(getGradesCollection()), { 
+                                studentName: n, nisn: String(row["NISN"] || ""), teacherName: 'admin', subject: s, className: cls, 
+                                tahun: getActiveTahun(), semester: getActiveSemester(), 
+                                scores: { f1:null, f2:null, f3:null, t1:null, t2:null, t3:null, asaj:null }, 
+                                results: { avgFormative:0, avgTask:0, final:0 }, createdAt: serverTimestamp() 
+                            });
+                            opCount++;
+                            if (opCount >= 450) { 
+                                commitPromises.push(currentBatch.commit());
+                                currentBatch = writeBatch(db);
+                                opCount = 0;
+                            }
+                        }
+                        count++;
+                    }
+                    
+                    if (opCount > 0) commitPromises.push(currentBatch.commit());
+                    await Promise.all(commitPromises);
+
+                    alert(`Impor ${count} siswa baru berhasil ditambahkan!`);
+                    renderTableSiswa();
+                } catch(err) { 
+                    console.error(err);
+                    alert("Format Excel salah atau ada data yang tidak terbaca."); 
+                } finally {
+                    importXlsxSiswa.value = null;
+                    selectedSiswaFile = null;
+                    if (labelXlsxSiswa) labelXlsxSiswa.textContent = "Pilih File Siswa (.xlsx)";
+                    btnProcessSiswa.classList.add('hidden');
+                    btnProcessSiswa.innerHTML = '<i class="ph ph-check-circle text-lg"></i> Simpan & Proses Siswa';
+                    btnProcessSiswa.disabled = false;
+                }
+            };
+            reader.readAsArrayBuffer(selectedSiswaFile);
+        };
+    }
+
     const btnTemplateGuru = document.getElementById('btn-template-guru');
     if (btnTemplateGuru) {
         btnTemplateGuru.onclick = () => {
@@ -228,41 +328,6 @@ export function setupAdminEvents() {
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "DataGuru");
             XLSX.writeFile(wb, "Data_Akun_Guru.xlsx");
-        };
-    }
-
-    const importXlsxSiswa = document.getElementById('import-xlsx-siswa');
-    if (importXlsxSiswa) {
-        importXlsxSiswa.onchange = (e) => {
-            const file = e.target.files[0];
-            if(!file) return;
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
-                try {
-                    const data = new Uint8Array(ev.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-                    let count = 0;
-                    for(let row of json) {
-                        let n = String(row["Nama Siswa"] || "").trim();
-                        let cls = String(row["Kelas"] || "").trim();
-                        if(!n || !cls) continue;
-                        for(const s of MASTER_SUBJECTS) {
-                            await addDoc(getGradesCollection(), { 
-                                studentName: n, nisn: String(row["NISN"] || ""), teacherName: 'admin', subject: s, className: cls, 
-                                tahun: getActiveTahun(), semester: getActiveSemester(), 
-                                scores: { f1:null, f2:null, f3:null, t1:null, t2:null, t3:null, asaj:null }, 
-                                results: { avgFormative:0, avgTask:0, final:0 }, createdAt: serverTimestamp() 
-                            });
-                        }
-                        count++;
-                    }
-                    alert(`Impor ${count} siswa berhasil!`);
-                    renderTableSiswa();
-                } catch(err) { alert("Format Excel salah."); }
-                e.target.value = null;
-            };
-            reader.readAsArrayBuffer(file);
         };
     }
 
