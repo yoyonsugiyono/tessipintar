@@ -4,7 +4,6 @@ import { getAppUser, getActiveTahun, getActiveSemester, USERS_DB } from '../serv
 import { getCalc, weights, ds } from '../services/db-grades.js';
 import { MASTER_CLASSES, MASTER_SUBJECTS, MASTER_TAHUN, DEFAULT_TAHUN } from '../services/db-master.js';
 
-// --- STATE LOKAL TABEL ---
 export let gradesData = [];
 export let selClass = '';
 export let selSubject = '';
@@ -12,7 +11,6 @@ export let wFilter = 'all';
 export let editGradeId = null;
 export let searchQuery = ''; 
 
-// --- SETTER UNTUK STATE ---
 export function setGradesData(data) { gradesData = data; }
 export function setEditGradeId(id) { editGradeId = id; }
 export function setSearchQuery(q) { searchQuery = q.toLowerCase(); }
@@ -225,7 +223,7 @@ export function renderMasterDataUI() {
 }
 
 export function populateDropdowns() {
-    // Gabung Tahun Bawaan + Tahun Database
+    // 1. Opsi Tahun Ajaran
     const allTahun = [...new Set([...DEFAULT_TAHUN, ...MASTER_TAHUN])].sort();
     const thnOpts = allTahun.map(t => `<option value="${t}">${t}</option>`).join('');
     
@@ -238,20 +236,28 @@ export function populateDropdowns() {
         }
     });
 
-    const clsOptsPilih = `<option value="">-- Pilih Kelas --</option>` + MASTER_CLASSES.map(c => `<option value="${c}">${c}</option>`).join('');
-    const clsOptsSemua = `<option value="">-- Semua Kelas --</option>` + MASTER_CLASSES.map(c => `<option value="${c}">${c}</option>`).join('');
-    const subOpts = `<option value="">-- Pilih Mapel --</option>` + MASTER_SUBJECTS.map(s => `<option value="${s}">${s}</option>`).join('');
+    // 2. FALLBACK CERDAS: Gabung Master Data + Data Riil Siswa (Mengatasi blokir Rules Firebase untuk Guru)
+    const dbClasses = [...new Set(gradesData.map(g => g.className))].filter(Boolean);
+    const dbSubjects = [...new Set(gradesData.map(g => g.subject))].filter(Boolean);
+
+    const allClasses = [...new Set([...MASTER_CLASSES, ...dbClasses])].sort();
+    const allMapel = [...new Set([...MASTER_SUBJECTS, ...dbSubjects])].sort();
+
+    const clsOptsPilih = `<option value="">-- Pilih Kelas --</option>` + allClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+    const clsOptsSemua = `<option value="">-- Semua Kelas --</option>` + allClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+    const subOpts = `<option value="">-- Pilih Mapel --</option>` + allMapel.map(s => `<option value="${s}">${s}</option>`).join('');
     
+    // Pertahankan nilai yang sedang dipilih agar tidak melompat-lompat saat data diperbarui
     ['import-class-select', 'delete-class-select', 'copy-class-asal', 'copy-class-tujuan'].forEach(id => { 
         const el = document.getElementById(id); 
-        if(el) el.innerHTML = clsOptsPilih; 
+        if(el) { const v = el.value; el.innerHTML = clsOptsPilih; el.value = v; }
     });
 
     ['filter-kelas', 'crud-siswa-kelas-filter'].forEach(id => { 
         const el = document.getElementById(id); 
-        if(el) el.innerHTML = clsOptsSemua; 
+        if(el) { const v = el.value; el.innerHTML = clsOptsSemua; el.value = v; }
     });
 
     const elMapel = document.getElementById('filter-mapel');
-    if(elMapel) elMapel.innerHTML = subOpts;
+    if(elMapel) { const v = elMapel.value; elMapel.innerHTML = subOpts; elMapel.value = v; }
 }
