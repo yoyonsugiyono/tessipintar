@@ -13,6 +13,26 @@ import { writeLog } from '../services/audit.js';
 export function setupUIEvents() {
     console.log("[DEBUG] Menginisialisasi Event Listeners UI...");
 
+    // 0. FITUR MATA SANDI (TOGGLE PASSWORD LOGIN)
+    const togglePassword = document.getElementById('toggle-password');
+    const loginPassword = document.getElementById('login-password');
+    if (togglePassword && loginPassword) {
+        togglePassword.onclick = () => {
+            // Ubah tipe input antara password dan text
+            const type = loginPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+            loginPassword.setAttribute('type', type);
+            
+            // Ubah ikon mata (terbuka/tertutup)
+            if (type === 'password') {
+                togglePassword.innerHTML = '<i class="ph ph-eye"></i>';
+                togglePassword.classList.remove('text-blue-600');
+            } else {
+                togglePassword.innerHTML = '<i class="ph ph-eye-slash"></i>';
+                togglePassword.classList.add('text-blue-600');
+            }
+        };
+    }
+
     // 1. FILTER & SEARCH
     const searchInput = document.getElementById('search-siswa');
     if (searchInput) searchInput.addEventListener('input', (e) => { setSearchQuery(e.target.value); renderTable(); });
@@ -42,11 +62,7 @@ export function setupUIEvents() {
         const dateEl = document.getElementById('preview-date');
         const appUser = getAppUser();
 
-        // ---------------------------------------------------------
-        // MAGIC EDIT: Memungkinkan Guru Mengedit Tanda Tangan Langsung di Layar!
-        // ---------------------------------------------------------
-        
-        // 1. Tanggal
+        // Magic Edit Tanda Tangan
         const d = new Date();
         const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         dateEl.textContent = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
@@ -54,18 +70,15 @@ export function setupUIEvents() {
         dateEl.className = "outline-none hover:bg-gray-100 focus:bg-blue-50 cursor-text px-2 py-0.5 rounded border border-dashed border-transparent hover:border-gray-300 print:border-none print:bg-transparent print:p-0 transition-colors";
         dateEl.title = "Klik untuk mengubah tanggal";
 
-        // 2. Jabatan
         ttdRole.contentEditable = "true";
         ttdRole.className = "mb-20 outline-none hover:bg-gray-100 focus:bg-blue-50 cursor-text px-2 py-0.5 rounded border border-dashed border-transparent hover:border-gray-300 print:border-none print:bg-transparent print:p-0 block transition-colors";
         ttdRole.title = "Klik untuk mengubah jabatan penandatangan";
 
-        // 3. Nama (Diambil utuh dengan Gelar)
         ttdName.textContent = appUser.username;
         ttdName.contentEditable = "true";
         ttdName.className = "font-bold underline uppercase tracking-wide outline-none hover:bg-gray-100 focus:bg-blue-50 cursor-text px-2 py-0.5 rounded border border-dashed border-transparent hover:border-gray-300 print:border-none print:bg-transparent print:p-0 transition-colors";
         ttdName.title = "Klik untuk mengubah atau menambah Gelar";
 
-        // 4. NIP (Diambil dari DB jika ada, jika tidak sediakan tempat ketik)
         const userNip = appUser.nip && appUser.nip !== '-' ? appUser.nip : "[Klik & Ketik NIP]";
         ttdNip.textContent = "NIP. " + userNip;
         ttdNip.contentEditable = "true";
