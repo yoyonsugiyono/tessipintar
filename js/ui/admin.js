@@ -1,6 +1,7 @@
 // File: js/ui/admin.js
 
-import { doc, deleteDoc, updateDoc, addDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// PERUBAHAN: Menambahkan getDocs pada import
+import { doc, deleteDoc, updateDoc, addDoc, serverTimestamp, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db, getGradesCollection } from '../config/firebase.js';
 import { USERS_DB, getActiveTahun, getActiveSemester } from '../services/auth.js';
 import { MASTER_CLASSES, MASTER_SUBJECTS } from '../services/db-master.js';
@@ -131,13 +132,61 @@ export function setupAdminEvents() {
         };
     }
 
-    // F. Reset Database
+    // F. Reset Seluruh Data Siswa (Semua Kelas & Periode)
+    const btnResetSiswa = document.getElementById('btn-reset-siswa');
+    if (btnResetSiswa) {
+        btnResetSiswa.onclick = async () => {
+            if(!confirm("PERINGATAN BAHAYA: Anda yakin ingin MENGHAPUS SELURUH DATA SISWA secara permanen? Data yang dihapus tidak bisa dikembalikan!")) return;
+            
+            const pass = prompt("Untuk melanjutkan, ketik kata: HAPUS");
+            if (pass !== "HAPUS") {
+                alert("Proses dibatalkan.");
+                return;
+            }
+
+            try {
+                btnResetSiswa.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> SEDANG MENGHAPUS...';
+                btnResetSiswa.disabled = true;
+
+                // Mengambil seluruh dokumen di koleksi grades (data siswa & nilai)
+                const snapshot = await getDocs(getGradesCollection());
+                
+                if (snapshot.empty) {
+                    alert("Database siswa sudah dalam keadaan kosong.");
+                    btnResetSiswa.innerHTML = '<i class="ph ph-users-three text-xl"></i> Kosongkan Data Siswa';
+                    btnResetSiswa.disabled = false;
+                    return;
+                }
+
+                // Hapus semua data
+                const promises = [];
+                snapshot.forEach(d => {
+                    promises.push(deleteDoc(doc(getGradesCollection(), d.id)));
+                });
+                await Promise.all(promises); // Tunggu sampai semuanya terhapus
+
+                await writeLog("RESET_DATA_SISWA", `Admin mengosongkan seluruh database siswa (${promises.length} dokumen terhapus).`);
+                alert(`Selesai! Sebanyak ${promises.length} dokumen siswa berhasil dihapus secara permanen.`);
+                
+                btnResetSiswa.innerHTML = '<i class="ph ph-users-three text-xl"></i> Kosongkan Data Siswa';
+                btnResetSiswa.disabled = false;
+                renderTableSiswa(); // Refresh UI
+            } catch (err) {
+                console.error("Gagal reset data siswa:", err);
+                alert("Terjadi kesalahan saat menghapus data.");
+                btnResetSiswa.innerHTML = '<i class="ph ph-users-three text-xl"></i> Kosongkan Data Siswa';
+                btnResetSiswa.disabled = false;
+            }
+        };
+    }
+
+    // G. Reset Database Sekolah
     const btnResetDb = document.getElementById('btn-reset-db');
     if (btnResetDb) {
         btnResetDb.onclick = async () => {
-            if(!confirm("Reset seluruh database sekolah?")) return;
+            if(!confirm("Reset seluruh database sekolah? (Termasuk data guru dan pengaturan)")) return;
             await writeLog("RESET_DATABASE", "Request reset total database.");
-            alert("Tindakan dicatat. Silakan lakukan penghapusan manual di Firebase Console.");
+            alert("Tindakan dicatat di Log Audit. Untuk keamanan, hapus seluruh data master & guru dilakukan manual di Firebase Console.");
         };
     }
 }
