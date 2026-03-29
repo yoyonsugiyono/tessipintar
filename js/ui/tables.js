@@ -204,7 +204,7 @@ export function renderMasterDataUI() {
             <div class="flex justify-between items-center p-2.5 bg-white border border-gray-200 rounded-lg mb-2 shadow-sm">
                 <span class="font-medium text-blue-700">${t}</span>
                 <button onclick="window.deleteMasterTahun(${i})" class="text-red-500 hover:bg-red-50 p-1.5 rounded-md"><i class="ph ph-trash text-lg"></i></button>
-            </div>`).join('') || '<div class="text-xs text-gray-400 text-center italic mt-2">Gunakan fitur ini jika tahun bawaan sudah habis.</div>';
+            </div>`).join('') || '<div class="text-xs text-gray-400 text-center italic mt-2">Belum ada tahun tambahan.</div>';
     }
 
     if (clsList) {
@@ -212,7 +212,7 @@ export function renderMasterDataUI() {
             <div class="flex justify-between items-center p-2.5 bg-white border border-gray-200 rounded-lg mb-2 shadow-sm">
                 <span class="font-medium text-gray-700">${c}</span>
                 <button onclick="window.deleteMasterClass(${i})" class="text-red-500 hover:bg-red-50 p-1.5 rounded-md"><i class="ph ph-trash text-lg"></i></button>
-            </div>`).join('');
+            </div>`).join('') || '<div class="text-xs text-gray-400 text-center italic mt-2">Belum ada data kelas.</div>';
     }
 
     if (subList) {
@@ -220,26 +220,24 @@ export function renderMasterDataUI() {
             <div class="flex justify-between items-center p-2.5 bg-white border border-gray-200 rounded-lg mb-2 shadow-sm">
                 <span class="font-medium text-gray-700">${s}</span>
                 <button onclick="window.deleteMasterSubject(${i})" class="text-red-500 hover:bg-red-50 p-1.5 rounded-md"><i class="ph ph-trash text-lg"></i></button>
-            </div>`).join('');
+            </div>`).join('') || '<div class="text-xs text-gray-400 text-center italic mt-2">Belum ada data mata pelajaran.</div>';
     }
 }
 
 export function populateDropdowns() {
-    // 1. Gabungkan Tahun Default + Tahun Master dari Firestore tanpa duplikat
+    // Gabung Tahun Bawaan + Tahun Database
     const allTahun = [...new Set([...DEFAULT_TAHUN, ...MASTER_TAHUN])].sort();
     const thnOpts = allTahun.map(t => `<option value="${t}">${t}</option>`).join('');
     
-    // Inject opsi tahun ke semua dropdown yang membutuhkan
     ['login-tahun', 'dash-filter-tahun', 'copy-tahun-asal'].forEach(id => {
         const el = document.getElementById(id);
         if(el) {
-            const oldVal = el.value; // Simpan pilihan jika sedang dipilih
+            const oldVal = el.value;
             el.innerHTML = thnOpts;
             if (oldVal && allTahun.includes(oldVal)) el.value = oldVal;
         }
     });
 
-    // 2. Populate Kelas dan Mapel
     const clsOptsPilih = `<option value="">-- Pilih Kelas --</option>` + MASTER_CLASSES.map(c => `<option value="${c}">${c}</option>`).join('');
     const clsOptsSemua = `<option value="">-- Semua Kelas --</option>` + MASTER_CLASSES.map(c => `<option value="${c}">${c}</option>`).join('');
     const subOpts = `<option value="">-- Pilih Mapel --</option>` + MASTER_SUBJECTS.map(s => `<option value="${s}">${s}</option>`).join('');
