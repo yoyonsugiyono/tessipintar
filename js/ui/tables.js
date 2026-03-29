@@ -1,8 +1,11 @@
 // File: js/ui/tables.js
 
-import { getAppUser, getActiveTahun, getActiveSemester, USERS_DB } from '../services/auth.js';
+import { getAppUser, getActiveTahun, getActiveSemester } from '../services/auth.js';
 import { getCalc, weights, ds } from '../services/db-grades.js';
 import { MASTER_CLASSES, MASTER_SUBJECTS, MASTER_TAHUN, DEFAULT_TAHUN } from '../services/db-master.js';
+// PERBAIKAN: Import modul Firestore untuk menarik data pengguna langsung dari DB
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { db } from '../config/firebase.js';
 
 export let gradesData = [];
 export let selClass = '';
@@ -16,35 +19,62 @@ export function setEditGradeId(id) { editGradeId = id; }
 export function setSearchQuery(q) { searchQuery = q.toLowerCase(); }
 export function setFilters(c, s, w) { selClass = c; selSubject = s; wFilter = w; }
 
-export function renderTableGuru() {
+// ==========================================
+// 1. RENDER TABEL GURU (TARIK DARI FIREBASE)
+// ==========================================
+export async function renderTableGuru() {
     const tbody = document.getElementById('crud-guru-tbody');
     if(!tbody) return;
 
-    tbody.innerHTML = USERS_DB.map((u, i) => {
-        const isWali = u.jabatan === 'Wali Kelas';
-        const roleColor = u.role === 'admin' ? 'text-red-600' : 'text-blue-600';
-        
-        const jabatanHtml = `
-            <div class="font-bold uppercase tracking-wider ${roleColor}">${u.role}</div>
-            <div class="text-xs text-gray-500 mt-0.5">
-                ${u.jabatan || 'Guru Mapel'} ${isWali && u.waliKelas ? `<span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded ml-1 font-bold">${u.waliKelas}</span>` : ''}
-            </div>
-        `;
+    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500"><i class="ph ph-spinner animate-spin text-2xl"></i> Memuat data dari database...</td></tr>';
 
-        return `
-            <tr class="border-b hover:bg-gray-50 transition-colors">
-                <td class="p-3 text-center text-gray-500">${i+1}</td>
-                <td class="p-3 font-medium text-gray-800">${u.username}</td>
-                <td class="p-3 text-[10px]">${jabatanHtml}</td>
-                <td class="p-3 font-mono text-gray-400 text-xs">${u.password}</td>
-                <td class="p-3 text-right whitespace-nowrap">
-                   <button onclick="window.editGuru('${u.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-2" title="Edit Jabatan & Akun"><i class="ph ph-pencil-simple text-lg"></i></button>
-                   <button onclick="window.deleteGuru('${u.id}', '${encodeURIComponent(u.username)}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors" title="Hapus Akun"><i class="ph ph-trash text-lg"></i></button>
-                </td>
-            </tr>`;
-    }).join('') || '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada data pengguna.</td></tr>';
+    try {
+        // Tarik data langsung dari koleksi 'users' di Firebase
+        const usersSnap = await getDocs(collection(db, 'users'));
+        let usersList = [];
+        usersSnap.forEach(doc => {
+            usersList.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (usersList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada data pengguna terdaftar.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = usersList.map((u, i) => {
+            const isWali = u.jabatan === 'Wali Kelas';
+            const roleColor = u.role === 'admin' ? 'text-red-600' : (u.role === 'wakasek' ? 'text-purple-600' : 'text-blue-600');
+            
+            const jabatanHtml = `
+                <div class="font-bold uppercase tracking-wider ${roleColor}">${u.role}</div>
+                <div class="text-xs text-gray-500 mt-0.5">
+                    ${u.jabatan || 'Guru Mapel'} ${isWali && u.waliKelas ? `<span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded ml-1 font-bold">${u.waliKelas}</span>` : ''}
+                </div>
+            `;
+
+            // PERBAIKAN: Melemparkan data lama ke fungsi edit agar tidak bergantung pada memori sementara
+            return `
+                <tr class="border-b hover:bg-gray-50 transition-colors">
+                    <td class="p-3 text-center text-gray-500">${i+1}</td>
+                    <td class="p-3 font-medium text-gray-800">${u.username}</td>
+                    <td class="p-3 text-[10px]">${jabatanHtml}</td>
+                    <td class="p-3 font-mono text-gray-400 text-xs">${u.password}</td>
+                    <td class="p-3 text-right whitespace-nowrap">
+                       <button onclick="window.openResetSandi('${u.id}', '${encodeURIComponent(u.username)}')" class="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded transition-colors mr-2" title="Reset Sandi Pengguna"><i class="ph ph-key text-lg"></i></button>
+                       <button onclick="window.editGuru('${u.id}', '${encodeURIComponent(u.username)}', '${u.jabatan || ''}', '${u.waliKelas || ''}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-2" title="Edit Akun"><i class="ph ph-pencil-simple text-lg"></i></button>
+                       <button onclick="window.deleteGuru('${u.id}', '${encodeURIComponent(u.username)}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors" title="Hapus Akun"><i class="ph ph-trash text-lg"></i></button>
+                    </td>
+                </tr>`;
+        }).join('');
+    } catch (err) {
+        console.error("Gagal memuat pengguna:", err);
+        tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-red-500">Gagal mengambil data dari server. Periksa koneksi Anda.</td></tr>';
+    }
 }
 
+// ==========================================
+// FUNGSI-FUNGSI LAINNYA TETAP SAMA
+// ==========================================
 export function renderTableSiswa() {
     const tbody = document.getElementById('crud-siswa-tbody');
     const filter = document.getElementById('crud-siswa-kelas-filter');
@@ -56,7 +86,6 @@ export function renderTableSiswa() {
     const smt = getActiveSemester();
     let clsData = gradesData.filter(g => g.tahun === thn && g.semester === smt);
 
-    // KUNCI WALI KELAS: Hanya berlaku jika dia BUKAN admin
     if (appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
         clsData = clsData.filter(g => g.className === appUser.waliKelas);
     } else if (filter.value) {
@@ -95,7 +124,6 @@ export function getDisplayData() {
 
     let d = gradesData.filter(g => g.tahun === thn && g.semester === smt);
     
-    // Guru Mapel & Wali Kelas (Non-Wakasek & Non-Admin): Hanya melihat nilai miliknya
     if (appUser.role === 'guru' && appUser.jabatan !== 'Wakasek Kurikulum') {
         d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
     }
@@ -132,7 +160,6 @@ export function renderTable() {
     if(document.getElementById('badge-kelas')) document.getElementById('badge-kelas').textContent = selClass;
     if(document.getElementById('badge-mapel')) document.getElementById('badge-mapel').textContent = selSubject || 'Semua Mapel';
     
-    // PERBAIKAN: Admin dan Guru sama-sama memiliki hak Edit UI Nilai
     if(appUser.role === 'guru' || appUser.role === 'admin') {
         document.getElementById('weights-container')?.classList.remove('hidden');
         document.getElementById('guru-excel-actions')?.classList.remove('hidden');
@@ -161,7 +188,6 @@ export function renderTable() {
             const naIcon = isRemedial ? '<i class="ph ph-warning-circle text-red-500 mr-1"></i>' : '';
             const bgA = 'bg-emerald-50/50 text-emerald-700 font-bold';
 
-            // Wakasek (Read-only)
             if(appUser.role === 'wakasek' || editGradeId === item.id) {
                 if(editGradeId !== item.id) {
                     html += `
@@ -183,7 +209,6 @@ export function renderTable() {
                     </tr>`;
                 }
             } else {
-                // Tampilan Editable (Guru & Admin)
                 html += `
                 <tr data-id="${item.id}" class="hover:bg-blue-50/50 border-b border-gray-100 transition-colors print:bg-white">
                     <td class="px-4 py-3 text-center text-gray-500 text-xs">${idx+1}</td>
@@ -273,7 +298,6 @@ export function populateDropdowns() {
     const dbClasses = [...new Set(gradesData.map(g => g.className))].filter(Boolean);
     let allClasses = [...new Set([...MASTER_CLASSES, ...dbClasses])].sort();
     
-    // PERBAIKAN: Admin TIDAK TERPENGARUH oleh aturan Wali Kelas
     if (appUser && appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
         allClasses = [appUser.waliKelas];
     }
