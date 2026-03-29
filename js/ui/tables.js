@@ -18,9 +18,6 @@ export function setEditGradeId(id) { editGradeId = id; }
 export function setSearchQuery(q) { searchQuery = q.toLowerCase(); }
 export function setFilters(c, s, w) { selClass = c; selSubject = s; wFilter = w; }
 
-// ==========================================
-// 1. RENDER TABEL GURU (DENGAN TUGAS TAMBAHAN)
-// ==========================================
 export async function renderTableGuru() {
     const tbody = document.getElementById('crud-guru-tbody');
     if(!tbody) return;
@@ -32,7 +29,6 @@ export async function renderTableGuru() {
         let usersList = [];
         usersSnap.forEach(doc => { usersList.push({ id: doc.id, ...doc.data() }); });
 
-        // Update cache lokal
         USERS_DB.length = 0; 
         usersList.forEach(u => USERS_DB.push(u));
 
@@ -87,11 +83,13 @@ export function renderTableSiswa() {
     const smt = getActiveSemester();
     let clsData = gradesData.filter(g => g.tahun === thn && g.semester === smt);
 
-    const isWali = appUser.role !== 'admin' && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+    const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
+    const isWali = appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
 
+    // Jika Wali Kelas, kunci filter secara paksa
     if (isWali && appUser.waliKelas) {
         clsData = clsData.filter(g => g.className === appUser.waliKelas);
-    } else if (filter.value) {
+    } else if (filter.value) { // Wakasek / Admin bisa filter bebas
         clsData = clsData.filter(g => g.className === filter.value);
     }
 
@@ -128,7 +126,8 @@ export function getDisplayData() {
     let d = gradesData.filter(g => g.tahun === thn && g.semester === smt);
     const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     
-    if (appUser.role === 'guru' && !isWakasek) {
+    // Saat input nilai, Wakasek dan Admin bisa lihat semua guru. Guru Mapel/Wali Kelas hanya dirinya sendiri.
+    if (appUser.role !== 'admin' && !isWakasek) {
         d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
     }
     
@@ -157,14 +156,17 @@ export function renderTable() {
     if(emptyState) emptyState.classList.add('hidden');
     tableCont.classList.remove('hidden');
 
+    const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
+
     if(document.getElementById('badge-guru')) {
-        document.getElementById('badge-guru').classList.toggle('hidden', appUser.role === 'guru');
+        document.getElementById('badge-guru').classList.toggle('hidden', !isWakasek && appUser.role !== 'admin');
         document.getElementById('badge-guru').textContent = wFilter === 'all' ? 'Semua Guru' : wFilter;
     }
     if(document.getElementById('badge-kelas')) document.getElementById('badge-kelas').textContent = selClass;
     if(document.getElementById('badge-mapel')) document.getElementById('badge-mapel').textContent = selSubject || 'Semua Mapel';
     
-    if(appUser.role === 'guru' || appUser.role === 'admin') {
+    // Fitur Input Nilai: Wakasek Kurikulum HANYA memantau, TIDAK mengedit nilai (kecuali jika ia adalah admin)
+    if(appUser.role === 'admin' || (!isWakasek && appUser.role === 'guru')) {
         document.getElementById('weights-container')?.classList.remove('hidden');
         document.getElementById('guru-excel-actions')?.classList.remove('hidden');
         document.querySelectorAll('.guru-col').forEach(c => c.classList.remove('hidden'));
@@ -192,7 +194,7 @@ export function renderTable() {
             const naIcon = isRemedial ? '<i class="ph ph-warning-circle text-red-500 mr-1"></i>' : '';
             const bgA = 'bg-emerald-50/50 text-emerald-700 font-bold';
 
-            if(appUser.role === 'wakasek' || editGradeId === item.id) {
+            if(isWakasek || editGradeId === item.id) {
                 if(editGradeId !== item.id) {
                     html += `
                     <tr class="hover:bg-blue-50/50 border-b border-gray-100 transition-colors print:bg-white">
@@ -200,7 +202,7 @@ export function renderTable() {
                         <td class="px-4 py-3">
                             <div class="font-bold text-gray-800">${item.studentName}</div>
                             <div class="text-[10px] text-gray-400 font-mono">${item.nisn||'-'}</div>
-                            ${appUser.role==='wakasek' || appUser.role==='admin' ? `<div class="text-[9px] text-blue-500 font-bold uppercase mt-1">${item.teacherName} | ${item.subject}</div>` : ''}
+                            ${isWakasek || appUser.role==='admin' ? `<div class="text-[9px] text-blue-500 font-bold uppercase mt-1">${item.teacherName} | ${item.subject}</div>` : ''}
                         </td>
                         <td class="px-2 py-3 text-center text-sm">${ds(item.scores.f1)}</td>
                         <td class="px-2 py-3 text-center text-sm">${ds(item.scores.f2)}</td>
@@ -302,7 +304,10 @@ export function populateDropdowns() {
     const dbClasses = [...new Set(gradesData.map(g => g.className))].filter(Boolean);
     let allClasses = [...new Set([...MASTER_CLASSES, ...dbClasses])].sort();
     
-    const isWali = appUser && appUser.role !== 'admin' && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+    const isWakasek = appUser && (appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum');
+    const isWali = appUser && appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+
+    // Jika yang login adalah murni Wali Kelas, paksa list dropdown hanya berisi kelas dia
     if (isWali && appUser.waliKelas) {
         allClasses = [appUser.waliKelas];
     }
