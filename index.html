@@ -67,11 +67,7 @@
             <div class="relative group">
               <i class="ph ph-calendar-blank absolute left-4 top-3.5 text-gray-400 text-xl group-focus-within:text-blue-600 transition-colors"></i>
               <select id="login-tahun" required class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none focus:border-blue-500 transition-all font-medium appearance-none">
-                <option value="2024/2025">2024/2025</option>
-                <option value="2025/2026" selected>2025/2026</option>
-                <option value="2026/2027">2026/2027</option>
-                <option value="2027/2028">2027/2028</option>
-              </select>
+                </select>
             </div>
           </div>
           <div class="space-y-2">
@@ -147,10 +143,6 @@
                 <i class="ph ph-clock-counter-clockwise text-blue-600 text-xl"></i> Histori Periode:
             </div>
             <select id="dash-filter-tahun" class="border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 flex-1 sm:flex-none">
-                <option value="2024/2025">2024/2025</option>
-                <option value="2025/2026">2025/2026</option>
-                <option value="2026/2027">2026/2027</option>
-                <option value="2027/2028">2027/2028</option>
             </select>
             <select id="dash-filter-smt" class="border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 flex-1 sm:flex-none">
                 <option value="Ganjil">Ganjil</option>
@@ -197,7 +189,16 @@
             <div class="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center text-purple-600 text-2xl"><i class="ph ph-database"></i></div>
             <div><h2 class="text-2xl font-bold text-gray-800">Kelola Master Data</h2></div>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
+              <h3 class="font-bold text-gray-700 mb-4 border-b border-gray-200 pb-2">Tahun Ajaran Tambahan</h3>
+              <div class="flex gap-2 mb-4">
+                <input type="text" id="in-master-tahun" placeholder="Cth: 2028/2029" class="flex-1 border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                <button id="btn-add-master-tahun" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded font-medium text-sm transition-colors"><i class="ph ph-plus"></i></button>
+              </div>
+              <div id="master-tahun-list" class="max-h-64 overflow-y-auto pr-2"></div>
+            </div>
             <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
               <h3 class="font-bold text-gray-700 mb-4 border-b border-gray-200 pb-2">Daftar Kelas</h3>
               <div class="flex gap-2 mb-4">
@@ -232,9 +233,6 @@
               <div>
                  <label class="block text-xs font-bold text-blue-800 mb-1">Tahun Ajaran Asal</label>
                  <select id="copy-tahun-asal" class="w-full border border-blue-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-600 outline-none">
-                   <option value="2024/2025">2024/2025</option>
-                   <option value="2025/2026">2025/2026</option>
-                   <option value="2026/2027">2026/2027</option>
                  </select>
               </div>
               <div>
@@ -366,6 +364,7 @@
             </div>
           </div>
         </div>
+        
         <div id="empty-state-nilai" class="flex flex-col items-center justify-center py-20 bg-white border-2 border-dashed border-gray-200 rounded-xl text-gray-400 print-hidden">
           <div class="bg-yellow-50 p-6 rounded-full mb-4 animate-bounce"><i class="ph ph-funnel text-5xl text-yellow-400"></i></div>
           <p class="text-xl font-bold text-gray-600">Mulai Dengan Memilih Kelas</p>
