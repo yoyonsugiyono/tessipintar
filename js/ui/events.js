@@ -4,7 +4,7 @@ import { getAppUser, getActiveTahun, getActiveSemester } from '../services/auth.
 import { getCalc, weights, saveNewGrade, san, ds } from '../services/db-grades.js';
 import { 
     setFilters, renderTable, gradesData, setEditGradeId, editGradeId, 
-    getDisplayData, selClass, selSubject, setSearchQuery 
+    getDisplayData, selClass, selSubject, setSearchQuery, selClassRekap 
 } from './tables.js';
 import { doc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getGradesCollection } from '../config/firebase.js';
@@ -30,17 +30,113 @@ export function setupUIEvents() {
     document.getElementById('w-t')?.addEventListener('input', (e) => { weights.t = e.target.value; renderTable(); });
     document.getElementById('w-a')?.addEventListener('input', (e) => { weights.a = e.target.value; renderTable(); });
 
-    // 3. FITUR CETAK PREVIEW
-    const btnPrint = document.getElementById('btn-print-nilai');
-    if (btnPrint) {
-        btnPrint.onclick = () => {
+    // 3. FITUR CETAK PREVIEW EKSKLUSIF (MODAL)
+    window.openPreviewModal = (type) => {
+        const modal = document.getElementById('preview-modal');
+        const container = document.getElementById('preview-table-container');
+        const docTitle = document.getElementById('preview-doc-title');
+        const docSub = document.getElementById('preview-doc-subtitle');
+        const ttdName = document.getElementById('preview-ttd-name');
+        const ttdRole = document.getElementById('preview-ttd-role');
+        const dateEl = document.getElementById('preview-date');
+        const appUser = getAppUser();
+
+        // Format Tanggal Cetak
+        const d = new Date();
+        const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        dateEl.textContent = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+        
+        // Nama Penandatangan
+        ttdName.textContent = appUser.username.split(',')[0];
+
+        // LOGIKA CETAK: TABEL INPUT NILAI
+        if (type === 'nilai') {
             if (!selClass || !selSubject) {
                 alert("Pilih Kelas dan Mata Pelajaran terlebih dahulu sebelum mencetak.");
                 return;
             }
-            window.print();
-        };
-    }
+            docTitle.textContent = "Daftar Capaian Akademik Siswa";
+            docSub.innerHTML = `<span>Mata Pelajaran: <b>${selSubject}</b></span> <span>Kelas: <b>${selClass}</b></span> <span>Semester: <b>${getActiveSemester()}</b></span> <span>Tahun: <b>${getActiveTahun()}</b></span>`;
+            ttdRole.textContent = "Guru Mata Pelajaran";
+
+            const data = getDisplayData();
+            
+            // Bangun Tabel Bersih (Tanpa Kotak Input)
+            let html = `
+            <table class="w-full text-[10pt] border-collapse border border-black text-black">
+              <thead class="bg-gray-100 font-bold text-center">
+                <tr>
+                  <th class="border border-black p-2 w-10">No</th>
+                  <th class="border border-black p-2 text-left">Nama Lengkap Siswa</th>
+                  <th class="border border-black p-2">NISN</th>
+                  <th class="border border-black p-2 w-12">F1</th><th class="border border-black p-2 w-12">F2</th><th class="border border-black p-2 w-12">F3</th>
+                  <th class="border border-black p-2 w-12">T1</th><th class="border border-black p-2 w-12">T2</th><th class="border border-black p-2 w-12">T3</th>
+                  <th class="border border-black p-2 w-12">ASAJ</th><th class="border border-black p-2 w-14">Nilai<br>Akhir</th>
+                </tr>
+              </thead>
+              <tbody>
+            `;
+            
+            if (data.length === 0) {
+                html += `<tr><td colspan="11" class="border border-black p-4 text-center">Belum ada data nilai.</td></tr>`;
+            } else {
+                data.forEach((item, i) => {
+                    const calc = getCalc(item.scores);
+                    html += `<tr>
+                        <td class="border border-black p-1.5 text-center">${i+1}</td>
+                        <td class="border border-black p-1.5 font-semibold uppercase">${item.studentName}</td>
+                        <td class="border border-black p-1.5 text-center font-mono text-xs">${item.nisn || '-'}</td>
+                        <td class="border border-black p-1.5 text-center">${ds(item.scores.f1)}</td>
+                        <td class="border border-black p-1.5 text-center">${ds(item.scores.f2)}</td>
+                        <td class="border border-black p-1.5 text-center">${ds(item.scores.f3)}</td>
+                        <td class="border border-black p-1.5 text-center">${ds(item.scores.t1)}</td>
+                        <td class="border border-black p-1.5 text-center">${ds(item.scores.t2)}</td>
+                        <td class="border border-black p-1.5 text-center">${ds(item.scores.t3)}</td>
+                        <td class="border border-black p-1.5 text-center font-bold">${ds(item.scores.asaj)}</td>
+                        <td class="border border-black p-1.5 text-center font-extrabold">${parseFloat(calc.final).toFixed(1)}</td>
+                    </tr>`;
+                });
+            }
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+
+        // LOGIKA CETAK: TABEL LEDGER REKAPITULASI
+        } else if (type === 'rekap') {
+            if (!selClassRekap) {
+                alert("Pilih Kelas terlebih dahulu sebelum mencetak Ledger.");
+                return;
+            }
+            docTitle.textContent = "Ledger Rekapitulasi Nilai Akademik";
+            docSub.innerHTML = `<span>Kelas: <b>${selClassRekap}</b></span> <span>Semester: <b>${getActiveSemester()}</b></span> <span>Tahun: <b>${getActiveTahun()}</b></span>`;
+            ttdRole.textContent = "Wali Kelas";
+
+            const sourceTable = document.querySelector('#table-rekap-container table');
+            if (sourceTable) {
+                const clone = sourceTable.cloneNode(true);
+                clone.className = "w-full text-[10pt] border-collapse border border-black text-black";
+                
+                // Setel ulang semua border dan text color agar hitam murni
+                clone.querySelectorAll('th, td').forEach(el => {
+                    el.className = "border border-black p-2 text-black " + (el.tagName === 'TH' ? 'font-bold text-center bg-gray-100' : 'text-center');
+                });
+                
+                // Pastikan kolom Nama tetap rata kiri
+                const tdNames = clone.querySelectorAll('tbody td:nth-child(2)');
+                tdNames.forEach(td => td.classList.replace('text-center', 'text-left'));
+                const thNames = clone.querySelectorAll('thead th');
+                if(thNames.length > 1) thNames[1].classList.replace('text-center', 'text-left');
+
+                container.innerHTML = '';
+                container.appendChild(clone);
+            } else {
+                container.innerHTML = "<p class='text-center text-red-500'>Data Ledger Kosong.</p>";
+            }
+        }
+        
+        // Tampilkan Modal
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    };
 
     // 4. FORM TAMBAH / EDIT MANUAL
     const gradeForm = document.getElementById('grade-form');
@@ -60,7 +156,7 @@ export function setupUIEvents() {
             const payload = { 
                 studentName: document.getElementById('in-name').value, 
                 nisn: document.getElementById('in-nisn').value, 
-                teacherName: appUser.username, subject: fMapel.value, className: fKelas.value, 
+                teacherName: appUser.username, subject: selSubject, className: selClass, 
                 tahun: getActiveTahun(), semester: getActiveSemester(),
                 scores: s, results: {avgFormative: parseFloat(c.avgFormative), avgTask:parseFloat(c.avgTask), final:parseFloat(c.final)}, 
                 weightsSnapshot: weights 
@@ -106,7 +202,7 @@ export function setupUIEvents() {
         };
     }
 
-    // 6. DELEGASI EVENT TABEL
+    // 6. DELEGASI EVENT TABEL (AUTO-SAVE)
     const gradesTbody = document.getElementById('grades-tbody');
     if(gradesTbody) {
         gradesTbody.addEventListener('input', (e) => {
