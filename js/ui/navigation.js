@@ -64,6 +64,32 @@ export function switchMenu(menuId) {
     // Tampilkan & RENDER section berdasarkan menu yang dipilih
     if(menuId === 'dashboard') {
         document.getElementById('sec-dashboard').classList.remove('hidden');
+        
+        // --- DYNAMIC DASHBOARD TEXT (MENGGANTIKAN LOGIKA MONOLITHIC PINTAR) ---
+        const dashName = document.getElementById('dash-name');
+        const dashDesc = document.getElementById('dash-desc');
+        const dashActionBtn = document.getElementById('dash-action-btn');
+        const userManual = document.getElementById('user-manual-content');
+        
+        if(dashName) dashName.textContent = appUser.username.split(',')[0];
+        
+        if(dashDesc) {
+            dashDesc.textContent = appUser.role === 'wakasek' ? 'Pantau perkembangan akademik siswa dan aktivitas guru secara real-time.' : 
+                                  (appUser.role === 'admin' ? 'Kelola data induk siswa dan distribusi kelas untuk seluruh mata pelajaran.' : 
+                                  'Kelola nilai siswa dan administrasi rapor dengan lebih efisien dan terstruktur.');
+        }
+        
+        if(dashActionBtn) {
+            dashActionBtn.onclick = () => window.switchMenu(appUser.role === 'admin' ? 'admin-import' : 'nilai');
+            dashActionBtn.innerHTML = appUser.role === 'admin' ? '<i class="ph ph-gear text-xl"></i> Kelola Data Siswa' : 
+                                     (appUser.role === 'wakasek' ? '<i class="ph ph-file-text text-xl"></i> Cek Rekap Nilai' : '<i class="ph ph-pencil-simple text-xl"></i> Mulai Input Nilai');
+        }
+
+        if(userManual) {
+            if(appUser.role==='admin') userManual.innerHTML = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-database text-purple-500 text-lg mt-0.5"></i><span><strong>Master Data:</strong> Atur penamaan kelas dan daftar mata pelajaran.</span></li><li class="flex gap-3"><i class="ph ph-gear text-blue-500 text-lg mt-0.5"></i><span><strong>Kelola Data Siswa:</strong> Tambah/Edit/Hapus data siswa, atau unggah Excel masal.</span></li><li class="flex gap-3"><i class="ph ph-users-three text-purple-500 text-lg mt-0.5"></i><span><strong>Kelola Data Guru:</strong> Menambahkan dan mengedit profil login pengguna aplikasi secara manual maupun massal.</span></li><li class="flex gap-3"><i class="ph ph-hard-drives text-emerald-500 text-lg mt-0.5"></i><span><strong>Backup, Restore & Reset:</strong> Unduh cadangan JSON, pulihkan data, atau reset total database sekolah.</span></li></ul>`;
+            else if(appUser.role==='wakasek') userManual.innerHTML = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-funnel text-blue-500 text-lg mt-0.5"></i><span><strong>Monitor & Filter:</strong> Gunakan filter untuk melihat rekap spesifik sesuai tahun & semester yang dipilih saat login.</span></li><li class="flex gap-3"><i class="ph ph-file-xls text-emerald-500 text-lg mt-0.5"></i><span><strong>Export Excel:</strong> Klik tombol Export Excel untuk mendownload rekap nilai menjadi format .xlsx ke komputer Anda.</span></li></ul>`;
+            else userManual.innerHTML = `<ul class="space-y-3"><li class="flex gap-3"><i class="ph ph-file-xls text-emerald-500 text-lg mt-0.5"></i><span><strong>Import Nilai Excel:</strong> Unduh Format Nilai di pojok kanan atas tabel, isi angkanya secara offline, lalu Import kembali ke sistem. Cepat dan mudah!</span></li><li class="flex gap-3"><i class="ph ph-pencil-simple text-blue-500 text-lg mt-0.5"></i><span><strong>Mengisi Manual:</strong> Ketik angka langsung di tabel, nilai otomatis tersimpan ke cloud saat pindah kotak. Nilai yang kurang dari KKM (75) akan berwarna <span class="text-red-600 font-bold">merah</span>.</span></li></ul>`;
+        }
     } 
     else if(menuId === 'admin-import') {
         document.getElementById('sec-admin-import').classList.remove('hidden');
@@ -89,14 +115,12 @@ export function switchMenu(menuId) {
         const fGuruWrap = document.getElementById('filter-guru-wrapper');
         if (fGuruWrap) {
             if (appUser.role === 'wakasek') {
-                fGuruWrap.classList.remove('hidden'); // Munculkan jika Wakasek
+                fGuruWrap.classList.remove('hidden');
             } else {
-                fGuruWrap.classList.add('hidden'); // Sembunyikan jika Guru biasa
+                fGuruWrap.classList.add('hidden');
             }
         }
-        // ------------------------------------------
 
-        // Render tabel nilai jika fungsinya sudah siap
         if (typeof window.renderTable === 'function') {
             window.renderTable();
         }
