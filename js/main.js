@@ -34,7 +34,6 @@ function init() {
     const btnLogout = document.getElementById('btn-logout');
     if (btnLogout) btnLogout.onclick = () => handleLogout();
 
-    // Event Global Filter Dashboard
     const btnApplyDashFilter = document.getElementById('btn-apply-dash-filter');
     if (btnApplyDashFilter) {
         btnApplyDashFilter.onclick = () => {
@@ -58,6 +57,7 @@ function init() {
         }
         
         setupFirestoreListener(() => {
+            populateDropdowns(); // PERBAIKAN: Refresh dropdown dengan data terbaru agar Guru bisa membaca Kelas
             updateDashboardView();
 
             const activeSec = document.querySelector('.section-container:not(.hidden)');
@@ -76,15 +76,12 @@ function init() {
     };
 }
 
-// FUNGSI UPDATE TAMPILAN DASHBOARD
 export function updateDashboardView() {
     if (!gradesData) return;
     
-    // Default ambil dari Login
     let thn = getActiveTahun();
     let smt = getActiveSemester();
     
-    // Tapi jika Admin menggunakan filter histori, override datanya!
     const dashTahun = document.getElementById('dash-filter-tahun');
     const dashSmt = document.getElementById('dash-filter-smt');
     if (dashTahun && dashSmt) {
@@ -114,7 +111,6 @@ function showApp(user) {
     const smt = getActiveSemester();
     document.getElementById('display-periode').innerHTML = `<i class="ph ph-calendar-check mr-2"></i> TA. ${thn} - ${smt}`;
     
-    // Tampilkan Filter Dashboard Khusus untuk Admin
     if (user.role === 'admin' || user.role === 'wakasek') {
         const filterDash = document.getElementById('dashboard-filter-bar');
         if (filterDash) {
@@ -124,7 +120,6 @@ function showApp(user) {
         }
     }
 
-    // Set Label Tahun & Semester Aktif di Menu Copy Siswa
     if (document.getElementById('label-copy-tahun-aktif')) document.getElementById('label-copy-tahun-aktif').textContent = thn;
     if (document.getElementById('label-copy-smt-aktif')) document.getElementById('label-copy-smt-aktif').textContent = smt;
 
