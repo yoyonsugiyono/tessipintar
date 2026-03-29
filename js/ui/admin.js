@@ -9,7 +9,80 @@ import { writeLog } from '../services/audit.js';
 
 export function setupAdminEvents() {
     
-    // --- FITUR TAMBAH MASTER DATA (TAHUN, KELAS, MAPEL) ---
+    // --- FITUR BARU: EXPORT / IMPORT MASTER DATA VIA EXCEL ---
+    const btnTemplateMaster = document.getElementById('btn-template-master');
+    if (btnTemplateMaster) {
+        btnTemplateMaster.onclick = () => {
+            const wsTahun = XLSX.utils.json_to_sheet([{ "Tahun": "2028/2029" }, { "Tahun": "2029/2030" }]);
+            const wsKelas = XLSX.utils.json_to_sheet([{ "Kelas": "X-1" }, { "Kelas": "X-2" }]);
+            const wsMapel = XLSX.utils.json_to_sheet([{ "Mata Pelajaran": "Bahasa Indonesia" }, { "Mata Pelajaran": "Matematika" }]);
+            
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, wsTahun, "Tahun Ajaran");
+            XLSX.utils.book_append_sheet(wb, wsKelas, "Daftar Kelas");
+            XLSX.utils.book_append_sheet(wb, wsMapel, "Daftar Mapel");
+            
+            XLSX.writeFile(wb, "Format_Master_Data.xlsx");
+        };
+    }
+
+    const importXlsxMaster = document.getElementById('import-xlsx-master');
+    if (importXlsxMaster) {
+        importXlsxMaster.onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                try {
+                    const data = new Uint8Array(ev.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    let countTahun = 0, countKelas = 0, countMapel = 0;
+
+                    if (workbook.SheetNames.includes("Tahun Ajaran")) {
+                        const jsonTahun = XLSX.utils.sheet_to_json(workbook.Sheets["Tahun Ajaran"]);
+                        jsonTahun.forEach(row => {
+                            const val = String(row["Tahun"] || "").trim();
+                            if (val && !MASTER_TAHUN.includes(val)) { MASTER_TAHUN.push(val); countTahun++; }
+                        });
+                    }
+
+                    if (workbook.SheetNames.includes("Daftar Kelas")) {
+                        const jsonKelas = XLSX.utils.sheet_to_json(workbook.Sheets["Daftar Kelas"]);
+                        jsonKelas.forEach(row => {
+                            const val = String(row["Kelas"] || "").trim();
+                            if (val && !MASTER_CLASSES.includes(val)) { MASTER_CLASSES.push(val); countKelas++; }
+                        });
+                    }
+
+                    if (workbook.SheetNames.includes("Daftar Mapel")) {
+                        const jsonMapel = XLSX.utils.sheet_to_json(workbook.Sheets["Daftar Mapel"]);
+                        jsonMapel.forEach(row => {
+                            const val = String(row["Mata Pelajaran"] || "").trim();
+                            if (val && !MASTER_SUBJECTS.includes(val)) { MASTER_SUBJECTS.push(val); countMapel++; }
+                        });
+                    }
+
+                    if (countTahun > 0 || countKelas > 0 || countMapel > 0) {
+                        await saveMasterData();
+                        renderMasterDataUI();
+                        populateDropdowns();
+                        await writeLog("IMPORT_MASTER", `Mengimpor ${countTahun} Tahun, ${countKelas} Kelas, ${countMapel} Mapel.`);
+                        alert(`Berhasil mengimpor data baru:\n- ${countTahun} Tahun Ajaran\n- ${countKelas} Kelas\n- ${countMapel} Mata Pelajaran`);
+                    } else {
+                        alert("Tidak ada data baru yang ditambahkan (mungkin format kosong atau data sudah ada).");
+                    }
+                } catch(err) { 
+                    console.error("Gagal parse Master XLSX:", err);
+                    alert("Format Excel salah atau terjadi kesalahan sistem."); 
+                }
+                e.target.value = null; // Reset input file
+            };
+            reader.readAsArrayBuffer(file);
+        };
+    }
+
+    // --- FITUR TAMBAH MASTER DATA MANUAL (INPUT TEKS) ---
     const btnAddTahun = document.getElementById('btn-add-master-tahun');
     if(btnAddTahun) {
         btnAddTahun.onclick = async () => {
