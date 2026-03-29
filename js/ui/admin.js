@@ -10,21 +10,19 @@ import { writeLog } from '../services/audit.js';
 export function setupAdminEvents() {
     
     // ========================================================
-    // 0. KELOLA PENGGUNA: TAMBAH GURU (CRUD LENGKAP)
+    // 0. KELOLA PENGGUNA: TAMBAH GURU LENGKAP
     // ========================================================
     const btnAddGuru = document.getElementById('btn-add-guru');
     if (btnAddGuru) {
         btnAddGuru.onclick = async () => {
-            const username = prompt("Masukkan Nama Lengkap (Username) pengguna baru:");
+            const username = prompt("Masukkan Nama Lengkap Guru baru:");
             if (!username) return;
             
             const password = prompt(`Masukkan Password untuk "${username}":`, "123456");
             if (!password) return;
-            
-            const role = prompt("Masukkan Role Akses Sistem (Ketik: guru / wakasek / admin):", "guru");
-            if (!role || !['guru', 'wakasek', 'admin'].includes(role.toLowerCase())) {
-                alert("Proses dibatalkan. Role tidak valid! Harus diisi: guru, wakasek, atau admin."); return;
-            }
+
+            const isAdminConfirm = confirm(`Apakah "${username}" ini adalah akun Administrator Tertinggi?\n(Pilih OK jika Admin, Pilih BATAL/CANCEL jika Guru)`);
+            const role = isAdminConfirm ? 'admin' : 'guru';
 
             btnAddGuru.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> Menyimpan...';
             btnAddGuru.disabled = true;
@@ -34,15 +32,16 @@ export function setupAdminEvents() {
                 await addDoc(usersRef, {
                     username: username,
                     password: password,
-                    role: role.toLowerCase(),
-                    jabatan: role.toLowerCase() === 'admin' ? 'Administrator' : 'Guru Mapel',
+                    role: role,
+                    jabatan: role === 'admin' ? 'Administrator' : 'Guru Mata Pelajaran',
+                    tugasTambahan: '',
                     waliKelas: '',
                     createdAt: serverTimestamp()
                 });
                 
-                renderTableGuru(); // Panggil ulang data dari database
+                renderTableGuru();
                 await writeLog("TAMBAH_PENGGUNA", `Admin membuat akun baru: ${username} (${role})`);
-                alert(`Berhasil! Pengguna "${username}" telah ditambahkan ke database.`);
+                alert(`Berhasil! Pengguna "${username}" telah ditambahkan ke database. Anda dapat mengatur tugas tambahan melalui tombol Edit.`);
             } catch(e) {
                 console.error(e);
                 alert("Gagal menambahkan pengguna. Pastikan koneksi internet Anda lancar.");
@@ -204,7 +203,8 @@ export function setupAdminEvents() {
 
             if (!thnAsal || !clsAsal || !clsTujuan) { alert("Pilih Tahun Asal, Kelas Asal, dan Kelas Tujuan terlebih dahulu."); return; }
 
-            if (appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && clsTujuan !== appUser.waliKelas) {
+            const isWali = appUser.role !== 'admin' && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+            if (isWali && appUser.waliKelas && clsTujuan !== appUser.waliKelas) {
                 alert(`AKSES DITOLAK: Anda menjabat sebagai Wali Kelas ${appUser.waliKelas}. Anda tidak berhak menyalin data ke kelas ${clsTujuan}.`); return;
             }
 
@@ -299,7 +299,8 @@ export function setupAdminEvents() {
             const appUser = getAppUser();
             const targetClass = document.getElementById('import-class-select').value;
 
-            if (appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && targetClass !== appUser.waliKelas) {
+            const isWali = appUser.role !== 'admin' && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
+            if (isWali && appUser.waliKelas && targetClass !== appUser.waliKelas) {
                 alert(`AKSES DITOLAK: Anda menjabat sebagai Wali Kelas ${appUser.waliKelas}. Anda dilarang mengimpor data siswa untuk kelas ${targetClass}.`); return;
             }
             
@@ -328,7 +329,7 @@ export function setupAdminEvents() {
                         let n = String(row["Nama Siswa"] || "").trim();
                         let cls = String(row["Kelas"] || "").trim();
                         if(!n || !cls) continue;
-                        if (appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && cls !== appUser.waliKelas) continue;
+                        if (isWali && appUser.waliKelas && cls !== appUser.waliKelas) continue;
                         processedSiswa.push({ name: n, nisn: String(row["NISN"] || ""), className: cls });
                     }
                 } catch(err) { alert("ERROR: Gagal membaca file Excel Siswa."); resetSiswaUploadUI(); return; }
@@ -373,12 +374,11 @@ export function setupAdminEvents() {
     const btnTemplateGuru = document.getElementById('btn-template-guru');
     if (btnTemplateGuru) {
         btnTemplateGuru.onclick = async () => {
-            // Tarik data segar dari database sebelum mendownload
             const usersSnap = await getDocs(collection(db, 'users'));
             let freshUsers = [];
             usersSnap.forEach(doc => { freshUsers.push(doc.data()); });
 
-            const dataToExport = freshUsers.map(u => ({ "Username": u.username, "Role": u.role, "Jabatan": u.jabatan || "-", "Kelas Asuhan": u.waliKelas || "-", "Password": u.password }));
+            const dataToExport = freshUsers.map(u => ({ "Username": u.username, "Role": u.role, "Jabatan": "Guru Mata Pelajaran", "Tugas Tambahan": u.tugasTambahan || "-", "Kelas Asuhan": u.waliKelas || "-", "Password": u.password }));
             const ws = XLSX.utils.json_to_sheet(dataToExport);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "DataGuru");
@@ -480,25 +480,97 @@ window.deleteMasterSubject = async (idx) => {
     catch(e) { MASTER_SUBJECTS.splice(idx, 0, removed[0]); alert("Gagal menghapus."); }
 };
 
-// ========================================================
-// FUNGSI GURU (CRUD LANGSUNG KE FIREBASE)
-// ========================================================
-window.editGuru = async (id, oldUsername, oldJabatan, oldWaliKelas) => {
-    const decodedName = decodeURIComponent(oldUsername);
-    const newJabatan = prompt(`Edit Jabatan untuk ${decodedName}:\nKetik persis salah satu:\n- Guru Mapel\n- Wali Kelas\n- Wakasek Kurikulum`, oldJabatan || 'Guru Mapel');
-    if(!newJabatan) return;
+// PERBAIKAN BESAR: FITUR EDIT GURU MENGGUNAKAN POP-UP MODAL LIST
+window.editGuru = (id) => {
+    const user = USERS_DB.find(u => u.id === id);
+    if(!user) return;
 
-    let newWaliKelas = oldWaliKelas || '';
-    if (newJabatan === 'Wali Kelas') {
-        newWaliKelas = prompt(`Masukkan KELAS ASUHAN untuk Wali Kelas ini (Contoh: X-1):`, newWaliKelas);
-        if(!newWaliKelas) { alert("Proses dibatalkan. Wali Kelas wajib memiliki kelas asuhan."); return; }
-    } else { newWaliKelas = ''; }
+    if (user.role === 'admin') {
+        alert("Akun Administrator memiliki hak akses penuh secara bawaan dan tidak dapat ditambahkan tugas tambahan melalui panel ini.");
+        return;
+    }
 
-    try {
-        await updateDoc(doc(db, 'users', id), { jabatan: newJabatan, waliKelas: newWaliKelas });
-        renderTableGuru(); // Re-render dari Firebase
-        alert(`Berhasil! Jabatan ${decodedName} diperbarui menjadi ${newJabatan} ${newWaliKelas ? '('+newWaliKelas+')' : ''}.`);
-    } catch(e) { alert("Gagal mengupdate database Firebase."); }
+    // Bangun elemen dropdown list Kelas dari MASTER_CLASSES
+    const classOpts = MASTER_CLASSES.map(c => `<option value="${c}" ${user.waliKelas === c ? 'selected' : ''}>${c}</option>`).join('');
+    
+    // Buat HTML Modal secara dinamis
+    const modalDiv = document.createElement('div');
+    modalDiv.id = 'modal-edit-guru-tugas';
+    modalDiv.className = 'fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm transition-opacity';
+    modalDiv.innerHTML = `
+        <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl transform transition-transform">
+            <div class="bg-blue-600 p-4 text-white">
+                <h3 class="font-bold text-lg">Atur Tugas Tambahan</h3>
+                <p class="text-xs text-blue-200">${user.username}</p>
+            </div>
+            <div class="p-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Pilih Tugas Tambahan (List)</label>
+                    <select id="edit-tugas" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium cursor-pointer">
+                        <option value="" ${!user.tugasTambahan && user.jabatan !== 'Wali Kelas' && user.role !== 'wakasek' ? 'selected' : ''}>Tidak Ada (Hanya Guru Mapel)</option>
+                        <option value="Wali Kelas" ${(user.tugasTambahan === 'Wali Kelas' || user.jabatan === 'Wali Kelas') ? 'selected' : ''}>Wali Kelas</option>
+                        <option value="Wakasek Kurikulum" ${(user.tugasTambahan === 'Wakasek Kurikulum' || user.role === 'wakasek') ? 'selected' : ''}>Wakasek Kurikulum</option>
+                    </select>
+                </div>
+                <div id="wrap-kelas" class="${(user.tugasTambahan === 'Wali Kelas' || user.jabatan === 'Wali Kelas') ? '' : 'hidden'} transition-all">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Pilih Kelas Asuhan</label>
+                    <select id="edit-kelas" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium cursor-pointer bg-blue-50">
+                        <option value="">-- Wajib Pilih Kelas --</option>
+                        ${classOpts}
+                    </select>
+                </div>
+            </div>
+            <div class="bg-gray-50 p-4 flex justify-end gap-3 border-t border-gray-100">
+                <button id="btn-cancel-edit-guru" class="px-5 py-2.5 text-gray-600 font-bold text-sm hover:bg-gray-200 rounded-lg transition-colors">Batal</button>
+                <button id="btn-save-edit-guru" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg transition-colors shadow-md">Simpan Perubahan</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modalDiv);
+
+    // Event Listener Interaktif untuk memunculkan Dropdown Kelas
+    const selectTugas = document.getElementById('edit-tugas');
+    const wrapKelas = document.getElementById('wrap-kelas');
+    
+    selectTugas.onchange = (e) => {
+        if (e.target.value === 'Wali Kelas') wrapKelas.classList.remove('hidden');
+        else wrapKelas.classList.add('hidden');
+    };
+
+    // Tombol Batal
+    document.getElementById('btn-cancel-edit-guru').onclick = () => modalDiv.remove();
+
+    // Tombol Simpan
+    document.getElementById('btn-save-edit-guru').onclick = async () => {
+        const btn = document.getElementById('btn-save-edit-guru');
+        const tugas = selectTugas.value;
+        let kelas = '';
+        let newRole = 'guru';
+
+        if (tugas === 'Wali Kelas') {
+            kelas = document.getElementById('edit-kelas').value;
+            if (!kelas) { alert("Wali Kelas wajib memiliki satu Kelas Asuhan!"); return; }
+        } else if (tugas === 'Wakasek Kurikulum') {
+            newRole = 'wakasek';
+        }
+
+        btn.innerHTML = "Menyimpan..."; btn.disabled = true;
+
+        try {
+            await updateDoc(doc(db, 'users', id), { 
+                tugasTambahan: tugas, 
+                waliKelas: kelas,
+                role: newRole,
+                jabatan: 'Guru Mata Pelajaran' // Menyeragamkan jabatan utama
+            });
+            modalDiv.remove();
+            alert(`Sukses! Tugas tambahan ${user.username} berhasil diatur.`);
+            renderTableGuru(); 
+        } catch(e) {
+            alert("Gagal mengupdate database Firebase.");
+            btn.innerHTML = "Simpan Perubahan"; btn.disabled = false;
+        }
+    };
 };
 
 window.deleteGuru = async (id, name) => {
@@ -506,7 +578,7 @@ window.deleteGuru = async (id, name) => {
     if (!confirm(`Yakin ingin MENGHAPUS akun pengguna "${decodedName}" secara permanen?`)) return;
     try {
         await deleteDoc(doc(db, 'users', id));
-        renderTableGuru(); // Re-render dari Firebase
+        renderTableGuru(); 
         await writeLog("HAPUS_PENGGUNA", `Admin menghapus akun: ${decodedName}`);
         alert(`Akun ${decodedName} berhasil dihapus.`);
     } catch(e) { alert("Gagal menghapus akun."); }
@@ -518,15 +590,12 @@ window.openResetSandi = async (id, name) => {
     if (!newPass) return;
     try {
         await updateDoc(doc(db, 'users', id), { password: newPass });
-        renderTableGuru(); // Re-render dari Firebase
+        renderTableGuru(); 
         await writeLog("RESET_SANDI", `Admin mereset sandi untuk akun: ${decodedName}`);
         alert(`Password ${decodedName} berhasil direset!`);
     } catch(e) { alert("Gagal mereset password."); }
 };
 
-// ========================================================
-// FUNGSI SISWA
-// ========================================================
 window.editSiswa = async (encN, encI, encC) => {
     const oldName = decodeURIComponent(encN); const oldNisn = decodeURIComponent(encI); const studentClass = decodeURIComponent(encC);
     const thn = getActiveTahun(); const smt = getActiveSemester();
