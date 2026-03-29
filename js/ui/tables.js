@@ -13,7 +13,6 @@ export let wFilter = 'all';
 export let editGradeId = null;
 export let searchQuery = ''; 
 
-// STATE BARU UNTUK REKAP
 export let selClassRekap = '';
 
 export function setGradesData(data) { gradesData = data; }
@@ -36,15 +35,14 @@ export function renderTableRekap() {
     const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     const isWali = appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
 
-    // FITUR BARU: Auto-Select dan Kunci Dropdown untuk Wali Kelas
     if (isWali && appUser.waliKelas) {
         selClassRekap = appUser.waliKelas;
         const elFilter = document.getElementById('filter-kelas-rekap');
         if (elFilter) {
             elFilter.innerHTML = `<option value="${appUser.waliKelas}">${appUser.waliKelas}</option>`;
             elFilter.value = appUser.waliKelas;
-            elFilter.disabled = true; // Kunci dropdown
-            elFilter.classList.add('bg-gray-100', 'cursor-not-allowed'); // Beri efek visual terkunci
+            elFilter.disabled = true; 
+            elFilter.classList.add('bg-gray-100', 'cursor-not-allowed'); 
         }
     }
 
@@ -61,10 +59,8 @@ export function renderTableRekap() {
     const thn = getActiveTahun();
     const smt = getActiveSemester();
     
-    // Tarik semua nilai di kelas yang dipilih
     const d = gradesData.filter(g => g.tahun === thn && g.semester === smt && g.className === selClassRekap);
 
-    // Kumpulkan nilai berdasarkan Siswa (Pivot Table)
     const studentMap = new Map();
     d.forEach(g => {
         const key = g.studentName + "_" + (g.nisn || '');
@@ -74,7 +70,6 @@ export function renderTableRekap() {
 
     const students = Array.from(studentMap.values());
 
-    // Hitung Jumlah & Rata-rata
     students.forEach(s => {
         let total = 0; let count = 0;
         MASTER_SUBJECTS.forEach(sub => {
@@ -84,10 +79,8 @@ export function renderTableRekap() {
         s.avg = count > 0 ? (total / MASTER_SUBJECTS.length) : 0; 
     });
 
-    // Urutkan berdasarkan Peringkat (Total Nilai Terbesar)
     students.sort((a, b) => b.total - a.total);
 
-    // Bangun Header Tabel
     let thHtml = `<tr>
         <th class="px-4 py-3 w-10 border border-blue-200 text-center">No</th>
         <th class="px-4 py-3 min-w-[200px] border border-blue-200">Nama Lengkap Siswa</th>
@@ -101,7 +94,6 @@ export function renderTableRekap() {
                </tr>`;
     thead.innerHTML = thHtml;
 
-    // Bangun Isi Tabel
     if (students.length === 0) {
         tbody.innerHTML = `<tr><td colspan="${6 + MASTER_SUBJECTS.length}" class="p-8 text-center text-gray-400 font-medium">Belum ada data nilai yang diinputkan oleh guru di kelas ini.</td></tr>`;
     } else {
@@ -154,8 +146,9 @@ window.exportRekapExcel = () => {
 
 window.updateFilterRekap = (val) => { selClassRekap = val; renderTableRekap(); };
 
+
 // ==========================================
-// 2. FUNGSI RENDER TABEL (INPUT NILAI, GURU, SISWA)
+// 2. FUNGSI RENDER TABEL LAINNYA
 // ==========================================
 export async function renderTableGuru() {
     const tbody = document.getElementById('crud-guru-tbody');
@@ -165,7 +158,6 @@ export async function renderTableGuru() {
         const usersSnap = await getDocs(collection(db, 'users'));
         let usersList = [];
         usersSnap.forEach(doc => { usersList.push({ id: doc.id, ...doc.data() }); });
-        USERS_DB.length = 0; usersList.forEach(u => USERS_DB.push(u));
 
         if (usersList.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada data pengguna.</td></tr>'; return; }
 
@@ -188,9 +180,9 @@ export async function renderTableGuru() {
                     <td class="p-3">${jabatanHtml}</td>
                     <td class="p-3 font-mono text-gray-400 text-xs">${u.password}</td>
                     <td class="p-3 text-right whitespace-nowrap">
-                       <button onclick="window.openResetSandi('${u.id}', '${encodeURIComponent(u.username)}')" class="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded transition-colors mr-2" title="Reset Sandi"><i class="ph ph-key text-lg"></i></button>
-                       <button onclick="window.editGuru('${u.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-2" title="Atur Tugas Tambahan"><i class="ph ph-briefcase text-lg"></i></button>
-                       <button onclick="window.deleteGuru('${u.id}', '${encodeURIComponent(u.username)}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors" title="Hapus Akun"><i class="ph ph-trash text-lg"></i></button>
+                       <button onclick="window.openResetSandi('${u.id}', '${encodeURIComponent(u.username)}')" class="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded transition-colors mr-2"><i class="ph ph-key text-lg"></i></button>
+                       <button onclick="window.editGuru('${u.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-2"><i class="ph ph-briefcase text-lg"></i></button>
+                       <button onclick="window.deleteGuru('${u.id}', '${encodeURIComponent(u.username)}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors"><i class="ph ph-trash text-lg"></i></button>
                     </td>
                 </tr>`;
         }).join('');
@@ -207,11 +199,8 @@ export function renderTableSiswa() {
     const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     const isWali = appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
 
-    if (isWali && appUser.waliKelas) {
-        clsData = clsData.filter(g => g.className === appUser.waliKelas);
-    } else if (filter.value) { 
-        clsData = clsData.filter(g => g.className === filter.value);
-    }
+    if (isWali && appUser.waliKelas) clsData = clsData.filter(g => g.className === appUser.waliKelas);
+    else if (filter.value) clsData = clsData.filter(g => g.className === filter.value);
 
     const map = new Map();
     clsData.forEach(g => { const key = g.studentName + "_" + (g.nisn||'') + "_" + g.className; if(!map.has(key)) map.set(key, { name: g.studentName, nisn: g.nisn, className: g.className }); });
@@ -226,8 +215,8 @@ export function renderTableSiswa() {
                 <td class="p-3 font-mono text-gray-500 text-sm">${s.nisn || '-'}</td>
                 <td class="p-3 text-center"><span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 rounded-full uppercase">${s.className}</span></td>
                 <td class="p-3 text-right whitespace-nowrap">
-                    <button onclick="window.editSiswa('${encN}', '${encI}', '${encC}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-1"><i class="ph ph-pencil-simple text-lg"></i></button>
-                    <button onclick="window.deleteSiswa('${encN}', '${encI}', '${encC}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors"><i class="ph ph-trash text-lg"></i></button>
+                    <button onclick="window.editSiswa('${encN}', '${encI}', '${encC}')" class="text-blue-500 hover:bg-blue-100 p-1.5 rounded mr-1"><i class="ph ph-pencil-simple text-lg"></i></button>
+                    <button onclick="window.deleteSiswa('${encN}', '${encI}', '${encC}')" class="text-red-500 hover:bg-red-100 p-1.5 rounded"><i class="ph ph-trash text-lg"></i></button>
                 </td>
             </tr>`;
     }).join('') || `<tr><td colspan="5" class="p-8 text-center text-gray-400">Belum ada data siswa ditemukan pada kelas ini.</td></tr>`;
@@ -238,6 +227,8 @@ export function getDisplayData() {
     let d = gradesData.filter(g => g.tahun === getActiveTahun() && g.semester === getActiveSemester());
     const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     
+    // Guru Mapel biasa & Wali Kelas HANYA bisa lihat nilainya sendiri. 
+    // Wakasek Kurikulum dan Admin BISA melihat semuanya.
     if (appUser.role === 'guru' && !isWakasek) {
         d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
     }
@@ -258,17 +249,20 @@ export function renderTable() {
 
     if(!appUser || !tableCont || !gradesTbody) return;
 
-    // PERBAIKAN: Sembunyikan Filter Guru jika bukan Admin
+    const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
+
+    // Pengaturan Filter Dropdown Guru
     const filterGuruWrap = document.getElementById('filter-guru-wrapper');
     const filterGrid = document.getElementById('filter-grid');
     if (filterGuruWrap && filterGrid) {
-        if (appUser.role !== 'admin') {
-            filterGuruWrap.classList.add('hidden');
-            filterGrid.classList.remove('md:grid-cols-3');
+        // Hanya Admin & Wakasek yang bisa pakai filter guru
+        if (appUser.role !== 'admin' && !isWakasek) {
+            filterGuruWrap.classList.add('hidden'); 
+            filterGrid.classList.remove('md:grid-cols-3'); 
             filterGrid.classList.add('md:grid-cols-2');
         } else {
-            filterGuruWrap.classList.remove('hidden');
-            filterGrid.classList.remove('md:grid-cols-2');
+            filterGuruWrap.classList.remove('hidden'); 
+            filterGrid.classList.remove('md:grid-cols-2'); 
             filterGrid.classList.add('md:grid-cols-3');
         }
     }
@@ -279,30 +273,31 @@ export function renderTable() {
 
     if(emptyState) emptyState.classList.add('hidden'); tableCont.classList.remove('hidden');
 
-    const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
-
-    if(document.getElementById('badge-guru')) {
-        document.getElementById('badge-guru').classList.toggle('hidden', appUser.role !== 'admin');
-        document.getElementById('badge-guru').textContent = wFilter === 'all' ? 'Semua Guru' : wFilter;
+    if(document.getElementById('badge-guru')) { 
+        document.getElementById('badge-guru').classList.toggle('hidden', !isWakasek && appUser.role !== 'admin'); 
+        document.getElementById('badge-guru').textContent = wFilter === 'all' ? 'Semua Guru' : wFilter; 
     }
     if(document.getElementById('badge-kelas')) document.getElementById('badge-kelas').textContent = selClass;
     if(document.getElementById('badge-mapel')) document.getElementById('badge-mapel').textContent = selSubject || 'Semua Mapel';
     
-    if(appUser.role === 'admin' || (!isWakasek && appUser.role === 'guru')) {
-        document.getElementById('weights-container')?.classList.remove('hidden');
-        document.getElementById('guru-excel-actions')?.classList.remove('hidden');
+    // PERBAIKAN PENTING: Wakasek Kurikulum memiliki akses Edit & Tools (Sama seperti Guru biasa)
+    if(appUser.role !== 'admin') { 
+        document.getElementById('weights-container')?.classList.remove('hidden'); 
+        document.getElementById('guru-excel-actions')?.classList.remove('hidden'); 
         document.querySelectorAll('.guru-col').forEach(c => c.classList.remove('hidden'));
     } else {
-        document.getElementById('weights-container')?.classList.add('hidden');
-        document.getElementById('guru-excel-actions')?.classList.add('hidden');
+        // Admin hanya read-only di tabel input ini (jika sampai terbuka)
+        document.getElementById('weights-container')?.classList.add('hidden'); 
+        document.getElementById('guru-excel-actions')?.classList.add('hidden'); 
         document.querySelectorAll('.guru-col').forEach(c => c.classList.add('hidden'));
     }
 
     const d = getDisplayData();
     let countPass = 0, countRemed = 0; let html = '';
 
-    if (d.length === 0) { html = `<tr><td colspan="11" class="px-4 py-12 text-center text-gray-400 font-medium">Belum ada data nilai/siswa di kelas ini.</td></tr>`; } 
-    else {
+    if (d.length === 0) { 
+        html = `<tr><td colspan="11" class="px-4 py-12 text-center text-gray-400 font-medium">Belum ada data nilai/siswa di kelas ini.</td></tr>`; 
+    } else {
         d.forEach((item, idx) => {
             const calc = getCalc(item.scores); const finNum = parseFloat(calc.final); const isRemedial = finNum < 75.0; 
             if(isRemedial) countRemed++; else countPass++;
@@ -310,27 +305,31 @@ export function renderTable() {
             const naIcon = isRemedial ? '<i class="ph ph-warning-circle text-red-500 mr-1"></i>' : '';
             const bgA = 'bg-emerald-50/50 text-emerald-700 font-bold';
 
-            if(isWakasek || editGradeId === item.id) {
-                if(editGradeId !== item.id) {
-                    html += `
-                    <tr class="hover:bg-blue-50/50 border-b border-gray-100 transition-colors print:bg-white">
-                        <td class="px-4 py-3 text-center text-gray-500 text-xs">${idx+1}</td>
-                        <td class="px-4 py-3">
-                            <div class="font-bold text-gray-800">${item.studentName}</div>
-                            <div class="text-[10px] text-gray-400 font-mono">${item.nisn||'-'}</div>
-                            ${isWakasek || appUser.role==='admin' ? `<div class="text-[9px] text-blue-500 font-bold uppercase mt-1">${item.teacherName} | ${item.subject}</div>` : ''}
-                        </td>
-                        <td class="px-2 py-3 text-center text-sm">${ds(item.scores.f1)}</td><td class="px-2 py-3 text-center text-sm">${ds(item.scores.f2)}</td><td class="px-2 py-3 text-center text-sm">${ds(item.scores.f3)}</td>
-                        <td class="px-2 py-3 text-center text-sm">${ds(item.scores.t1)}</td><td class="px-2 py-3 text-center text-sm">${ds(item.scores.t2)}</td><td class="px-2 py-3 text-center text-sm">${ds(item.scores.t3)}</td>
-                        <td class="px-2 py-3 text-center font-bold text-emerald-700">${ds(item.scores.asaj)}</td>
-                        <td class="px-4 py-3 text-center font-bold ${naColor} border-l border-gray-100">${naIcon}${finNum.toFixed(1)}</td>
-                    </tr>`;
-                }
+            // Jika yang login adalah Admin (murni read-only)
+            if(appUser.role === 'admin' && editGradeId !== item.id) {
+                html += `
+                <tr class="hover:bg-blue-50/50 border-b border-gray-100 transition-colors print:bg-white">
+                    <td class="px-4 py-3 text-center text-gray-500 text-xs">${idx+1}</td>
+                    <td class="px-4 py-3">
+                        <div class="font-bold text-gray-800">${item.studentName}</div>
+                        <div class="text-[10px] text-gray-400 font-mono">${item.nisn||'-'}</div>
+                        <div class="text-[9px] text-blue-500 font-bold uppercase mt-1">${item.teacherName} | ${item.subject}</div>
+                    </td>
+                    <td class="px-2 py-3 text-center text-sm">${ds(item.scores.f1)}</td><td class="px-2 py-3 text-center text-sm">${ds(item.scores.f2)}</td><td class="px-2 py-3 text-center text-sm">${ds(item.scores.f3)}</td>
+                    <td class="px-2 py-3 text-center text-sm">${ds(item.scores.t1)}</td><td class="px-2 py-3 text-center text-sm">${ds(item.scores.t2)}</td><td class="px-2 py-3 text-center text-sm">${ds(item.scores.t3)}</td>
+                    <td class="px-2 py-3 text-center font-bold text-emerald-700">${ds(item.scores.asaj)}</td>
+                    <td class="px-4 py-3 text-center font-bold ${naColor} border-l border-gray-100">${naIcon}${finNum.toFixed(1)}</td>
+                </tr>`;
             } else {
+                // Spreadsheet UI untuk Guru, Wali Kelas, dan Wakasek Kurikulum
                 html += `
                 <tr data-id="${item.id}" class="hover:bg-blue-50/50 border-b border-gray-100 transition-colors print:bg-white">
                     <td class="px-4 py-3 text-center text-gray-500 text-xs">${idx+1}</td>
-                    <td class="px-4 py-3"><div class="font-bold text-gray-800">${item.studentName}</div><div class="text-[10px] text-gray-400 font-mono">${item.nisn||'-'}</div></td>
+                    <td class="px-4 py-3">
+                        <div class="font-bold text-gray-800">${item.studentName}</div>
+                        <div class="text-[10px] text-gray-400 font-mono">${item.nisn||'-'}</div>
+                        ${isWakasek ? `<div class="text-[9px] text-blue-500 font-bold uppercase mt-1" title="Guru Pembuat Nilai">${item.teacherName}</div>` : ''}
+                    </td>
                     <td class="px-1 py-3"><input type="number" min="0" max="100" data-f="f1" value="${ds(item.scores.f1)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
                     <td class="px-1 py-3"><input type="number" min="0" max="100" data-f="f2" value="${ds(item.scores.f2)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
                     <td class="px-1 py-3"><input type="number" min="0" max="100" data-f="f3" value="${ds(item.scores.f3)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
@@ -355,8 +354,8 @@ export function renderTable() {
     if (document.getElementById('count-remed')) document.getElementById('count-remed').textContent = `${countRemed} Siswa`;
 
     const rowNewGrade = document.getElementById('row-new-grade');
-    gradesTbody.innerHTML = (appUser.role === 'guru' || appUser.role === 'admin' ? (rowNewGrade ? rowNewGrade.outerHTML : '') : '') + html;
-    if(document.getElementById('row-new-grade') && !editGradeId && (appUser.role === 'guru' || appUser.role === 'admin')) document.getElementById('row-new-grade').classList.remove('hidden');
+    gradesTbody.innerHTML = (appUser.role !== 'admin' ? (rowNewGrade ? rowNewGrade.outerHTML : '') : '') + html;
+    if(document.getElementById('row-new-grade') && !editGradeId && appUser.role !== 'admin') document.getElementById('row-new-grade').classList.remove('hidden');
     window.renderTable = renderTable;
 }
 
@@ -403,12 +402,14 @@ export function populateDropdowns() {
             elFilterKelasRekap.innerHTML = `<option value="${appUser.waliKelas}">${appUser.waliKelas}</option>`;
             elFilterKelasRekap.value = appUser.waliKelas;
             elFilterKelasRekap.disabled = true;
+            elFilterKelasRekap.classList.add('bg-gray-100', 'cursor-not-allowed');
             selClassRekap = appUser.waliKelas;
         } else {
             const v = elFilterKelasRekap.value; 
             elFilterKelasRekap.innerHTML = clsOptsPilihManajemen; 
             elFilterKelasRekap.value = v; 
             elFilterKelasRekap.disabled = false;
+            elFilterKelasRekap.classList.remove('bg-gray-100', 'cursor-not-allowed');
         }
     }
 
