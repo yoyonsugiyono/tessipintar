@@ -1,6 +1,5 @@
 // File: js/ui/admin.js
 
-// PERUBAHAN: Menambahkan getDocs pada import
 import { doc, deleteDoc, updateDoc, addDoc, serverTimestamp, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db, getGradesCollection } from '../config/firebase.js';
 import { USERS_DB, getActiveTahun, getActiveSemester } from '../services/auth.js';
@@ -132,7 +131,7 @@ export function setupAdminEvents() {
         };
     }
 
-    // F. Reset Seluruh Data Siswa (Semua Kelas & Periode)
+    // F. Reset Seluruh Data Siswa (PERBAIKAN FITUR HAPUS)
     const btnResetSiswa = document.getElementById('btn-reset-siswa');
     if (btnResetSiswa) {
         btnResetSiswa.onclick = async () => {
@@ -148,7 +147,6 @@ export function setupAdminEvents() {
                 btnResetSiswa.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> SEDANG MENGHAPUS...';
                 btnResetSiswa.disabled = true;
 
-                // Mengambil seluruh dokumen di koleksi grades (data siswa & nilai)
                 const snapshot = await getDocs(getGradesCollection());
                 
                 if (snapshot.empty) {
@@ -158,22 +156,34 @@ export function setupAdminEvents() {
                     return;
                 }
 
-                // Hapus semua data
-                const promises = [];
-                snapshot.forEach(d => {
-                    promises.push(deleteDoc(doc(getGradesCollection(), d.id)));
-                });
-                await Promise.all(promises); // Tunggu sampai semuanya terhapus
+                // Gunakan Batch dan referensi langsung (d.ref) untuk menghindari error Firebase
+                let batches = [];
+                let currentBatch = writeBatch(db);
+                let count = 0;
 
-                await writeLog("RESET_DATA_SISWA", `Admin mengosongkan seluruh database siswa (${promises.length} dokumen terhapus).`);
-                alert(`Selesai! Sebanyak ${promises.length} dokumen siswa berhasil dihapus secara permanen.`);
+                snapshot.docs.forEach(d => {
+                    currentBatch.delete(d.ref);
+                    count++;
+                    if (count === 500) { // Limit Firebase adalah 500 per batch
+                        batches.push(currentBatch.commit());
+                        currentBatch = writeBatch(db);
+                        count = 0;
+                    }
+                });
+                
+                if (count > 0) batches.push(currentBatch.commit());
+                
+                await Promise.all(batches); // Eksekusi penghapusan serentak
+
+                await writeLog("RESET_DATA_SISWA", `Admin mengosongkan seluruh database siswa.`);
+                alert(`Selesai! Sebanyak ${snapshot.docs.length} dokumen siswa berhasil dibersihkan dari server.`);
                 
                 btnResetSiswa.innerHTML = '<i class="ph ph-users-three text-xl"></i> Kosongkan Data Siswa';
                 btnResetSiswa.disabled = false;
                 renderTableSiswa(); // Refresh UI
             } catch (err) {
                 console.error("Gagal reset data siswa:", err);
-                alert("Terjadi kesalahan saat menghapus data.");
+                alert("Terjadi kesalahan saat menghapus data. Periksa koneksi internet Anda.");
                 btnResetSiswa.innerHTML = '<i class="ph ph-users-three text-xl"></i> Kosongkan Data Siswa';
                 btnResetSiswa.disabled = false;
             }
