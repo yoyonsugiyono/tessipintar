@@ -70,13 +70,10 @@ function init() {
         });
     });
 
-    // PENGATUR MENU NAVIGASI
     window.switchMenu = (menuId) => {
         coreSwitchMenu(menuId);
-        
-        // PERBAIKAN: Pastikan fungsi render dieksekusi saat menu diklik!
         if (menuId === 'admin-master') renderMasterDataUI();
-        if (menuId === 'admin-guru') renderTableGuru(); // <--- INI PENYEBABNYA, SEBELUMNYA TIDAK ADA
+        if (menuId === 'admin-guru') renderTableGuru();
         if (menuId === 'admin-import') renderTableSiswa();
         if (menuId === 'nilai') renderTable();
     };
@@ -106,30 +103,93 @@ export function updateDashboardView() {
 }
 
 function showApp(user) {
+    if (!user) return; // Cegah error jika objek user kosong
+    
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('main-view').classList.remove('hidden');
     
-    document.getElementById('auth-user-name').textContent = user.username.split(',')[0];
-    document.getElementById('auth-user-role').textContent = user.role;
-    document.getElementById('page-subtitle-name').textContent = user.username.split(',')[0];
+    // SAFEGUARD: Ambil nama dengan aman, cegah split() error jika format data kacau
+    const rawName = user.username || user.name || 'Pengguna';
+    const shortName = String(rawName).split(',')[0];
+    
+    const elAuthName = document.getElementById('auth-user-name');
+    if (elAuthName) elAuthName.textContent = shortName;
+    
+    const elPageSub = document.getElementById('page-subtitle-name');
+    if (elPageSub) elPageSub.textContent = shortName;
+    
+    // Menampilkan Jabatan Akurat di Sidebar
+    let displayRole = user.role === 'admin' ? 'Administrator' : 'Guru Mata Pelajaran';
+    if (user.role !== 'admin') {
+        if (user.tugasTambahan === 'Wakasek Kurikulum' || user.role === 'wakasek') {
+            displayRole = 'Wakasek Kurikulum';
+        } else if (user.tugasTambahan === 'Wali Kelas' || user.jabatan === 'Wali Kelas') {
+            displayRole = `Wali Kelas ${user.waliKelas ? user.waliKelas : ''}`;
+        }
+    }
+    
+    const elAuthRole = document.getElementById('auth-user-role');
+    if (elAuthRole) elAuthRole.textContent = displayRole;
+
+    // ========================================================
+    // MENGISI BANNER DASHBOARD BIRU BERDASARKAN ROLE
+    // ========================================================
+    const dashName = document.getElementById('dash-name');
+    const dashDesc = document.getElementById('dash-desc');
+    const dashBtn = document.getElementById('dash-action-btn');
+
+    if (dashName) dashName.textContent = shortName;
+
+    if (user.role === 'admin') {
+        if (dashDesc) dashDesc.textContent = "Pusat kendali database sekolah. Kelola data master, pengguna, dan sistem secara keseluruhan.";
+        if (dashBtn) {
+            dashBtn.innerHTML = '<i class="ph ph-database text-xl"></i> Kelola Master Data';
+            dashBtn.onclick = () => window.switchMenu('admin-master');
+        }
+    } else if (user.role === 'wakasek' || user.tugasTambahan === 'Wakasek Kurikulum') {
+        if (dashDesc) dashDesc.textContent = "Pantau perkembangan akademik siswa dan kelola administrasi kurikulum sekolah secara menyeluruh.";
+        if (dashBtn) {
+            dashBtn.innerHTML = '<i class="ph ph-exam text-xl"></i> Pantau Data Nilai';
+            dashBtn.onclick = () => window.switchMenu('nilai');
+        }
+    } else {
+        // Guru Mapel & Wali Kelas
+        if (dashDesc) dashDesc.textContent = "Kelola nilai siswa dan administrasi rapor dengan lebih efisien dan terstruktur.";
+        if (dashBtn) {
+            dashBtn.innerHTML = '<i class="ph ph-pencil-simple text-xl"></i> Mulai Input Nilai';
+            dashBtn.onclick = () => window.switchMenu('nilai');
+        }
+    }
     
     const thn = getActiveTahun();
     const smt = getActiveSemester();
-    document.getElementById('display-periode').innerHTML = `<i class="ph ph-calendar-check mr-2"></i> TA. ${thn} - ${smt}`;
     
-    if (user.role === 'admin' || user.role === 'wakasek') {
+    const elPeriode = document.getElementById('display-periode');
+    if (elPeriode) elPeriode.innerHTML = `<i class="ph ph-calendar-check mr-2"></i> TA. ${thn} - ${smt}`;
+    
+    if (user.role === 'admin' || user.role === 'wakasek' || user.tugasTambahan === 'Wakasek Kurikulum') {
         const filterDash = document.getElementById('dashboard-filter-bar');
         if (filterDash) {
             filterDash.classList.remove('hidden');
-            document.getElementById('dash-filter-tahun').value = thn;
-            document.getElementById('dash-filter-smt').value = smt;
+            const dashFilterTahun = document.getElementById('dash-filter-tahun');
+            const dashFilterSmt = document.getElementById('dash-filter-smt');
+            if (dashFilterTahun) dashFilterTahun.value = thn;
+            if (dashFilterSmt) dashFilterSmt.value = smt;
         }
     }
 
-    if (document.getElementById('label-copy-tahun-aktif')) document.getElementById('label-copy-tahun-aktif').textContent = thn;
-    if (document.getElementById('label-copy-smt-aktif')) document.getElementById('label-copy-smt-aktif').textContent = smt;
+    const labelCopyTahun = document.getElementById('label-copy-tahun-aktif');
+    const labelCopySmt = document.getElementById('label-copy-smt-aktif');
+    if (labelCopyTahun) labelCopyTahun.textContent = thn;
+    if (labelCopySmt) labelCopySmt.textContent = smt;
 
-    buildSidebarNav();
+    // Build sidebar dan tampilkan dashboard
+    try {
+        buildSidebarNav();
+    } catch(e) {
+        console.error("[DEBUG] Gagal build sidebar:", e);
+    }
+    
     window.switchMenu('dashboard');
 }
 
