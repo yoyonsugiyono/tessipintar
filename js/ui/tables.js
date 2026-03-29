@@ -24,7 +24,6 @@ export function renderTableGuru() {
         const isWali = u.jabatan === 'Wali Kelas';
         const roleColor = u.role === 'admin' ? 'text-red-600' : 'text-blue-600';
         
-        // Tampilkan label jabatan & kelas asuhan dengan cantik
         const jabatanHtml = `
             <div class="font-bold uppercase tracking-wider ${roleColor}">${u.role}</div>
             <div class="text-xs text-gray-500 mt-0.5">
@@ -57,7 +56,6 @@ export function renderTableSiswa() {
     const smt = getActiveSemester();
     let clsData = gradesData.filter(g => g.tahun === thn && g.semester === smt);
 
-    // KUNCI WALI KELAS: Hanya tampilkan data kelas asuhannya
     if (appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
         clsData = clsData.filter(g => g.className === appUser.waliKelas);
     } else if (filter.value) {
@@ -96,7 +94,6 @@ export function getDisplayData() {
 
     let d = gradesData.filter(g => g.tahun === thn && g.semester === smt);
     
-    // Guru Mapel & Wali Kelas: Hanya melihat nilai miliknya, Wakasek/Admin: Lihat Semua
     if (appUser.role === 'guru' && appUser.jabatan !== 'Wakasek Kurikulum') {
         d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
     }
@@ -110,19 +107,156 @@ export function getDisplayData() {
 }
 
 export function renderTable() {
-    // ... [Isi fungsi renderTable persis sama seperti sebelumnya, tidak ada perubahan] ...
-    // (Karena instruksinya terlalu panjang, Anda tidak perlu mengubah fungsi renderTable ini jika sudah bagus)
+    const appUser = getAppUser();
+    const tableCont = document.getElementById('table-container');
+    const gradesTbody = document.getElementById('grades-tbody');
+    const emptyState = document.getElementById('empty-state-nilai');
+
+    if(!appUser || !tableCont || !gradesTbody) return;
+
+    if(!selClass || (appUser.role === 'guru' && !selSubject)) {
+        if(emptyState) emptyState.classList.remove('hidden');
+        tableCont.classList.add('hidden');
+        return;
+    }
+
+    if(emptyState) emptyState.classList.add('hidden');
+    tableCont.classList.remove('hidden');
+
+    if(document.getElementById('badge-guru')) {
+        document.getElementById('badge-guru').classList.toggle('hidden', appUser.role === 'guru');
+        document.getElementById('badge-guru').textContent = wFilter === 'all' ? 'Semua Guru' : wFilter;
+    }
+    if(document.getElementById('badge-kelas')) document.getElementById('badge-kelas').textContent = selClass;
+    if(document.getElementById('badge-mapel')) document.getElementById('badge-mapel').textContent = selSubject || 'Semua Mapel';
+    
+    if(appUser.role === 'guru') {
+        document.getElementById('weights-container')?.classList.remove('hidden');
+        document.getElementById('guru-excel-actions')?.classList.remove('hidden');
+        document.querySelectorAll('.guru-col').forEach(c => c.classList.remove('hidden'));
+    } else {
+        document.getElementById('weights-container')?.classList.add('hidden');
+        document.getElementById('guru-excel-actions')?.classList.add('hidden');
+        document.querySelectorAll('.guru-col').forEach(c => c.classList.add('hidden'));
+    }
+
+    const d = getDisplayData();
+    let countPass = 0, countRemed = 0;
+    let html = '';
+
+    if (d.length === 0) {
+        html = `<tr><td colspan="11" class="px-4 py-12 text-center text-gray-400 font-medium">Belum ada data nilai/siswa di kelas ini.</td></tr>`;
+    } else {
+        d.forEach((item, idx) => {
+            const calc = getCalc(item.scores);
+            const finNum = parseFloat(calc.final);
+            const isRemedial = finNum < 75.0; 
+            
+            if(isRemedial) countRemed++; else countPass++;
+
+            const naColor = isRemedial ? 'text-red-600 bg-red-50' : 'text-blue-700 bg-blue-50/20';
+            const naIcon = isRemedial ? '<i class="ph ph-warning-circle text-red-500 mr-1" title="Di bawah KKM (75)"></i>' : '';
+            const bgA = 'bg-emerald-50/50 text-emerald-700 font-bold';
+
+            if(appUser.role === 'wakasek' || editGradeId === item.id) {
+                if(editGradeId !== item.id) {
+                    html += `
+                    <tr class="hover:bg-blue-50/50 border-b border-gray-100 transition-colors print:bg-white">
+                        <td class="px-4 py-3 text-center text-gray-500 text-xs">${idx+1}</td>
+                        <td class="px-4 py-3">
+                            <div class="font-bold text-gray-800">${item.studentName}</div>
+                            <div class="text-[10px] text-gray-400 font-mono">${item.nisn||'-'}</div>
+                            ${appUser.role==='wakasek' ? `<div class="text-[9px] text-blue-500 font-bold uppercase mt-1">${item.teacherName} | ${item.subject}</div>` : ''}
+                        </td>
+                        <td class="px-2 py-3 text-center text-sm">${ds(item.scores.f1)}</td>
+                        <td class="px-2 py-3 text-center text-sm">${ds(item.scores.f2)}</td>
+                        <td class="px-2 py-3 text-center text-sm">${ds(item.scores.f3)}</td>
+                        <td class="px-2 py-3 text-center text-sm">${ds(item.scores.t1)}</td>
+                        <td class="px-2 py-3 text-center text-sm">${ds(item.scores.t2)}</td>
+                        <td class="px-2 py-3 text-center text-sm">${ds(item.scores.t3)}</td>
+                        <td class="px-2 py-3 text-center font-bold text-emerald-700">${ds(item.scores.asaj)}</td>
+                        <td class="px-4 py-3 text-center font-bold ${naColor} border-l border-gray-100">${naIcon}${finNum.toFixed(1)}</td>
+                    </tr>`;
+                }
+            } else {
+                html += `
+                <tr data-id="${item.id}" class="hover:bg-blue-50/50 border-b border-gray-100 transition-colors print:bg-white">
+                    <td class="px-4 py-3 text-center text-gray-500 text-xs">${idx+1}</td>
+                    <td class="px-4 py-3">
+                        <div class="font-bold text-gray-800">${item.studentName}</div>
+                        <div class="text-[10px] text-gray-400 font-mono">${item.nisn||'-'}</div>
+                    </td>
+                    <td class="px-1 py-3"><input type="number" min="0" max="100" data-f="f1" value="${ds(item.scores.f1)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+                    <td class="px-1 py-3"><input type="number" min="0" max="100" data-f="f2" value="${ds(item.scores.f2)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+                    <td class="px-1 py-3"><input type="number" min="0" max="100" data-f="f3" value="${ds(item.scores.f3)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+                    <td class="px-1 py-3"><input type="number" min="0" max="100" data-f="t1" value="${ds(item.scores.t1)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+                    <td class="px-1 py-3"><input type="number" min="0" max="100" data-f="t2" value="${ds(item.scores.t2)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+                    <td class="px-1 py-3"><input type="number" min="0" max="100" data-f="t3" value="${ds(item.scores.t3)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500"></td>
+                    <td class="px-1 py-3"><input type="number" min="0" max="100" data-f="asaj" value="${ds(item.scores.asaj)}" class="w-full border border-gray-300 rounded p-1 text-center text-sm outline-none focus:border-blue-500 ${bgA}"></td>
+                    <td class="px-4 py-3 text-center font-bold ${naColor} cell-na border-l border-gray-100">${naIcon}${finNum.toFixed(1)}</td>
+                    <td class="px-4 py-3 text-right print-hidden">
+                        <div class="flex justify-end gap-1">
+                            <button type="button" class="btn-edit p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" title="Edit Data Siswa"><i class="ph ph-book-open text-lg pointer-events-none"></i></button>
+                            <button type="button" class="btn-del p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Hapus Siswa"><i class="ph ph-trash text-lg pointer-events-none"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            }
+        });
+    }
+
+    const total = d.length;
+    const percent = total > 0 ? Math.round((countPass / total) * 100) : 0;
+    
+    if (document.getElementById('stat-pass-percent')) document.getElementById('stat-pass-percent').textContent = `${percent}%`;
+    if (document.getElementById('count-pass')) document.getElementById('count-pass').textContent = `${countPass} Siswa`;
+    if (document.getElementById('count-remed')) document.getElementById('count-remed').textContent = `${countRemed} Siswa`;
+
+    const rowNewGrade = document.getElementById('row-new-grade');
+    const newRowHTML = rowNewGrade ? rowNewGrade.outerHTML : '';
+
+    gradesTbody.innerHTML = (appUser.role === 'guru' ? newRowHTML : '') + html;
+    
+    const rowNewGradeAfter = document.getElementById('row-new-grade');
+    if(rowNewGradeAfter && !editGradeId && appUser.role === 'guru') {
+        rowNewGradeAfter.classList.remove('hidden');
+    }
+    
+    window.renderTable = renderTable;
 }
 
 export function renderMasterDataUI() {
-    // ... [Isi fungsi renderMasterDataUI persis sama seperti sebelumnya] ...
+    const thnList = document.getElementById('master-tahun-list');
+    const clsList = document.getElementById('master-class-list');
+    const subList = document.getElementById('master-subject-list');
+    
+    if (thnList) {
+        thnList.innerHTML = MASTER_TAHUN.map((t, i) => `
+            <div class="flex justify-between items-center p-2.5 bg-white border border-gray-200 rounded-lg mb-2 shadow-sm">
+                <span class="font-medium text-blue-700">${t}</span>
+                <button onclick="window.deleteMasterTahun(${i})" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-md transition-colors"><i class="ph ph-trash text-lg"></i></button>
+            </div>`).join('') || '<div class="text-xs text-gray-400 text-center italic mt-2">Belum ada tahun tambahan.</div>';
+    }
+
+    if (clsList) {
+        clsList.innerHTML = MASTER_CLASSES.map((c, i) => `
+            <div class="flex justify-between items-center p-2.5 bg-white border border-gray-200 rounded-lg mb-2 shadow-sm">
+                <span class="font-medium text-gray-700">${c}</span>
+                <button onclick="window.deleteMasterClass(${i})" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-md transition-colors"><i class="ph ph-trash text-lg"></i></button>
+            </div>`).join('') || '<div class="text-xs text-gray-400 text-center italic mt-2">Belum ada data kelas.</div>';
+    }
+
+    if (subList) {
+        subList.innerHTML = MASTER_SUBJECTS.map((s, i) => `
+            <div class="flex justify-between items-center p-2.5 bg-white border border-gray-200 rounded-lg mb-2 shadow-sm">
+                <span class="font-medium text-gray-700">${s}</span>
+                <button onclick="window.deleteMasterSubject(${i})" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-md transition-colors"><i class="ph ph-trash text-lg"></i></button>
+            </div>`).join('') || '<div class="text-xs text-gray-400 text-center italic mt-2">Belum ada data mata pelajaran.</div>';
+    }
 }
 
 export function populateDropdowns() {
-    const appUser = getAppUser();
-    if (!appUser) return;
-
-    // 1. Opsi Tahun Ajaran
+    // 1. OPSI TAHUN AJARAN (Berjalan otomatis, tidak butuh cek appUser)
     const allTahun = [...new Set([...DEFAULT_TAHUN, ...MASTER_TAHUN])].sort();
     const thnOpts = allTahun.map(t => `<option value="${t}">${t}</option>`).join('');
     ['login-tahun', 'dash-filter-tahun', 'copy-tahun-asal'].forEach(id => {
@@ -130,12 +264,14 @@ export function populateDropdowns() {
         if(el) { const oldVal = el.value; el.innerHTML = thnOpts; if (oldVal && allTahun.includes(oldVal)) el.value = oldVal; }
     });
 
-    // 2. KUNCI DROPDOWN KELAS UNTUK WALI KELAS
+    // 2. OPSI KELAS DAN MAPEL (Butuh cek appUser untuk fitur Wali Kelas)
+    const appUser = getAppUser();
+    
     const dbClasses = [...new Set(gradesData.map(g => g.className))].filter(Boolean);
     let allClasses = [...new Set([...MASTER_CLASSES, ...dbClasses])].sort();
     
-    // Jika user adalah Wali Kelas, paksa dropdown kelas HANYA berisi kelas miliknya
-    if (appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
+    // Kunci Kelas jika pengguna adalah Wali Kelas
+    if (appUser && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
         allClasses = [appUser.waliKelas];
     }
 
