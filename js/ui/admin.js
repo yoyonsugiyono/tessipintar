@@ -2,14 +2,16 @@
 
 import { doc, deleteDoc, updateDoc, addDoc, serverTimestamp, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db, getGradesCollection } from '../config/firebase.js';
-import { USERS_DB, getActiveTahun, getActiveSemester } from '../services/auth.js';
+import { USERS_DB, getActiveTahun, getActiveSemester, getAppUser } from '../services/auth.js';
 import { MASTER_CLASSES, MASTER_SUBJECTS, MASTER_TAHUN, saveMasterData } from '../services/db-master.js';
 import { renderTableGuru, renderTableSiswa, gradesData, renderMasterDataUI, populateDropdowns } from './tables.js';
 import { writeLog } from '../services/audit.js';
 
 export function setupAdminEvents() {
     
-    // --- FITUR BARU: EXPORT / IMPORT MASTER DATA VIA EXCEL (DENGAN TOMBOL PROSES) ---
+    // ========================================================
+    // 1. MASTER DATA: EXPORT & IMPORT VIA EXCEL
+    // ========================================================
     const btnTemplateMaster = document.getElementById('btn-template-master');
     if (btnTemplateMaster) {
         btnTemplateMaster.onclick = () => {
@@ -51,7 +53,6 @@ export function setupAdminEvents() {
 
             const reader = new FileReader();
             
-            // FUNGSI RESET UI SETELAH SELESAI / ERROR
             const resetMasterUploadUI = () => {
                 importXlsxMaster.value = null;
                 selectedMasterFile = null;
@@ -65,7 +66,6 @@ export function setupAdminEvents() {
                 let countTahun = 0, countKelas = 0, countMapel = 0;
                 let parsedTahun = [], parsedKelas = [], parsedMapel = [];
 
-                // FASE 1: BACA FILE EXCEL
                 try {
                     const data = new Uint8Array(ev.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
@@ -92,66 +92,48 @@ export function setupAdminEvents() {
                         });
                     }
                     
-                    countTahun = parsedTahun.length;
-                    countKelas = parsedKelas.length;
-                    countMapel = parsedMapel.length;
+                    countTahun = parsedTahun.length; countKelas = parsedKelas.length; countMapel = parsedMapel.length;
 
                 } catch(err) { 
-                    console.error("Gagal parse Master XLSX:", err);
-                    alert("ERROR: Gagal membaca file Excel. Pastikan file tidak rusak dan format tabelnya sama dengan file template yang didownload."); 
-                    resetMasterUploadUI();
-                    return; // Hentikan proses jika excelnya yang rusak
+                    alert("ERROR: Gagal membaca file Excel. Pastikan file tidak rusak dan format sesuai template."); 
+                    resetMasterUploadUI(); return;
                 }
 
-                // FASE 2: SIMPAN KE DATABASE FIREBASE
                 if (countTahun > 0 || countKelas > 0 || countMapel > 0) {
                     try {
-                        // Masukkan ke array utama
                         parsedTahun.forEach(v => MASTER_TAHUN.push(v));
                         parsedKelas.forEach(v => MASTER_CLASSES.push(v));
                         parsedMapel.forEach(v => MASTER_SUBJECTS.push(v));
 
                         await saveMasterData();
-                        renderMasterDataUI();
-                        populateDropdowns();
-                        
+                        renderMasterDataUI(); populateDropdowns();
                         try { await writeLog("IMPORT_MASTER", `Mengimpor ${countTahun} Tahun, ${countKelas} Kelas, ${countMapel} Mapel.`); } catch(e){}
-                        
                         alert(`Berhasil mengimpor data baru:\n- ${countTahun} Tahun Ajaran\n- ${countKelas} Kelas\n- ${countMapel} Mata Pelajaran`);
                     } catch(dbErr) {
-                        console.error("Gagal simpan ke Firebase:", dbErr);
-                        // Jika gagal simpan, cabut lagi data dari array agar UI tidak berbohong
-                        parsedTahun.forEach(v => MASTER_TAHUN.pop());
-                        parsedKelas.forEach(v => MASTER_CLASSES.pop());
-                        parsedMapel.forEach(v => MASTER_SUBJECTS.pop());
-                        
-                        alert("ERROR DATABASE: Gagal menyimpan data ke server. Periksa koneksi internet Anda atau hubungi pembuat sistem jika kendala berlanjut.");
+                        parsedTahun.forEach(() => MASTER_TAHUN.pop());
+                        parsedKelas.forEach(() => MASTER_CLASSES.pop());
+                        parsedMapel.forEach(() => MASTER_SUBJECTS.pop());
+                        alert("ERROR DATABASE: Gagal menyimpan data ke server.");
                     }
                 } else {
-                    alert("Tidak ada data baru yang ditambahkan (data di file Excel kosong atau data tersebut sudah ada di sistem).");
+                    alert("Tidak ada data baru yang ditambahkan (data kosong atau sudah ada di sistem).");
                 }
-                
                 resetMasterUploadUI();
             };
-
-            reader.onerror = () => {
-                alert("ERROR: Browser gagal membaca file dari komputer/HP Anda.");
-                resetMasterUploadUI();
-            };
-
+            reader.onerror = () => { alert("ERROR: Browser gagal membaca file."); resetMasterUploadUI(); };
             reader.readAsArrayBuffer(selectedMasterFile);
         };
     }
 
-    // --- FITUR TAMBAH MASTER DATA MANUAL (INPUT TEKS) ---
+    // ========================================================
+    // 2. MASTER DATA: TAMBAH MANUAL (INPUT TEKS)
+    // ========================================================
     const btnAddTahun = document.getElementById('btn-add-master-tahun');
     if(btnAddTahun) {
         btnAddTahun.onclick = async () => {
             const val = document.getElementById('in-master-tahun').value.trim();
             if(!val) return;
-            if(!val.includes('/')) {
-                if(!confirm("Format biasanya menggunakan garis miring (cth: 2028/2029). Tetap simpan?")) return;
-            }
+            if(!val.includes('/')) { if(!confirm("Format biasanya menggunakan garis miring (cth: 2028/2029). Tetap simpan?")) return; }
             if(!MASTER_TAHUN.includes(val)) {
                 MASTER_TAHUN.push(val);
                 try {
@@ -195,17 +177,26 @@ export function setupAdminEvents() {
         };
     }
 
-    // --- FITUR SALIN SISWA (KENAIKAN KELAS) ---
+    // ========================================================
+    // 3. KELOLA SISWA: NAIK KELAS / SALIN SISWA
+    // ========================================================
     const btnCopySiswa = document.getElementById('btn-copy-siswa');
     if (btnCopySiswa) {
         btnCopySiswa.onclick = async () => {
+            const appUser = getAppUser();
             const thnAsal = document.getElementById('copy-tahun-asal').value;
             const clsAsal = document.getElementById('copy-class-asal').value;
             const clsTujuan = document.getElementById('copy-class-tujuan').value;
             const thnAktif = getActiveTahun();
             const smtAktif = getActiveSemester();
 
-            if (!thnAsal || !clsAsal || !clsTujuan) { alert("Mohon pilih Tahun Asal, Kelas Asal, dan Kelas Tujuan terlebih dahulu."); return; }
+            if (!thnAsal || !clsAsal || !clsTujuan) { alert("Pilih Tahun Asal, Kelas Asal, dan Kelas Tujuan terlebih dahulu."); return; }
+
+            // VALIDASI WALI KELAS: Dilarang memproses kelas lain
+            if (appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && clsTujuan !== appUser.waliKelas) {
+                alert(`AKSES DITOLAK: Anda menjabat sebagai Wali Kelas ${appUser.waliKelas}. Anda tidak berhak menyalin data ke kelas ${clsTujuan}.`);
+                return;
+            }
 
             if (confirm(`Salin siswa dari kelas ${clsAsal} (${thnAsal}) ke kelas ${clsTujuan} untuk periode berjalan (${thnAktif} - ${smtAktif})?`)) {
                 const sourceData = gradesData.filter(g => g.tahun === thnAsal && g.className === clsAsal);
@@ -237,15 +228,14 @@ export function setupAdminEvents() {
                             opCount++;
                             if (opCount >= 450) { 
                                 commitPromises.push(currentBatch.commit());
-                                currentBatch = writeBatch(db);
-                                opCount = 0;
+                                currentBatch = writeBatch(db); opCount = 0;
                             }
                         }
                     }
                     if (opCount > 0) commitPromises.push(currentBatch.commit());
                     await Promise.all(commitPromises);
 
-                    await writeLog("SALIN_SISWA", `Menyalin ${studentsToCopy.length} siswa dari ${clsAsal} ke ${clsTujuan}.`);
+                    await writeLog("SALIN_SISWA", `${appUser.username} menyalin ${studentsToCopy.length} siswa dari ${clsAsal} ke ${clsTujuan}.`);
                     alert(`Sukses! ${studentsToCopy.length} siswa berhasil dinaikkan/disalin ke kelas ${clsTujuan}.`);
                     renderTableSiswa();
                 } catch (err) { alert("Terjadi kesalahan sistem saat menyalin data."); } 
@@ -257,7 +247,9 @@ export function setupAdminEvents() {
         };
     }
 
-    // --- IMPORT DATA SISWA VIA EXCEL (DENGAN TOMBOL PROSES) ---
+    // ========================================================
+    // 4. KELOLA SISWA: EXPORT & IMPORT VIA EXCEL
+    // ========================================================
     const btnTemplateSiswa = document.getElementById('btn-template-siswa');
     if (btnTemplateSiswa) {
         btnTemplateSiswa.onclick = () => {
@@ -300,6 +292,15 @@ export function setupAdminEvents() {
 
         btnProcessSiswa.onclick = () => {
             if (!selectedSiswaFile) return;
+
+            const appUser = getAppUser();
+            const targetClass = document.getElementById('import-class-select').value;
+
+            // VALIDASI WALI KELAS
+            if (appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && targetClass !== appUser.waliKelas) {
+                alert(`AKSES DITOLAK: Anda menjabat sebagai Wali Kelas ${appUser.waliKelas}. Anda dilarang mengimpor data siswa untuk kelas ${targetClass}.`);
+                return;
+            }
             
             btnProcessSiswa.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> Sedang Memproses...';
             btnProcessSiswa.disabled = true;
@@ -319,7 +320,6 @@ export function setupAdminEvents() {
                 let count = 0;
                 let processedSiswa = [];
 
-                // FASE 1: BACA FILE EXCEL
                 try {
                     const data = new Uint8Array(ev.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
@@ -329,22 +329,22 @@ export function setupAdminEvents() {
                         let n = String(row["Nama Siswa"] || "").trim();
                         let cls = String(row["Kelas"] || "").trim();
                         if(!n || !cls) continue;
+
+                        // Validasi lapis 2 jika di dalam file excel terdapat kelas yang bukan miliknya
+                        if (appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && cls !== appUser.waliKelas) continue;
+
                         processedSiswa.push({ name: n, nisn: String(row["NISN"] || ""), className: cls });
                     }
                 } catch(err) { 
-                    console.error(err);
                     alert("ERROR: Gagal membaca file Excel Siswa. Pastikan menggunakan format template yang benar."); 
-                    resetSiswaUploadUI();
-                    return;
+                    resetSiswaUploadUI(); return;
                 }
 
                 if (processedSiswa.length === 0) {
-                    alert("Tidak ada data siswa ditemukan di dalam file Excel.");
-                    resetSiswaUploadUI();
-                    return;
+                    alert("Tidak ada data siswa ditemukan (atau Anda mencoba mengimpor kelas yang bukan wewenang Anda).");
+                    resetSiswaUploadUI(); return;
                 }
 
-                // FASE 2: SIMPAN KE FIREBASE
                 try {
                     let currentBatch = writeBatch(db);
                     let opCount = 0;
@@ -361,49 +361,44 @@ export function setupAdminEvents() {
                             opCount++;
                             if (opCount >= 450) { 
                                 commitPromises.push(currentBatch.commit());
-                                currentBatch = writeBatch(db);
-                                opCount = 0;
+                                currentBatch = writeBatch(db); opCount = 0;
                             }
                         }
                         count++;
                     }
-                    
                     if (opCount > 0) commitPromises.push(currentBatch.commit());
                     await Promise.all(commitPromises);
 
+                    await writeLog("IMPORT_SISWA", `${appUser.username} mengimpor ${count} siswa baru.`);
                     alert(`Berhasil! ${count} siswa baru telah ditambahkan ke sistem.`);
                     renderTableSiswa();
                 } catch(err) {
-                    console.error(err);
                     alert("ERROR DATABASE: Gagal menyimpan data siswa ke server. Periksa koneksi internet Anda.");
                 }
-
                 resetSiswaUploadUI();
             };
-
-            reader.onerror = () => {
-                alert("ERROR: Browser gagal membaca file dari komputer/HP Anda.");
-                resetSiswaUploadUI();
-            };
-
+            reader.onerror = () => { alert("ERROR: Browser gagal membaca file."); resetSiswaUploadUI(); };
             reader.readAsArrayBuffer(selectedSiswaFile);
-        };
-    }
-
-    const btnTemplateGuru = document.getElementById('btn-template-guru');
-    if (btnTemplateGuru) {
-        btnTemplateGuru.onclick = () => {
-            const dataToExport = USERS_DB.map(u => ({ "Username": u.username, "Role": u.role, "Password": u.password }));
-            const ws = XLSX.utils.json_to_sheet(dataToExport);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "DataGuru");
-            XLSX.writeFile(wb, "Data_Akun_Guru.xlsx");
         };
     }
 
     const filterKelasSiswa = document.getElementById('crud-siswa-kelas-filter');
     if (filterKelasSiswa) {
         filterKelasSiswa.addEventListener('change', () => { renderTableSiswa(); });
+    }
+
+    // ========================================================
+    // 5. FITUR ADMIN (HAPUS KELAS, DOWNLOAD GURU, RESET DB)
+    // ========================================================
+    const btnTemplateGuru = document.getElementById('btn-template-guru');
+    if (btnTemplateGuru) {
+        btnTemplateGuru.onclick = () => {
+            const dataToExport = USERS_DB.map(u => ({ "Username": u.username, "Role": u.role, "Jabatan": u.jabatan || "-", "Kelas Asuhan": u.waliKelas || "-", "Password": u.password }));
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "DataGuru");
+            XLSX.writeFile(wb, "Data_Akun_Guru.xlsx");
+        };
     }
 
     const btnDeleteClass = document.getElementById('btn-delete-class');
@@ -500,7 +495,7 @@ export function setupAdminEvents() {
 }
 
 // ========================================================
-// GLOBAL: Hapus Master Data (Tahun, Kelas, Mapel)
+// GLOBAL FUNCTIONS (Diakses dari tombol HTML)
 // ========================================================
 window.deleteMasterTahun = async (idx) => {
     if(!confirm("Hapus tahun ajaran tambahan ini?")) return;
@@ -523,9 +518,36 @@ window.deleteMasterSubject = async (idx) => {
     catch(e) { MASTER_SUBJECTS.splice(idx, 0, removed[0]); alert("Gagal menghapus."); }
 };
 
-// ========================================================
-// GLOBAL: Edit / Hapus Siswa Individual
-// ========================================================
+window.editGuru = async (id) => {
+    const userIndex = USERS_DB.findIndex(u => u.id === id);
+    if(userIndex === -1) return;
+    
+    const user = USERS_DB[userIndex];
+    
+    const newJabatan = prompt(
+        `Edit Jabatan untuk ${user.username}:\nKetik persis salah satu:\n- Guru Mapel\n- Wali Kelas\n- Wakasek Kurikulum`, 
+        user.jabatan || 'Guru Mapel'
+    );
+    if(!newJabatan) return;
+
+    let newWaliKelas = user.waliKelas || '';
+    if (newJabatan === 'Wali Kelas') {
+        newWaliKelas = prompt(`Masukkan KELAS ASUHAN untuk Wali Kelas ini (Contoh: X-1):`, newWaliKelas);
+        if(!newWaliKelas) {
+            alert("Proses dibatalkan. Wali Kelas wajib memiliki kelas asuhan."); return;
+        }
+    } else {
+        newWaliKelas = ''; 
+    }
+
+    // SIMULASI UPDATE (Ganti dengan fungsi update Firebase Anda jika collection users tersedia)
+    user.jabatan = newJabatan;
+    user.waliKelas = newWaliKelas;
+    
+    alert(`Berhasil! Jabatan ${user.username} diperbarui menjadi ${newJabatan} ${newWaliKelas ? '('+newWaliKelas+')' : ''}. \n*Catatan: Update di Firebase Console jika menggunakan Data JSON Statis.`);
+    renderTableGuru(); 
+};
+
 window.editSiswa = async (encN, encI, encC) => {
     const oldName = decodeURIComponent(encN);
     const oldNisn = decodeURIComponent(encI);
@@ -549,6 +571,7 @@ window.editSiswa = async (encN, encI, encC) => {
                 batch.update(doc(getGradesCollection(), d.id), { studentName: newName, nisn: newNisn, updatedAt: serverTimestamp() });
             });
             await batch.commit();
+            await writeLog("EDIT_SISWA", `${getAppUser().username} mengubah nama siswa ${oldName} menjadi ${newName}.`);
             alert(`Siswa ${oldName} berhasil diupdate!`);
             renderTableSiswa();
         }
@@ -562,7 +585,7 @@ window.deleteSiswa = async (encN, encI, encC) => {
     const thn = getActiveTahun();
     const smt = getActiveSemester();
 
-    if(!confirm(`Hapus seluruh data nilai "${name}" di kelas ${studentClass}?`)) return;
+    if(!confirm(`Hapus seluruh data (nama & nilai) "${name}" di kelas ${studentClass}?`)) return;
 
     try {
         const docsToDelete = gradesData.filter(g =>
@@ -571,9 +594,14 @@ window.deleteSiswa = async (encN, encI, encC) => {
         );
 
         if(docsToDelete.length > 0) {
+            // Backup JSON sebelum dihapus
+            const backupJSON = JSON.stringify(docsToDelete.map(d => ({ mapel: d.subject, scores: d.scores })));
+            
             const batch = writeBatch(db);
             docsToDelete.forEach(d => batch.delete(doc(getGradesCollection(), d.id)));
             await batch.commit();
+            
+            await writeLog("HAPUS_SISWA_UTUH", `${getAppUser().username} menghapus siswa ${name} (${studentClass}). Backup Nilai: ${backupJSON}`);
             alert(`Data ${name} dihapus.`);
             renderTableSiswa();
         }
