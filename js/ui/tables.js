@@ -56,7 +56,8 @@ export function renderTableSiswa() {
     const smt = getActiveSemester();
     let clsData = gradesData.filter(g => g.tahun === thn && g.semester === smt);
 
-    if (appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
+    // KUNCI WALI KELAS: Hanya berlaku jika dia BUKAN admin
+    if (appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
         clsData = clsData.filter(g => g.className === appUser.waliKelas);
     } else if (filter.value) {
         clsData = clsData.filter(g => g.className === filter.value);
@@ -94,6 +95,7 @@ export function getDisplayData() {
 
     let d = gradesData.filter(g => g.tahun === thn && g.semester === smt);
     
+    // Guru Mapel & Wali Kelas (Non-Wakasek & Non-Admin): Hanya melihat nilai miliknya
     if (appUser.role === 'guru' && appUser.jabatan !== 'Wakasek Kurikulum') {
         d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
     }
@@ -114,7 +116,7 @@ export function renderTable() {
 
     if(!appUser || !tableCont || !gradesTbody) return;
 
-    if(!selClass || (appUser.role === 'guru' && !selSubject)) {
+    if(!selClass || ((appUser.role === 'guru' || appUser.role === 'admin') && !selSubject)) {
         if(emptyState) emptyState.classList.remove('hidden');
         tableCont.classList.add('hidden');
         return;
@@ -130,7 +132,8 @@ export function renderTable() {
     if(document.getElementById('badge-kelas')) document.getElementById('badge-kelas').textContent = selClass;
     if(document.getElementById('badge-mapel')) document.getElementById('badge-mapel').textContent = selSubject || 'Semua Mapel';
     
-    if(appUser.role === 'guru') {
+    // PERBAIKAN: Admin dan Guru sama-sama memiliki hak Edit UI Nilai
+    if(appUser.role === 'guru' || appUser.role === 'admin') {
         document.getElementById('weights-container')?.classList.remove('hidden');
         document.getElementById('guru-excel-actions')?.classList.remove('hidden');
         document.querySelectorAll('.guru-col').forEach(c => c.classList.remove('hidden'));
@@ -155,9 +158,10 @@ export function renderTable() {
             if(isRemedial) countRemed++; else countPass++;
 
             const naColor = isRemedial ? 'text-red-600 bg-red-50' : 'text-blue-700 bg-blue-50/20';
-            const naIcon = isRemedial ? '<i class="ph ph-warning-circle text-red-500 mr-1" title="Di bawah KKM (75)"></i>' : '';
+            const naIcon = isRemedial ? '<i class="ph ph-warning-circle text-red-500 mr-1"></i>' : '';
             const bgA = 'bg-emerald-50/50 text-emerald-700 font-bold';
 
+            // Wakasek (Read-only)
             if(appUser.role === 'wakasek' || editGradeId === item.id) {
                 if(editGradeId !== item.id) {
                     html += `
@@ -166,7 +170,7 @@ export function renderTable() {
                         <td class="px-4 py-3">
                             <div class="font-bold text-gray-800">${item.studentName}</div>
                             <div class="text-[10px] text-gray-400 font-mono">${item.nisn||'-'}</div>
-                            ${appUser.role==='wakasek' ? `<div class="text-[9px] text-blue-500 font-bold uppercase mt-1">${item.teacherName} | ${item.subject}</div>` : ''}
+                            ${appUser.role==='wakasek' || appUser.role==='admin' ? `<div class="text-[9px] text-blue-500 font-bold uppercase mt-1">${item.teacherName} | ${item.subject}</div>` : ''}
                         </td>
                         <td class="px-2 py-3 text-center text-sm">${ds(item.scores.f1)}</td>
                         <td class="px-2 py-3 text-center text-sm">${ds(item.scores.f2)}</td>
@@ -179,6 +183,7 @@ export function renderTable() {
                     </tr>`;
                 }
             } else {
+                // Tampilan Editable (Guru & Admin)
                 html += `
                 <tr data-id="${item.id}" class="hover:bg-blue-50/50 border-b border-gray-100 transition-colors print:bg-white">
                     <td class="px-4 py-3 text-center text-gray-500 text-xs">${idx+1}</td>
@@ -215,10 +220,10 @@ export function renderTable() {
     const rowNewGrade = document.getElementById('row-new-grade');
     const newRowHTML = rowNewGrade ? rowNewGrade.outerHTML : '';
 
-    gradesTbody.innerHTML = (appUser.role === 'guru' ? newRowHTML : '') + html;
+    gradesTbody.innerHTML = (appUser.role === 'guru' || appUser.role === 'admin' ? newRowHTML : '') + html;
     
     const rowNewGradeAfter = document.getElementById('row-new-grade');
-    if(rowNewGradeAfter && !editGradeId && appUser.role === 'guru') {
+    if(rowNewGradeAfter && !editGradeId && (appUser.role === 'guru' || appUser.role === 'admin')) {
         rowNewGradeAfter.classList.remove('hidden');
     }
     
@@ -256,7 +261,6 @@ export function renderMasterDataUI() {
 }
 
 export function populateDropdowns() {
-    // 1. OPSI TAHUN AJARAN (Berjalan otomatis, tidak butuh cek appUser)
     const allTahun = [...new Set([...DEFAULT_TAHUN, ...MASTER_TAHUN])].sort();
     const thnOpts = allTahun.map(t => `<option value="${t}">${t}</option>`).join('');
     ['login-tahun', 'dash-filter-tahun', 'copy-tahun-asal'].forEach(id => {
@@ -264,14 +268,13 @@ export function populateDropdowns() {
         if(el) { const oldVal = el.value; el.innerHTML = thnOpts; if (oldVal && allTahun.includes(oldVal)) el.value = oldVal; }
     });
 
-    // 2. OPSI KELAS DAN MAPEL (Butuh cek appUser untuk fitur Wali Kelas)
     const appUser = getAppUser();
     
     const dbClasses = [...new Set(gradesData.map(g => g.className))].filter(Boolean);
     let allClasses = [...new Set([...MASTER_CLASSES, ...dbClasses])].sort();
     
-    // Kunci Kelas jika pengguna adalah Wali Kelas
-    if (appUser && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
+    // PERBAIKAN: Admin TIDAK TERPENGARUH oleh aturan Wali Kelas
+    if (appUser && appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas) {
         allClasses = [appUser.waliKelas];
     }
 
