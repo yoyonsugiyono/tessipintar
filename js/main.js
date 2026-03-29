@@ -1,7 +1,7 @@
 // File: js/main.js
 
 import './config/firebase.js'; 
-import { setupAuth, initLoginForm, handleLogout, getActiveTahun, getActiveSemester, restoreSession } from './services/auth.js';
+import { setupAuth, initLoginForm, handleLogout, getActiveTahun, getActiveSemester, restoreSession, getAppUser } from './services/auth.js';
 import { loadMasterData } from './services/db-master.js';
 import { setupNavigation, buildSidebarNav, switchMenu as coreSwitchMenu } from './ui/navigation.js';
 import { setupFirestoreListener } from './services/db-grades.js';
@@ -13,15 +13,11 @@ import { updateDashboardChart } from './services/charts.js';
 function init() {
     console.log("[DEBUG] Inisialisasi Si PINTAR...");
 
-    // 1. Setup UI & Global Date
     const currentDateEl = document.getElementById('current-date');
     if (currentDateEl) {
-        currentDateEl.textContent = new Date().toLocaleDateString('id-ID', { 
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-        });
+        currentDateEl.textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     }
 
-    // 2. Setup Panel Debug & Event Listeners
     const debugDot = document.getElementById('debug-status-dot');
     const btnToggleDebug = document.getElementById('btn-toggle-debug');
     const debugPanel = document.getElementById('debug-panel');
@@ -31,7 +27,6 @@ function init() {
     setupUIEvents(); 
     setupAdminEvents();
     
-    // 3. Inisialisasi Form Login
     initLoginForm((user) => {
         showApp(user);
     });
@@ -39,7 +34,14 @@ function init() {
     const btnLogout = document.getElementById('btn-logout');
     if (btnLogout) btnLogout.onclick = () => handleLogout();
 
-    // 4. Proses Otentikasi & Load Data
+    // Event Global Filter Dashboard
+    const btnApplyDashFilter = document.getElementById('btn-apply-dash-filter');
+    if (btnApplyDashFilter) {
+        btnApplyDashFilter.onclick = () => {
+            updateDashboardView();
+        };
+    }
+
     setupAuth(async (firebaseUser) => {
         if (debugDot) {
             debugDot.classList.replace('bg-red-500', 'bg-green-500');
@@ -55,23 +57,9 @@ function init() {
             showApp(savedUser);
         }
         
-        // Aktifkan Real-time Update dari Database
         setupFirestoreListener(() => {
-            // PERBAIKAN: Filter data berdasarkan Tahun & Semester Aktif
-            const thn = getActiveTahun();
-            const smt = getActiveSemester();
-            const activeGrades = gradesData.filter(g => g.tahun === thn && g.semester === smt);
+            updateDashboardView();
 
-            // Update Statistik & Grafik di Dashboard HANYA untuk periode aktif
-            const totalSiswa = [...new Set(activeGrades.map(g => g.studentName))].length;
-            const avgNilai = activeGrades.reduce((acc, curr) => acc + (curr.results?.final || 0), 0) / (activeGrades.length || 1);
-            
-            if(document.getElementById('stat-students')) document.getElementById('stat-students').textContent = totalSiswa;
-            if(document.getElementById('stat-avg')) document.getElementById('stat-avg').textContent = avgNilai.toFixed(1);
-            
-            updateDashboardChart(activeGrades);
-
-            // Re-render Tabel jika menu tersebut sedang dibuka
             const activeSec = document.querySelector('.section-container:not(.hidden)');
             if (activeSec) {
                 if (activeSec.id === 'sec-admin-import') renderTableSiswa(); 
@@ -88,6 +76,32 @@ function init() {
     };
 }
 
+// FUNGSI UPDATE TAMPILAN DASHBOARD
+export function updateDashboardView() {
+    if (!gradesData) return;
+    
+    // Default ambil dari Login
+    let thn = getActiveTahun();
+    let smt = getActiveSemester();
+    
+    // Tapi jika Admin menggunakan filter histori, override datanya!
+    const dashTahun = document.getElementById('dash-filter-tahun');
+    const dashSmt = document.getElementById('dash-filter-smt');
+    if (dashTahun && dashSmt) {
+        thn = dashTahun.value;
+        smt = dashSmt.value;
+    }
+
+    const activeGrades = gradesData.filter(g => g.tahun === thn && g.semester === smt);
+    const totalSiswa = [...new Set(activeGrades.map(g => g.studentName + g.nisn))].length;
+    const avgNilai = activeGrades.length ? activeGrades.reduce((acc, curr) => acc + (curr.results?.final || 0), 0) / activeGrades.length : 0;
+    
+    if(document.getElementById('stat-students')) document.getElementById('stat-students').textContent = totalSiswa;
+    if(document.getElementById('stat-avg')) document.getElementById('stat-avg').textContent = avgNilai.toFixed(1);
+    
+    updateDashboardChart(activeGrades);
+}
+
 function showApp(user) {
     document.getElementById('login-view').classList.add('hidden');
     document.getElementById('main-view').classList.remove('hidden');
@@ -100,6 +114,20 @@ function showApp(user) {
     const smt = getActiveSemester();
     document.getElementById('display-periode').innerHTML = `<i class="ph ph-calendar-check mr-2"></i> TA. ${thn} - ${smt}`;
     
+    // Tampilkan Filter Dashboard Khusus untuk Admin
+    if (user.role === 'admin' || user.role === 'wakasek') {
+        const filterDash = document.getElementById('dashboard-filter-bar');
+        if (filterDash) {
+            filterDash.classList.remove('hidden');
+            document.getElementById('dash-filter-tahun').value = thn;
+            document.getElementById('dash-filter-smt').value = smt;
+        }
+    }
+
+    // Set Label Tahun & Semester Aktif di Menu Copy Siswa
+    if (document.getElementById('label-copy-tahun-aktif')) document.getElementById('label-copy-tahun-aktif').textContent = thn;
+    if (document.getElementById('label-copy-smt-aktif')) document.getElementById('label-copy-smt-aktif').textContent = smt;
+
     buildSidebarNav();
     window.switchMenu('dashboard');
 }
