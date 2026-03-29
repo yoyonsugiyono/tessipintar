@@ -192,8 +192,8 @@ export function setupAdminEvents() {
 
             if (!thnAsal || !clsAsal || !clsTujuan) { alert("Pilih Tahun Asal, Kelas Asal, dan Kelas Tujuan terlebih dahulu."); return; }
 
-            // VALIDASI WALI KELAS: Dilarang memproses kelas lain
-            if (appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && clsTujuan !== appUser.waliKelas) {
+            // PERBAIKAN: Admin TIDAK TERPENGARUH oleh aturan Wali Kelas
+            if (appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && clsTujuan !== appUser.waliKelas) {
                 alert(`AKSES DITOLAK: Anda menjabat sebagai Wali Kelas ${appUser.waliKelas}. Anda tidak berhak menyalin data ke kelas ${clsTujuan}.`);
                 return;
             }
@@ -296,8 +296,8 @@ export function setupAdminEvents() {
             const appUser = getAppUser();
             const targetClass = document.getElementById('import-class-select').value;
 
-            // VALIDASI WALI KELAS
-            if (appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && targetClass !== appUser.waliKelas) {
+            // PERBAIKAN: Admin TIDAK TERPENGARUH oleh aturan Wali Kelas
+            if (appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && targetClass !== appUser.waliKelas) {
                 alert(`AKSES DITOLAK: Anda menjabat sebagai Wali Kelas ${appUser.waliKelas}. Anda dilarang mengimpor data siswa untuk kelas ${targetClass}.`);
                 return;
             }
@@ -330,8 +330,7 @@ export function setupAdminEvents() {
                         let cls = String(row["Kelas"] || "").trim();
                         if(!n || !cls) continue;
 
-                        // Validasi lapis 2 jika di dalam file excel terdapat kelas yang bukan miliknya
-                        if (appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && cls !== appUser.waliKelas) continue;
+                        if (appUser.role !== 'admin' && appUser.jabatan === 'Wali Kelas' && appUser.waliKelas && cls !== appUser.waliKelas) continue;
 
                         processedSiswa.push({ name: n, nisn: String(row["NISN"] || ""), className: cls });
                     }
@@ -540,7 +539,6 @@ window.editGuru = async (id) => {
         newWaliKelas = ''; 
     }
 
-    // SIMULASI UPDATE (Ganti dengan fungsi update Firebase Anda jika collection users tersedia)
     user.jabatan = newJabatan;
     user.waliKelas = newWaliKelas;
     
@@ -594,7 +592,6 @@ window.deleteSiswa = async (encN, encI, encC) => {
         );
 
         if(docsToDelete.length > 0) {
-            // Backup JSON sebelum dihapus
             const backupJSON = JSON.stringify(docsToDelete.map(d => ({ mapel: d.subject, scores: d.scores })));
             
             const batch = writeBatch(db);
