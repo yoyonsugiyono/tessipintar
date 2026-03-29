@@ -3,13 +3,34 @@
 import { doc, deleteDoc, updateDoc, addDoc, serverTimestamp, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { db, getGradesCollection } from '../config/firebase.js';
 import { USERS_DB, getActiveTahun, getActiveSemester } from '../services/auth.js';
-import { MASTER_CLASSES, MASTER_SUBJECTS } from '../services/db-master.js';
-import { renderTableGuru, renderTableSiswa, gradesData } from './tables.js';
+import { MASTER_CLASSES, MASTER_SUBJECTS, MASTER_TAHUN, saveMasterData } from '../services/db-master.js';
+import { renderTableGuru, renderTableSiswa, gradesData, renderMasterDataUI, populateDropdowns } from './tables.js';
 import { writeLog } from '../services/audit.js';
 
 export function setupAdminEvents() {
     
-    // --- FITUR BARU: SALIN SISWA (KENAIKAN KELAS) ---
+    // --- FITUR BARU: MASTER DATA TAHUN AJARAN ---
+    const btnAddTahun = document.getElementById('btn-add-master-tahun');
+    if(btnAddTahun) {
+        btnAddTahun.onclick = async () => {
+            const val = document.getElementById('in-master-tahun').value.trim();
+            if(!val) return;
+            if(!val.includes('/')) {
+                if(!confirm("Format biasanya menggunakan garis miring (cth: 2028/2029). Tetap simpan?")) return;
+            }
+            if(!MASTER_TAHUN.includes(val)) {
+                MASTER_TAHUN.push(val);
+                try {
+                    await saveMasterData();
+                    document.getElementById('in-master-tahun').value = '';
+                    renderMasterDataUI();
+                    populateDropdowns(); 
+                } catch(e) { alert("Gagal menyimpan tahun ajaran baru."); MASTER_TAHUN.pop(); }
+            }
+        };
+    }
+
+    // --- FITUR SALIN SISWA (KENAIKAN KELAS) ---
     const btnCopySiswa = document.getElementById('btn-copy-siswa');
     if (btnCopySiswa) {
         btnCopySiswa.onclick = async () => {
@@ -22,11 +43,7 @@ export function setupAdminEvents() {
             if (!thnAsal || !clsAsal || !clsTujuan) { alert("Mohon pilih Tahun Asal, Kelas Asal, dan Kelas Tujuan terlebih dahulu."); return; }
 
             if (confirm(`Salin siswa dari kelas ${clsAsal} (${thnAsal}) ke kelas ${clsTujuan} untuk periode berjalan (${thnAktif} - ${smtAktif})?`)) {
-                
-                // Cari data siswa di kelas & tahun asal
                 const sourceData = gradesData.filter(g => g.tahun === thnAsal && g.className === clsAsal);
-                
-                // Kumpulkan nama unik
                 const map = new Map();
                 sourceData.forEach(g => {
                     const key = g.studentName + "_" + (g.nisn || '');
@@ -34,7 +51,6 @@ export function setupAdminEvents() {
                 });
                 
                 const studentsToCopy = Array.from(map.values());
-                
                 if (studentsToCopy.length === 0) { alert(`Tidak ada siswa di kelas ${clsAsal} pada tahun ${thnAsal}.`); return; }
 
                 btnCopySiswa.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> Sedang Menyalin...';
@@ -49,19 +65,13 @@ export function setupAdminEvents() {
                         for (const mapel of MASTER_SUBJECTS) {
                             const newDocRef = doc(getGradesCollection());
                             currentBatch.set(newDocRef, {
-                                studentName: s.name,
-                                nisn: s.nisn,
-                                teacherName: 'admin',
-                                subject: mapel,
-                                className: clsTujuan,
-                                tahun: thnAktif,
-                                semester: smtAktif,
+                                studentName: s.name, nisn: s.nisn, teacherName: 'admin', subject: mapel, className: clsTujuan, 
+                                tahun: thnAktif, semester: smtAktif, 
                                 scores: { f1:null, f2:null, f3:null, t1:null, t2:null, t3:null, asaj:null }, 
-                                results: { avgFormative:0, avgTask:0, final:0 },
-                                createdAt: serverTimestamp()
+                                results: { avgFormative:0, avgTask:0, final:0 }, createdAt: serverTimestamp()
                             });
                             opCount++;
-                            if (opCount >= 450) { // Firebase max batch limit is 500
+                            if (opCount >= 450) { 
                                 commitPromises.push(currentBatch.commit());
                                 currentBatch = writeBatch(db);
                                 opCount = 0;
@@ -74,11 +84,8 @@ export function setupAdminEvents() {
                     await writeLog("SALIN_SISWA", `Menyalin ${studentsToCopy.length} siswa dari ${clsAsal} ke ${clsTujuan}.`);
                     alert(`Sukses! ${studentsToCopy.length} siswa berhasil dinaikkan/disalin ke kelas ${clsTujuan}.`);
                     renderTableSiswa();
-
-                } catch (err) {
-                    console.error("Gagal salin:", err);
-                    alert("Terjadi kesalahan sistem saat menyalin data.");
-                } finally {
+                } catch (err) { alert("Terjadi kesalahan sistem saat menyalin data."); } 
+                finally {
                     btnCopySiswa.innerHTML = '<i class="ph ph-arrow-circle-right text-lg"></i> Proses Salin';
                     btnCopySiswa.disabled = false;
                 }
@@ -158,9 +165,7 @@ export function setupAdminEvents() {
 
     const filterKelasSiswa = document.getElementById('crud-siswa-kelas-filter');
     if (filterKelasSiswa) {
-        filterKelasSiswa.addEventListener('change', () => {
-            renderTableSiswa();
-        });
+        filterKelasSiswa.addEventListener('change', () => { renderTableSiswa(); });
     }
 
     const btnDeleteClass = document.getElementById('btn-delete-class');
@@ -255,6 +260,22 @@ export function setupAdminEvents() {
         };
     }
 }
+
+// ========================================================
+// GLOBAL: Delete Master Tahun
+// ========================================================
+window.deleteMasterTahun = async (idx) => {
+    if(!confirm("Hapus tahun ajaran tambahan ini?")) return;
+    const removed = MASTER_TAHUN.splice(idx, 1);
+    try {
+        await saveMasterData();
+        renderMasterDataUI();
+        populateDropdowns(); 
+    } catch(e) {
+        MASTER_TAHUN.splice(idx, 0, removed[0]); // Kembalikan jika gagal
+        alert("Gagal menghapus tahun.");
+    }
+};
 
 window.editSiswa = async (encN, encI, encC) => {
     const oldName = decodeURIComponent(encN);
