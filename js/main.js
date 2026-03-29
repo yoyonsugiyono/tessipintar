@@ -57,7 +57,7 @@ function init() {
         }
         
         setupFirestoreListener(() => {
-            populateDropdowns(); // PERBAIKAN: Refresh dropdown dengan data terbaru agar Guru bisa membaca Kelas
+            populateDropdowns();
             updateDashboardView();
 
             const activeSec = document.querySelector('.section-container:not(.hidden)');
@@ -70,9 +70,15 @@ function init() {
         });
     });
 
+    // PENGATUR MENU NAVIGASI
     window.switchMenu = (menuId) => {
         coreSwitchMenu(menuId);
+        
+        // PERBAIKAN: Pastikan fungsi render dieksekusi saat menu diklik!
         if (menuId === 'admin-master') renderMasterDataUI();
+        if (menuId === 'admin-guru') renderTableGuru(); // <--- INI PENYEBABNYA, SEBELUMNYA TIDAK ADA
+        if (menuId === 'admin-import') renderTableSiswa();
+        if (menuId === 'nilai') renderTable();
     };
 }
 
