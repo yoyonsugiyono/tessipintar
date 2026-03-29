@@ -8,7 +8,85 @@ import { renderTableGuru, renderTableSiswa, gradesData } from './tables.js';
 import { writeLog } from '../services/audit.js';
 
 export function setupAdminEvents() {
-    // A. Download Data Siswa Berbasis Database
+    
+    // --- FITUR BARU: SALIN SISWA (KENAIKAN KELAS) ---
+    const btnCopySiswa = document.getElementById('btn-copy-siswa');
+    if (btnCopySiswa) {
+        btnCopySiswa.onclick = async () => {
+            const thnAsal = document.getElementById('copy-tahun-asal').value;
+            const clsAsal = document.getElementById('copy-class-asal').value;
+            const clsTujuan = document.getElementById('copy-class-tujuan').value;
+            const thnAktif = getActiveTahun();
+            const smtAktif = getActiveSemester();
+
+            if (!thnAsal || !clsAsal || !clsTujuan) { alert("Mohon pilih Tahun Asal, Kelas Asal, dan Kelas Tujuan terlebih dahulu."); return; }
+
+            if (confirm(`Salin siswa dari kelas ${clsAsal} (${thnAsal}) ke kelas ${clsTujuan} untuk periode berjalan (${thnAktif} - ${smtAktif})?`)) {
+                
+                // Cari data siswa di kelas & tahun asal
+                const sourceData = gradesData.filter(g => g.tahun === thnAsal && g.className === clsAsal);
+                
+                // Kumpulkan nama unik
+                const map = new Map();
+                sourceData.forEach(g => {
+                    const key = g.studentName + "_" + (g.nisn || '');
+                    if (!map.has(key)) map.set(key, { name: g.studentName, nisn: g.nisn });
+                });
+                
+                const studentsToCopy = Array.from(map.values());
+                
+                if (studentsToCopy.length === 0) { alert(`Tidak ada siswa di kelas ${clsAsal} pada tahun ${thnAsal}.`); return; }
+
+                btnCopySiswa.innerHTML = '<i class="ph ph-spinner animate-spin text-lg"></i> Sedang Menyalin...';
+                btnCopySiswa.disabled = true;
+
+                try {
+                    let currentBatch = writeBatch(db);
+                    let opCount = 0;
+                    const commitPromises = [];
+
+                    for (const s of studentsToCopy) {
+                        for (const mapel of MASTER_SUBJECTS) {
+                            const newDocRef = doc(getGradesCollection());
+                            currentBatch.set(newDocRef, {
+                                studentName: s.name,
+                                nisn: s.nisn,
+                                teacherName: 'admin',
+                                subject: mapel,
+                                className: clsTujuan,
+                                tahun: thnAktif,
+                                semester: smtAktif,
+                                scores: { f1:null, f2:null, f3:null, t1:null, t2:null, t3:null, asaj:null }, 
+                                results: { avgFormative:0, avgTask:0, final:0 },
+                                createdAt: serverTimestamp()
+                            });
+                            opCount++;
+                            if (opCount >= 450) { // Firebase max batch limit is 500
+                                commitPromises.push(currentBatch.commit());
+                                currentBatch = writeBatch(db);
+                                opCount = 0;
+                            }
+                        }
+                    }
+                    if (opCount > 0) commitPromises.push(currentBatch.commit());
+                    await Promise.all(commitPromises);
+
+                    await writeLog("SALIN_SISWA", `Menyalin ${studentsToCopy.length} siswa dari ${clsAsal} ke ${clsTujuan}.`);
+                    alert(`Sukses! ${studentsToCopy.length} siswa berhasil dinaikkan/disalin ke kelas ${clsTujuan}.`);
+                    renderTableSiswa();
+
+                } catch (err) {
+                    console.error("Gagal salin:", err);
+                    alert("Terjadi kesalahan sistem saat menyalin data.");
+                } finally {
+                    btnCopySiswa.innerHTML = '<i class="ph ph-arrow-circle-right text-lg"></i> Proses Salin';
+                    btnCopySiswa.disabled = false;
+                }
+            }
+        };
+    }
+
+    // --- SISANYA TETAP SAMA ---
     const btnTemplateSiswa = document.getElementById('btn-template-siswa');
     if (btnTemplateSiswa) {
         btnTemplateSiswa.onclick = () => {
@@ -22,7 +100,6 @@ export function setupAdminEvents() {
                 const key = g.studentName + "_" + (g.nisn || '');
                 if (!map.has(key)) map.set(key, { "Nama Siswa": g.studentName, "NISN": g.nisn || "", "Kelas": g.className });
             });
-            
             let dataToExport = Array.from(map.values());
             if (dataToExport.length === 0) dataToExport = [{ "Nama Siswa": "Contoh Nama", "NISN": "000000", "Kelas": cls || "X-1" }];
 
@@ -33,7 +110,6 @@ export function setupAdminEvents() {
         };
     }
 
-    // B. Download Data Guru
     const btnTemplateGuru = document.getElementById('btn-template-guru');
     if (btnTemplateGuru) {
         btnTemplateGuru.onclick = () => {
@@ -45,7 +121,6 @@ export function setupAdminEvents() {
         };
     }
 
-    // C. Import Siswa Masal (Otomatis Semua Mapel)
     const importXlsxSiswa = document.getElementById('import-xlsx-siswa');
     if (importXlsxSiswa) {
         importXlsxSiswa.onchange = (e) => {
@@ -81,7 +156,6 @@ export function setupAdminEvents() {
         };
     }
 
-    // D. Listener Filter Kelas Admin
     const filterKelasSiswa = document.getElementById('crud-siswa-kelas-filter');
     if (filterKelasSiswa) {
         filterKelasSiswa.addEventListener('change', () => {
@@ -89,10 +163,8 @@ export function setupAdminEvents() {
         });
     }
 
-    // E. Fitur Hapus Kelas Masal
     const btnDeleteClass = document.getElementById('btn-delete-class');
     const deleteClassSelect = document.getElementById('delete-class-select');
-    
     if (deleteClassSelect && btnDeleteClass) {
         deleteClassSelect.addEventListener('change', (e) => {
             if(e.target.value) {
@@ -131,24 +203,18 @@ export function setupAdminEvents() {
         };
     }
 
-    // F. Reset Seluruh Data Siswa (PERBAIKAN FITUR HAPUS)
     const btnResetSiswa = document.getElementById('btn-reset-siswa');
     if (btnResetSiswa) {
         btnResetSiswa.onclick = async () => {
             if(!confirm("PERINGATAN BAHAYA: Anda yakin ingin MENGHAPUS SELURUH DATA SISWA secara permanen? Data yang dihapus tidak bisa dikembalikan!")) return;
-            
             const pass = prompt("Untuk melanjutkan, ketik kata: HAPUS");
-            if (pass !== "HAPUS") {
-                alert("Proses dibatalkan.");
-                return;
-            }
+            if (pass !== "HAPUS") { alert("Proses dibatalkan."); return; }
 
             try {
                 btnResetSiswa.innerHTML = '<i class="ph ph-spinner animate-spin text-xl"></i> SEDANG MENGHAPUS...';
                 btnResetSiswa.disabled = true;
 
                 const snapshot = await getDocs(getGradesCollection());
-                
                 if (snapshot.empty) {
                     alert("Database siswa sudah dalam keadaan kosong.");
                     btnResetSiswa.innerHTML = '<i class="ph ph-users-three text-xl"></i> Kosongkan Data Siswa';
@@ -156,41 +222,30 @@ export function setupAdminEvents() {
                     return;
                 }
 
-                // Gunakan Batch dan referensi langsung (d.ref) untuk menghindari error Firebase
                 let batches = [];
                 let currentBatch = writeBatch(db);
                 let count = 0;
-
                 snapshot.docs.forEach(d => {
                     currentBatch.delete(d.ref);
                     count++;
-                    if (count === 500) { // Limit Firebase adalah 500 per batch
-                        batches.push(currentBatch.commit());
-                        currentBatch = writeBatch(db);
-                        count = 0;
-                    }
+                    if (count === 500) { batches.push(currentBatch.commit()); currentBatch = writeBatch(db); count = 0; }
                 });
-                
                 if (count > 0) batches.push(currentBatch.commit());
-                
-                await Promise.all(batches); // Eksekusi penghapusan serentak
+                await Promise.all(batches); 
 
                 await writeLog("RESET_DATA_SISWA", `Admin mengosongkan seluruh database siswa.`);
                 alert(`Selesai! Sebanyak ${snapshot.docs.length} dokumen siswa berhasil dibersihkan dari server.`);
-                
                 btnResetSiswa.innerHTML = '<i class="ph ph-users-three text-xl"></i> Kosongkan Data Siswa';
                 btnResetSiswa.disabled = false;
-                renderTableSiswa(); // Refresh UI
+                renderTableSiswa(); 
             } catch (err) {
-                console.error("Gagal reset data siswa:", err);
-                alert("Terjadi kesalahan saat menghapus data. Periksa koneksi internet Anda.");
+                alert("Terjadi kesalahan saat menghapus data.");
                 btnResetSiswa.innerHTML = '<i class="ph ph-users-three text-xl"></i> Kosongkan Data Siswa';
                 btnResetSiswa.disabled = false;
             }
         };
     }
 
-    // G. Reset Database Sekolah
     const btnResetDb = document.getElementById('btn-reset-db');
     if (btnResetDb) {
         btnResetDb.onclick = async () => {
@@ -201,9 +256,6 @@ export function setupAdminEvents() {
     }
 }
 
-// ========================================================
-// GLOBAL: Edit Siswa oleh Admin (Batch)
-// ========================================================
 window.editSiswa = async (encN, encI, encC) => {
     const oldName = decodeURIComponent(encN);
     const oldNisn = decodeURIComponent(encI);
@@ -233,9 +285,6 @@ window.editSiswa = async (encN, encI, encC) => {
     } catch(err) { alert("Gagal update."); }
 };
 
-// ========================================================
-// GLOBAL: Hapus Siswa oleh Admin (Batch)
-// ========================================================
 window.deleteSiswa = async (encN, encI, encC) => {
     const name = decodeURIComponent(encN);
     const nisn = decodeURIComponent(encI);
