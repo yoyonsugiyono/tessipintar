@@ -79,7 +79,12 @@ export function renderTableRekap() {
         s.avg = count > 0 ? (total / MASTER_SUBJECTS.length) : 0; 
     });
 
-    students.sort((a, b) => b.total - a.total);
+    // Menentukan Peringkat Kelas berdasarkan total nilai
+    const rankedStudents = [...students].sort((a, b) => b.total - a.total);
+    rankedStudents.forEach((rs, i) => rs.rank = i + 1);
+
+    // FITUR PENGURUTAN ABJAD (A-Z) UNTUK LEDGER
+    students.sort((a, b) => a.name.localeCompare(b.name));
 
     let thHtml = `<tr>
         <th class="px-4 py-3 w-10 border border-blue-200 text-center">No</th>
@@ -112,7 +117,7 @@ export function renderTableRekap() {
 
             tdHtml += `<td class="px-3 py-2 text-center font-bold text-blue-700 border border-gray-200 bg-blue-50/50">${s.total.toFixed(1)}</td>
                        <td class="px-3 py-2 text-center font-bold text-emerald-700 border border-gray-200 bg-emerald-50/50">${s.avg.toFixed(1)}</td>
-                       <td class="px-3 py-2 text-center font-extrabold text-orange-500 border border-gray-200 text-lg">${i+1}</td>
+                       <td class="px-3 py-2 text-center font-extrabold text-orange-500 border border-gray-200 text-lg">${s.rank}</td>
                        </tr>`;
             return tdHtml;
         }).join('');
@@ -130,14 +135,21 @@ window.exportRekapExcel = () => {
         studentMap.get(key)[g.subject] = parseFloat(getCalc(g.scores).final).toFixed(1);
     });
     let students = Array.from(studentMap.values());
+    
     students.forEach(s => {
         let total = 0, count = 0;
         MASTER_SUBJECTS.forEach(sub => { if (s[sub]) { total += parseFloat(s[sub]); count++; } });
         s["Jumlah Nilai"] = parseFloat(total.toFixed(1));
         s["Rata-rata"] = count > 0 ? parseFloat((total / MASTER_SUBJECTS.length).toFixed(1)) : 0; 
     });
+    
+    // Tentukan Peringkat
     students.sort((a, b) => b["Jumlah Nilai"] - a["Jumlah Nilai"]);
     students.forEach((s, i) => s["Peringkat Kelas"] = i + 1);
+    
+    // FITUR PENGURUTAN ABJAD (A-Z) UNTUK EXPORT EXCEL
+    students.sort((a, b) => a["Nama Siswa"].localeCompare(b["Nama Siswa"]));
+
     const ws = XLSX.utils.json_to_sheet(students);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Rekap_Nilai");
@@ -148,7 +160,7 @@ window.updateFilterRekap = (val) => { selClassRekap = val; renderTableRekap(); }
 
 
 // ==========================================
-// 2. FUNGSI RENDER TABEL LAINNYA
+// 2. FUNGSI RENDER TABEL (GURU, SISWA, INPUT NILAI)
 // ==========================================
 export async function renderTableGuru() {
     const tbody = document.getElementById('crud-guru-tbody');
@@ -180,9 +192,9 @@ export async function renderTableGuru() {
                     <td class="p-3">${jabatanHtml}</td>
                     <td class="p-3 font-mono text-gray-400 text-xs">${u.password}</td>
                     <td class="p-3 text-right whitespace-nowrap">
-                       <button onclick="window.openResetSandi('${u.id}', '${encodeURIComponent(u.username)}')" class="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded transition-colors mr-2"><i class="ph ph-key text-lg"></i></button>
-                       <button onclick="window.editGuru('${u.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-2"><i class="ph ph-briefcase text-lg"></i></button>
-                       <button onclick="window.deleteGuru('${u.id}', '${encodeURIComponent(u.username)}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors"><i class="ph ph-trash text-lg"></i></button>
+                       <button onclick="window.openResetSandi('${u.id}', '${encodeURIComponent(u.username)}')" class="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded transition-colors mr-2" title="Reset Sandi"><i class="ph ph-key text-lg"></i></button>
+                       <button onclick="window.editGuru('${u.id}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-2" title="Atur Profil"><i class="ph ph-briefcase text-lg"></i></button>
+                       <button onclick="window.deleteGuru('${u.id}', '${encodeURIComponent(u.username)}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors" title="Hapus Akun"><i class="ph ph-trash text-lg"></i></button>
                     </td>
                 </tr>`;
         }).join('');
@@ -199,12 +211,18 @@ export function renderTableSiswa() {
     const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     const isWali = appUser.role !== 'admin' && !isWakasek && (appUser.tugasTambahan === 'Wali Kelas' || appUser.jabatan === 'Wali Kelas');
 
-    if (isWali && appUser.waliKelas) clsData = clsData.filter(g => g.className === appUser.waliKelas);
-    else if (filter.value) clsData = clsData.filter(g => g.className === filter.value);
+    if (isWali && appUser.waliKelas) {
+        clsData = clsData.filter(g => g.className === appUser.waliKelas);
+    } else if (filter.value) { 
+        clsData = clsData.filter(g => g.className === filter.value);
+    }
 
     const map = new Map();
     clsData.forEach(g => { const key = g.studentName + "_" + (g.nisn||'') + "_" + g.className; if(!map.has(key)) map.set(key, { name: g.studentName, nisn: g.nisn, className: g.className }); });
     const students = Array.from(map.values());
+
+    // FITUR PENGURUTAN ABJAD (A-Z) UNTUK KELOLA SISWA
+    students.sort((a, b) => a.name.localeCompare(b.name));
 
     tbody.innerHTML = students.map((s, i) => {
         const encN = encodeURIComponent(s.name); const encI = encodeURIComponent(s.nisn || ''); const encC = encodeURIComponent(s.className);
@@ -215,8 +233,8 @@ export function renderTableSiswa() {
                 <td class="p-3 font-mono text-gray-500 text-sm">${s.nisn || '-'}</td>
                 <td class="p-3 text-center"><span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 rounded-full uppercase">${s.className}</span></td>
                 <td class="p-3 text-right whitespace-nowrap">
-                    <button onclick="window.editSiswa('${encN}', '${encI}', '${encC}')" class="text-blue-500 hover:bg-blue-100 p-1.5 rounded mr-1"><i class="ph ph-pencil-simple text-lg"></i></button>
-                    <button onclick="window.deleteSiswa('${encN}', '${encI}', '${encC}')" class="text-red-500 hover:bg-red-100 p-1.5 rounded"><i class="ph ph-trash text-lg"></i></button>
+                    <button onclick="window.editSiswa('${encN}', '${encI}', '${encC}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mr-1"><i class="ph ph-pencil-simple text-lg"></i></button>
+                    <button onclick="window.deleteSiswa('${encN}', '${encI}', '${encC}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors"><i class="ph ph-trash text-lg"></i></button>
                 </td>
             </tr>`;
     }).join('') || `<tr><td colspan="5" class="p-8 text-center text-gray-400">Belum ada data siswa ditemukan pada kelas ini.</td></tr>`;
@@ -224,11 +242,12 @@ export function renderTableSiswa() {
 
 export function getDisplayData() {
     const appUser = getAppUser();
-    let d = gradesData.filter(g => g.tahun === getActiveTahun() && g.semester === getActiveSemester());
+    const thn = getActiveTahun();
+    const smt = getActiveSemester();
+
+    let d = gradesData.filter(g => g.tahun === thn && g.semester === smt);
     const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
     
-    // Guru Mapel biasa & Wali Kelas HANYA bisa lihat nilainya sendiri. 
-    // Wakasek Kurikulum dan Admin BISA melihat semuanya.
     if (appUser.role === 'guru' && !isWakasek) {
         d = d.filter(g => g.teacherName === appUser.username || g.teacherName === 'admin');
     }
@@ -237,6 +256,9 @@ export function getDisplayData() {
     if(selClass) d = d.filter(g => g.className === selClass);
     if(wFilter !== 'all') d = d.filter(g => g.teacherName === wFilter);
     if(searchQuery) d = d.filter(g => g.studentName.toLowerCase().includes(searchQuery));
+    
+    // FITUR PENGURUTAN ABJAD (A-Z) UNTUK TABEL INPUT NILAI
+    d.sort((a, b) => a.studentName.localeCompare(b.studentName));
     
     return d;
 }
@@ -249,20 +271,18 @@ export function renderTable() {
 
     if(!appUser || !tableCont || !gradesTbody) return;
 
-    const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
-
-    // Pengaturan Filter Dropdown Guru
     const filterGuruWrap = document.getElementById('filter-guru-wrapper');
     const filterGrid = document.getElementById('filter-grid');
+    const isWakasek = appUser.role === 'wakasek' || appUser.tugasTambahan === 'Wakasek Kurikulum';
+
     if (filterGuruWrap && filterGrid) {
-        // Hanya Admin & Wakasek yang bisa pakai filter guru
         if (appUser.role !== 'admin' && !isWakasek) {
-            filterGuruWrap.classList.add('hidden'); 
-            filterGrid.classList.remove('md:grid-cols-3'); 
+            filterGuruWrap.classList.add('hidden');
+            filterGrid.classList.remove('md:grid-cols-3');
             filterGrid.classList.add('md:grid-cols-2');
         } else {
-            filterGuruWrap.classList.remove('hidden'); 
-            filterGrid.classList.remove('md:grid-cols-2'); 
+            filterGuruWrap.classList.remove('hidden');
+            filterGrid.classList.remove('md:grid-cols-2');
             filterGrid.classList.add('md:grid-cols-3');
         }
     }
@@ -280,13 +300,11 @@ export function renderTable() {
     if(document.getElementById('badge-kelas')) document.getElementById('badge-kelas').textContent = selClass;
     if(document.getElementById('badge-mapel')) document.getElementById('badge-mapel').textContent = selSubject || 'Semua Mapel';
     
-    // PERBAIKAN PENTING: Wakasek Kurikulum memiliki akses Edit & Tools (Sama seperti Guru biasa)
     if(appUser.role !== 'admin') { 
         document.getElementById('weights-container')?.classList.remove('hidden'); 
         document.getElementById('guru-excel-actions')?.classList.remove('hidden'); 
         document.querySelectorAll('.guru-col').forEach(c => c.classList.remove('hidden'));
     } else {
-        // Admin hanya read-only di tabel input ini (jika sampai terbuka)
         document.getElementById('weights-container')?.classList.add('hidden'); 
         document.getElementById('guru-excel-actions')?.classList.add('hidden'); 
         document.querySelectorAll('.guru-col').forEach(c => c.classList.add('hidden'));
@@ -305,13 +323,12 @@ export function renderTable() {
             const naIcon = isRemedial ? '<i class="ph ph-warning-circle text-red-500 mr-1"></i>' : '';
             const bgA = 'bg-emerald-50/50 text-emerald-700 font-bold';
 
-            // Jika yang login adalah Admin (murni read-only)
             if(appUser.role === 'admin' && editGradeId !== item.id) {
                 html += `
                 <tr class="hover:bg-blue-50/50 border-b border-gray-100 transition-colors print:bg-white">
                     <td class="px-4 py-3 text-center text-gray-500 text-xs">${idx+1}</td>
                     <td class="px-4 py-3">
-                        <div class="font-bold text-gray-800">${item.studentName}</div>
+                        <div class="font-bold text-gray-800 uppercase">${item.studentName}</div>
                         <div class="text-[10px] text-gray-400 font-mono">${item.nisn||'-'}</div>
                         <div class="text-[9px] text-blue-500 font-bold uppercase mt-1">${item.teacherName} | ${item.subject}</div>
                     </td>
@@ -321,12 +338,11 @@ export function renderTable() {
                     <td class="px-4 py-3 text-center font-bold ${naColor} border-l border-gray-100">${naIcon}${finNum.toFixed(1)}</td>
                 </tr>`;
             } else {
-                // Spreadsheet UI untuk Guru, Wali Kelas, dan Wakasek Kurikulum
                 html += `
                 <tr data-id="${item.id}" class="hover:bg-blue-50/50 border-b border-gray-100 transition-colors print:bg-white">
                     <td class="px-4 py-3 text-center text-gray-500 text-xs">${idx+1}</td>
                     <td class="px-4 py-3">
-                        <div class="font-bold text-gray-800">${item.studentName}</div>
+                        <div class="font-bold text-gray-800 uppercase">${item.studentName}</div>
                         <div class="text-[10px] text-gray-400 font-mono">${item.nisn||'-'}</div>
                         ${isWakasek ? `<div class="text-[9px] text-blue-500 font-bold uppercase mt-1" title="Guru Pembuat Nilai">${item.teacherName}</div>` : ''}
                     </td>
