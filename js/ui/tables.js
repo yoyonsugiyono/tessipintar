@@ -1,6 +1,6 @@
 // File: js/ui/tables.js
 
-import { getAppUser, getActiveTahun, getActiveSemester } from '../services/auth.js';
+import { getAppUser, getActiveTahun, getActiveSemester, USERS_DB } from '../services/auth.js';
 import { getCalc, weights, ds } from '../services/db-grades.js';
 import { MASTER_CLASSES, MASTER_SUBJECTS, MASTER_TAHUN, DEFAULT_TAHUN } from '../services/db-master.js';
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -83,7 +83,7 @@ export function renderTableRekap() {
     const rankedStudents = [...students].sort((a, b) => b.total - a.total);
     rankedStudents.forEach((rs, i) => rs.rank = i + 1);
 
-    // FITUR PENGURUTAN ABJAD (A-Z) UNTUK LEDGER
+    // PENGURUTAN ABJAD (A-Z) UNTUK LEDGER
     students.sort((a, b) => a.name.localeCompare(b.name));
 
     let thHtml = `<tr>
@@ -147,7 +147,7 @@ window.exportRekapExcel = () => {
     students.sort((a, b) => b["Jumlah Nilai"] - a["Jumlah Nilai"]);
     students.forEach((s, i) => s["Peringkat Kelas"] = i + 1);
     
-    // FITUR PENGURUTAN ABJAD (A-Z) UNTUK EXPORT EXCEL
+    // PENGURUTAN ABJAD (A-Z) UNTUK EXPORT EXCEL
     students.sort((a, b) => a["Nama Siswa"].localeCompare(b["Nama Siswa"]));
 
     const ws = XLSX.utils.json_to_sheet(students);
@@ -170,6 +170,12 @@ export async function renderTableGuru() {
         const usersSnap = await getDocs(collection(db, 'users'));
         let usersList = [];
         usersSnap.forEach(doc => { usersList.push({ id: doc.id, ...doc.data() }); });
+
+        // FITUR BARU: Mengurutkan Daftar Guru berdasarkan Abjad (A-Z)
+        usersList.sort((a, b) => a.username.localeCompare(b.username));
+
+        USERS_DB.length = 0; 
+        usersList.forEach(u => USERS_DB.push(u));
 
         if (usersList.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400">Tidak ada data pengguna.</td></tr>'; return; }
 
@@ -221,7 +227,7 @@ export function renderTableSiswa() {
     clsData.forEach(g => { const key = g.studentName + "_" + (g.nisn||'') + "_" + g.className; if(!map.has(key)) map.set(key, { name: g.studentName, nisn: g.nisn, className: g.className }); });
     const students = Array.from(map.values());
 
-    // FITUR PENGURUTAN ABJAD (A-Z) UNTUK KELOLA SISWA
+    // PENGURUTAN ABJAD (A-Z) UNTUK KELOLA SISWA
     students.sort((a, b) => a.name.localeCompare(b.name));
 
     tbody.innerHTML = students.map((s, i) => {
@@ -257,7 +263,7 @@ export function getDisplayData() {
     if(wFilter !== 'all') d = d.filter(g => g.teacherName === wFilter);
     if(searchQuery) d = d.filter(g => g.studentName.toLowerCase().includes(searchQuery));
     
-    // FITUR PENGURUTAN ABJAD (A-Z) UNTUK TABEL INPUT NILAI
+    // PENGURUTAN ABJAD (A-Z) UNTUK TABEL INPUT NILAI
     d.sort((a, b) => a.studentName.localeCompare(b.studentName));
     
     return d;
