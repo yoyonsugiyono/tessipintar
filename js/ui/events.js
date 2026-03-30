@@ -124,6 +124,50 @@ export function setupUIEvents() {
         modal.classList.remove('hidden'); modal.classList.add('flex');
     };
 
+    // ---------------------------------------------------------
+    // FITUR EXPORT EXCEL & FORMAT NILAI (BARU DITAMBAHKAN)
+    // ---------------------------------------------------------
+    const exportNilaiToExcel = (isTemplate) => {
+        if (!selClass || !selSubject) return alert("Pilih Kelas dan Mata Pelajaran terlebih dahulu.");
+        
+        const dataDisplay = getDisplayData();
+        if (dataDisplay.length === 0) return alert("Belum ada data siswa di kelas ini. Harap Admin/Wali Kelas mengimpor daftar siswa terlebih dahulu.");
+
+        const exportData = dataDisplay.map((item, index) => {
+            return {
+                "No": index + 1,
+                "ID_SISTEM (JANGAN DIUBAH)": item.id,
+                "Nama Siswa": item.studentName,
+                "NISN": item.nisn || "-",
+                "F1": isTemplate ? "" : ds(item.scores.f1),
+                "F2": isTemplate ? "" : ds(item.scores.f2),
+                "F3": isTemplate ? "" : ds(item.scores.f3),
+                "T1": isTemplate ? "" : ds(item.scores.t1),
+                "T2": isTemplate ? "" : ds(item.scores.t2),
+                "T3": isTemplate ? "" : ds(item.scores.t3),
+                "ASAJ": isTemplate ? "" : ds(item.scores.asaj),
+                "NA (Otomatis)": isTemplate ? "" : getCalc(item.scores).final
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Input_Nilai");
+        
+        const fileName = isTemplate 
+            ? `Format_Input_Nilai_${selClass}_${selSubject}.xlsx`
+            : `Data_Nilai_${selClass}_${selSubject}.xlsx`;
+
+        XLSX.writeFile(wb, fileName);
+    };
+
+    const btnTemplateNilai = document.getElementById('btn-template-nilai');
+    if (btnTemplateNilai) btnTemplateNilai.onclick = () => exportNilaiToExcel(true);
+
+    const btnExportExcel = document.getElementById('btn-export-excel');
+    if (btnExportExcel) btnExportExcel.onclick = () => exportNilaiToExcel(false);
+
+
     // 4. FORM TAMBAH / EDIT MANUAL (SISTEM ANTI-DUPLIKAT)
     const gradeForm = document.getElementById('grade-form');
     if(gradeForm) {
@@ -136,7 +180,6 @@ export function setupUIEvents() {
             const studentName = document.getElementById('in-name').value.trim();
             const nisn = document.getElementById('in-nisn').value.trim();
 
-            // CEK ANTI-DUPLIKAT (Jika data baru, bukan mode edit)
             if (!editGradeId) {
                 const isDuplicate = gradesData.some(g => 
                     g.tahun === getActiveTahun() && 
@@ -148,7 +191,7 @@ export function setupUIEvents() {
 
                 if (isDuplicate) {
                     alert(`Gagal menyimpan! Siswa bernama "${studentName}" sudah ada di daftar nilai mapel ${selSubject} kelas ${selClass}.\n\nSilakan edit baris nilai yang sudah ada di tabel.`);
-                    return; // Batalkan proses save
+                    return; 
                 }
             }
 
@@ -169,6 +212,7 @@ export function setupUIEvents() {
         };
     }
 
+    // 5. IMPORT EXCEL NILAI
     const importXlsxNilai = document.getElementById('import-xlsx-nilai');
     if (importXlsxNilai) {
         importXlsxNilai.onchange = (e) => {
@@ -189,13 +233,14 @@ export function setupUIEvents() {
                     }
                     await writeLog("IMPORT_NILAI_EXCEL", `Guru memperbarui ${count} data nilai untuk mapel ${selSubject} kelas ${selClass}.`);
                     alert(`Berhasil memperbarui ${count} data nilai.`); renderTable();
-                } catch(err) { alert("Format file Excel tidak sesuai."); }
+                } catch(err) { alert("Format file Excel tidak sesuai. Harap gunakan Format yang diunduh dari aplikasi."); }
                 e.target.value = null;
             };
             reader.readAsArrayBuffer(file);
         };
     }
 
+    // 6. DELEGASI EVENT TABEL (AUTO-SAVE)
     const gradesTbody = document.getElementById('grades-tbody');
     if(gradesTbody) {
         gradesTbody.addEventListener('input', (e) => {
